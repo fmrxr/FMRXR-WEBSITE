@@ -17,5 +17,8 @@ export async function saveSettings(input: unknown) {
   const existing = await supabase.from("site_settings").select("id").limit(1).single();
   if (existing.data) await supabase.from("site_settings").update(parsed).eq("id", existing.data.id);
   else await supabase.from("site_settings").insert(parsed);
-  revalidatePath("/"); revalidatePath("/admin/settings");
+  // Settings show on the home, about, contact and llms.txt pages.
+  for (const p of ["/", "/about", "/contact", "/llms.txt", "/sitemap.xml", "/admin/settings"]) {
+    revalidatePath(p);
+  }
 }
