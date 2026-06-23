@@ -2,5 +2,12 @@
   command = "npm run build"
   publish = ".next"
 
+[build.environment]
+  # These NEXT_PUBLIC_* values are public by design (inlined into the client
+  # bundle and protected by Supabase RLS), so exclude them from Netlify's
+  # secrets scanner. The real secret (SUPABASE_SERVICE_ROLE_KEY) is server-only
+  # and intentionally NOT listed here, so it stays scanned.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
