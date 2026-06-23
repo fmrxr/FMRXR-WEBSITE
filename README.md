@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FMRXR Web — Phase 1
 
-## Getting Started
+Next.js 16 (App Router) + Supabase (Postgres / Auth / Storage) admin CMS and public site.
+All FMRXR content is managed from `/admin`; public pages render it live (RLS-protected).
 
-First, run the development server:
+## Stack
+
+- **Frontend:** Next.js 16, React 19 (RSC + Server Actions), TypeScript, Tailwind v4, shadcn/Base-UI, Zod.
+- **Backend:** hosted Supabase — Postgres + Auth (email/password) + Storage (`media` bucket).
+- **Hosting:** Netlify (`netlify.toml` + `@netlify/plugin-nextjs`).
+
+## Local development
 
 ```bash
+npm install
+cp .env.local.example .env.local   # then fill in the three values below
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` (git-ignored — never commit it):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+SUPABASE_SERVICE_ROLE_KEY=<service_role key>
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Database setup (hosted Supabase, no Docker)
 
-## Learn More
+1. Create a project at [supabase.com](https://supabase.com) (region near Tunis, e.g. Frankfurt).
+2. Copy URL + anon key + service_role key (Project Settings → API) into `.env.local`, and note the project `ref`.
+3. Apply the migrations (schema, RLS, storage, seed):
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npx supabase link --project-ref <ref>
+npx supabase db push
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This creates all tables, the `has_role()` function, RLS policies, the first-user-admin
+trigger, the `media` storage bucket, and seeds the FMRXR content.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## First admin
 
-## Deploy on Vercel
+After deploy (or locally), sign up at `/auth` with `fmrxr.studio@gmail.com`. The
+`grant_first_admin` trigger auto-promotes the **first** signed-up user to `admin`.
+Additional teammates are invited from `/admin/team` (admin role only).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tests
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm test                                   # pure unit tests (schemas, roles, registry)
+npx dotenv -e .env.local -- npm test       # includes DB tests (RLS / write-guard) once .env.local is set
+```
+
+## Deploy to Netlify
+
+1. Push this `fmrxr-web/` repo to GitHub.
+2. In Netlify: connect the repo (build settings come from `netlify.toml`).
+3. Set the three env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`) in **Site settings → Environment variables**.
+4. Deploy, then claim the admin account at `/auth`.
+
+## Phase 2 (not built)
+
+Interactive-experiences engine (live WebGL/GLSL/p5/TouchDesigner-export, sandboxed
+embeds, scroll/cursor-reactive wrapper), media performance tiers + transcoding, full
+GEO entity graph + `VideoObject`. `/experiential` currently ships as a placeholder.
