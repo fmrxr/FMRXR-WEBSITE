@@ -11,12 +11,13 @@ import { Dropzone } from "./Dropzone";
 import { StringListField } from "./StringListField";
 import { ParagraphsField } from "./ParagraphsField";
 import { GalleryField } from "./GalleryField";
-import type { EntityConfig } from "@/lib/entities";
+import { ENTITIES } from "@/lib/entities";
 import { createEntity, updateEntity } from "@/app/actions/crud";
 
-export function EntityForm({ config, initial, id }: {
-  config: EntityConfig; initial: Record<string, any>; id?: string;
+export function EntityForm({ entityKey, initial, id }: {
+  entityKey: string; initial: Record<string, any>; id?: string;
 }) {
+  const config = ENTITIES[entityKey];
   const router = useRouter();
   const [data, setData] = useState<Record<string, any>>(initial);
   const set = (k: string, v: any) => setData((d) => ({ ...d, [k]: v }));

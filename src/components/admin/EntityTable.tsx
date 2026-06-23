@@ -3,10 +3,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import type { EntityConfig } from "@/lib/entities";
+import { ENTITIES } from "@/lib/entities";
 import { deleteEntity, reorderEntity } from "@/app/actions/crud";
 
-export function EntityTable({ config, rows }: { config: EntityConfig; rows: any[] }) {
+export function EntityTable({ entityKey, rows }: { entityKey: string; rows: any[] }) {
+  const config = ENTITIES[entityKey];
   const router = useRouter();
   async function remove(id: string) {
     if (!confirm("Delete this item?")) return;
