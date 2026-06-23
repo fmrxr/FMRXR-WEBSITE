@@ -6,6 +6,29 @@ import { ENTITIES } from "./entities";
 
 const WRITE_ROLES: Role[] = ["admin", "editor"];
 
+// Public routes that depend on each entity. Note articles surface at /journal,
+// and stack/clients only appear on aggregate pages (home/about), not a list route.
+const PUBLIC_ROUTES: Record<string, string[]> = {
+  projects: ["/projects", "/projects/[slug]"],
+  services: ["/services", "/services/[slug]"],
+  industries: ["/industries", "/industries/[slug]"],
+  articles: ["/journal", "/journal/[slug]"],
+  stack: [],
+  clients: [],
+};
+
+// Invalidate every cached page that reflects this entity so dashboard edits
+// show up immediately: the home (aggregates projects/services/clients), the
+// sitemap, the admin list, and the entity's public list + detail routes.
+function revalidateEntity(entityKey: string) {
+  revalidatePath("/");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/admin/" + entityKey);
+  for (const route of PUBLIC_ROUTES[entityKey] ?? []) {
+    revalidatePath(route, "page");
+  }
+}
+
 export async function listRows(entityKey: string) {
   const cfg = ENTITIES[entityKey];
   const supabase = await getSupabaseServer();
@@ -29,8 +52,7 @@ export async function createRow(entityKey: string, input: unknown) {
   const supabase = await getSupabaseServer();
   const { error } = await supabase.from(cfg.table).insert(parsed);
   if (error) throw error;
-  revalidatePath("/" + cfg.key);
-  revalidatePath("/admin/" + cfg.key);
+  revalidateEntity(cfg.key);
 }
 
 export async function updateRow(entityKey: string, id: string, input: unknown) {
@@ -40,8 +62,7 @@ export async function updateRow(entityKey: string, id: string, input: unknown) {
   const supabase = await getSupabaseServer();
   const { error } = await supabase.from(cfg.table).update(parsed).eq("id", id);
   if (error) throw error;
-  revalidatePath("/" + cfg.key);
-  revalidatePath("/admin/" + cfg.key);
+  revalidateEntity(cfg.key);
 }
 
 export async function deleteRow(entityKey: string, id: string) {
@@ -50,8 +71,7 @@ export async function deleteRow(entityKey: string, id: string) {
   const supabase = await getSupabaseServer();
   const { error } = await supabase.from(cfg.table).delete().eq("id", id);
   if (error) throw error;
-  revalidatePath("/" + cfg.key);
-  revalidatePath("/admin/" + cfg.key);
+  revalidateEntity(cfg.key);
 }
 
 export async function reorderRows(entityKey: string, ids: string[]) {
@@ -61,6 +81,5 @@ export async function reorderRows(entityKey: string, ids: string[]) {
   await Promise.all(
     ids.map((id, i) => supabase.from(cfg.table).update({ sort_order: i }).eq("id", id)),
   );
-  revalidatePath("/" + cfg.key);
-  revalidatePath("/admin/" + cfg.key);
+  revalidateEntity(cfg.key);
 }
