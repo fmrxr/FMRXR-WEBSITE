@@ -10,6 +10,17 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
+  /* FMRXR brand palette (Brand Guidelines V1) */
+  --color-fmbg: #0d0c14;
+  --color-fmfg: #f5f5f8;
+  --color-fmmuted: #7b7a8e;
+  --color-fmaccent: #7bef7b;
+  --color-fmprimary: #4d9fff;
+  --color-fmborder: #1e1b2c;
+  --color-fmcard: #111019;
+  --color-fmmutedbg: #181620;
+  --font-display: var(--font-geist-sans);
+  --font-grotesk: var(--font-space-grotesk);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -128,3 +139,72 @@
     @apply font-sans;
   }
 }
+
+/* ============================================================
+   FMRXR brand shell — applied to the public site via .fm
+   Dark-first (#0d0c14), Geist Mono body, Geist display headings.
+   ============================================================ */
+.fm {
+  background-color: var(--color-fmbg);
+  color: var(--color-fmfg);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/* Subtle structural atmosphere: faint grid + top-vignette glow.
+   Not decorative noise — a quiet generative substrate. */
+.fm-canvas::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(120% 80% at 50% -10%, rgba(123, 239, 123, 0.06), transparent 55%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 100% 100%, 72px 72px, 72px 72px;
+  mask-image: linear-gradient(to bottom, black, black 60%, transparent);
+}
+
+/* Film grain overlay */
+.fm-canvas::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.fm-display {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.fm-grotesk { font-family: var(--font-space-grotesk), var(--font-geist-sans), sans-serif; }
+
+/* Staggered entrance */
+@keyframes fm-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fm-rise { animation: fm-rise 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-rise { animation: none; }
+}
+
+/* Work-row hover: arrow slides, title brightens */
+.fm-row { transition: background-color 0.25s ease; }
+.fm-row .fm-arrow { transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), color 0.25s ease; }
+.fm-row:hover .fm-arrow { transform: translateX(6px); color: var(--color-fmaccent); }
+.fm-row:hover { background-color: rgba(255, 255, 255, 0.02); }
+.fm-link { transition: color 0.2s ease; }
+.fm-link:hover { color: var(--color-fmaccent); }
