@@ -50,6 +50,13 @@ export function Header() {
             Start a project{" "}
             <span className="text-fmaccent transition-transform group-hover:translate-x-0.5 inline-block">→</span>
           </Link>
+          <span className="h-3 w-px bg-fmborder" aria-hidden />
+          <Link
+            href="/auth"
+            className="fm-link text-[11px] uppercase tracking-[0.12em] text-fmmuted/70"
+          >
+            Login
+          </Link>
         </nav>
 
         <button
@@ -63,7 +70,7 @@ export function Header() {
 
       {open && (
         <nav className="flex flex-col gap-1 border-t border-fmborder bg-[#0d0c14] px-5 py-4 md:hidden">
-          {[...NAV, ["Contact", "/contact"] as [string, string]].map(([label, href]) => (
+          {[...NAV, ["Contact", "/contact"] as [string, string], ["Login", "/auth"] as [string, string]].map(([label, href]) => (
             <Link
               key={href}
               href={href}
