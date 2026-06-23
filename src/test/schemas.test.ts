@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { projectSchema, slug } from "@/lib/schemas";
+import { projectSchema, articleSchema, slug } from "@/lib/schemas";
 
 describe("schemas", () => {
   it("accepts a valid slug", () => {
@@ -13,5 +13,19 @@ describe("schemas", () => {
   });
   it("accepts a minimal project", () => {
     expect(projectSchema.safeParse({ slug: "x", title: "X" }).success).toBe(true);
+  });
+  it("coerces null DB columns to empty strings (edit path)", () => {
+    const r = projectSchema.safeParse({
+      slug: "lik", title: "LIK", client: "Rawdha", location: null,
+      description: null, gradient: null, cover_url: null,
+      role: [], stack: [], tags: [], gallery: [], sort_order: 1, published: true,
+    });
+    expect(r.success).toBe(true);
+    if (r.success) { expect(r.data.location).toBe(""); expect(r.data.cover_url).toBe(""); }
+  });
+  it("maps empty article date to null (date column safe)", () => {
+    const r = articleSchema.safeParse({ slug: "a", title: "A", date: "", body: [] });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.date).toBeNull();
   });
 });

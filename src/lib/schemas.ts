@@ -1,57 +1,65 @@
 import { z } from "zod";
 
 export const slug = z.string().regex(/^[a-z0-9-]+$/, "lowercase, digits, hyphens only").max(80);
-const text = (max = 280) => z.string().max(max);
-const url = z.string().url().or(z.literal(""));
+
+// Optional text/url fields: DB columns are nullable, so rows come back with `null`
+// for empty values. Coerce null/undefined -> "" before validating so editing an
+// existing row (with nulls) doesn't fail with "expected string, received null".
+const otext = (max = 280) => z.preprocess((v) => (v == null ? "" : v), z.string().max(max));
+const ourl = z.preprocess((v) => (v == null ? "" : v), z.string().url().or(z.literal("")));
+const oemail = z.preprocess((v) => (v == null ? "" : v), z.string().email().or(z.literal("")));
+const arr = <T extends z.ZodTypeAny>(item: T) =>
+  z.preprocess((v) => (v == null ? [] : v), z.array(item));
 
 export const galleryItem = z.object({
   url: z.string().url(),
-  alt: text(180).default(""),
-  caption: text(280).default(""),
+  alt: otext(180),
+  caption: otext(280),
 });
 
 export const projectSchema = z.object({
   slug, title: z.string().min(1).max(120),
-  client: text(120).optional().default(""),
-  year: text(12).optional().default(""),
-  category: text(80).optional().default(""),
-  location: text(120).optional().default(""),
-  summary: text(280).optional().default(""),
-  description: z.string().max(4000).optional().default(""),
-  role: z.array(text(80)).default([]),
-  stack: z.array(text(80)).default([]),
-  tags: z.array(text(40)).default([]),
-  gradient: text(120).optional().default(""),
-  cover_url: url.optional().default(""),
-  gallery: z.array(galleryItem).default([]),
+  client: otext(120),
+  year: otext(12),
+  category: otext(80),
+  location: otext(120),
+  summary: otext(280),
+  description: otext(4000),
+  role: arr(otext(80)),
+  stack: arr(otext(80)),
+  tags: arr(otext(40)),
+  gradient: otext(120),
+  cover_url: ourl,
+  gallery: arr(galleryItem),
   sort_order: z.number().int().default(0),
   published: z.boolean().default(false),
 });
 
 export const serviceSchema = z.object({
   slug, title: z.string().min(1).max(120),
-  short: text(200).optional().default(""),
-  description: z.string().max(4000).optional().default(""),
-  outcomes: z.array(text(160)).default([]),
+  short: otext(200),
+  description: otext(4000),
+  outcomes: arr(otext(160)),
   sort_order: z.number().int().default(0),
   published: z.boolean().default(false),
 });
 
 export const industrySchema = z.object({
   slug, name: z.string().min(1).max(120),
-  note: text(280).optional().default(""),
+  note: otext(280),
   sort_order: z.number().int().default(0),
   published: z.boolean().default(false),
 });
 
 export const articleSchema = z.object({
   slug, title: z.string().min(1).max(160),
-  category: text(80).optional().default(""),
-  excerpt: text(320).optional().default(""),
-  body: z.array(z.string().max(4000)).default([]),
-  cover_url: url.optional().default(""),
-  date: z.string().optional().default(""),
-  read_time: text(20).optional().default(""),
+  category: otext(80),
+  excerpt: otext(320),
+  body: arr(otext(4000)),
+  cover_url: ourl,
+  // `date` is a real Postgres date column: empty must be null, not "".
+  date: z.preprocess((v) => (v === "" || v == null ? null : v), z.string().max(20).nullable()),
+  read_time: otext(20),
   sort_order: z.number().int().default(0),
   published: z.boolean().default(false),
 });
@@ -68,18 +76,21 @@ export const clientSchema = z.object({
 
 export const settingsSchema = z.object({
   name: z.string().min(1).max(120),
-  tagline: text(160).optional().default(""),
-  description: text(280).optional().default(""),
-  email: z.string().email().or(z.literal("")),
-  phone: text(40).optional().default(""),
-  location: text(120).optional().default(""),
-  founder: text(120).optional().default(""),
-  artist_alias: text(120).optional().default(""),
-  socials: z.object({
-    instagram: text(80).optional().default(""),
-    tiktok: text(80).optional().default(""),
-    linkedin: text(80).optional().default(""),
-    x: text(80).optional().default(""),
-    web: text(120).optional().default(""),
-  }).default({ instagram: "", tiktok: "", linkedin: "", x: "", web: "" }),
+  tagline: otext(160),
+  description: otext(280),
+  email: oemail,
+  phone: otext(40),
+  location: otext(120),
+  founder: otext(120),
+  artist_alias: otext(120),
+  socials: z.preprocess(
+    (v) => (v == null ? {} : v),
+    z.object({
+      instagram: otext(80),
+      tiktok: otext(80),
+      linkedin: otext(80),
+      x: otext(80),
+      web: otext(120),
+    }),
+  ),
 });
