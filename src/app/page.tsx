@@ -29,10 +29,10 @@ export default async function Home() {
             <span className="text-fmaccent">●</span>&nbsp; Available for projects — Tunis, TN&nbsp; /&nbsp; Since 2017
           </p>
 
-          <h1 className="fm-display fm-rise mt-8 text-[clamp(3rem,11vw,9.5rem)] text-fmfg" style={{ animationDelay: "80ms" }}>
+          <h1 className="fm-display fm-glass-text fm-rise mt-8 text-[clamp(3rem,11vw,9.5rem)]" style={{ animationDelay: "80ms" }}>
             Creative
             <br />
-            Tech<span className="text-fmmuted">nology</span>
+            Technology
           </h1>
 
           <div className="fm-rise mt-10 grid gap-8 md:grid-cols-[1.3fr_1fr]" style={{ animationDelay: "160ms" }}>
