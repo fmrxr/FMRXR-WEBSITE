@@ -24,8 +24,8 @@ export function Header() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300 ${
-        scrolled ? "border-fmborder bg-[#0d0c14]/85 backdrop-blur-md" : "border-transparent"
+      className={`fixed inset-x-0 top-0 z-50 border-b backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 supports-[backdrop-filter]:bg-[#0d0c14]/45 ${
+        scrolled ? "border-fmborder/70 bg-[#0d0c14]/65" : "border-white/5 bg-[#0d0c14]/30"
       }`}
     >
       <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-4 md:px-8">
