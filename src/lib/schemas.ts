@@ -93,4 +93,6 @@ export const settingsSchema = z.object({
       web: otext(120),
     }),
   ),
+  // Hero background video slider — list of clips (mp4/webm URL + optional poster).
+  hero_media: arr(z.object({ url: ourl, poster: ourl })),
 });

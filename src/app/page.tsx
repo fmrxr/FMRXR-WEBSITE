@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPublished, getAll, getSiteSettings } from "@/lib/public-data";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { HeroVideo } from "@/components/site/HeroVideo";
 
 export const revalidate = 60;
 
@@ -17,6 +18,8 @@ export default async function Home() {
   ]);
 
   const work = projects.slice(0, 6);
+  const heroClips = (settings.hero_media ?? []).filter((c) => c?.url);
+  const hasHeroVideo = heroClips.length > 0;
 
   return (
     <div className="fm fm-canvas min-h-dvh">
@@ -24,7 +27,12 @@ export default async function Home() {
 
       <main className="relative z-10">
         {/* ===== HERO ===== */}
-        <section className="mx-auto max-w-[1200px] px-5 pt-36 pb-20 md:px-8 md:pt-44 md:pb-28">
+        <section className={`relative overflow-hidden ${hasHeroVideo ? "flex min-h-dvh flex-col justify-end" : ""}`}>
+          {hasHeroVideo && <HeroVideo clips={heroClips} />}
+          {hasHeroVideo && (
+            <div className="absolute inset-0 z-10 bg-gradient-to-b from-[#0d0c14]/60 via-[#0d0c14]/30 to-[#0d0c14]" />
+          )}
+          <div className={`relative z-20 mx-auto w-full max-w-[1200px] px-5 md:px-8 ${hasHeroVideo ? "pb-16 pt-32 md:pb-20 md:pt-40" : "pt-36 pb-20 md:pt-44 md:pb-28"}`}>
           <p className="fm-rise text-[11px] uppercase tracking-[0.15em] text-fmmuted" style={{ animationDelay: "0ms" }}>
             <span className="text-fmaccent">●</span>&nbsp; Available for projects — Tunis, TN&nbsp; /&nbsp; Since 2017
           </p>
@@ -71,6 +79,7 @@ export default async function Home() {
               </div>
             ))}
           </dl>
+          </div>
         </section>
 
         {/* ===== SELECTED WORK ===== */}

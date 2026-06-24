@@ -14,6 +14,7 @@ export interface SiteSettings {
   name: string; tagline?: string; description?: string; email?: string; phone?: string;
   location?: string; founder?: string; artist_alias?: string;
   socials: { instagram?: string; tiktok?: string; linkedin?: string; x?: string; web?: string };
+  hero_media?: { url: string; poster?: string }[];
 }
 
 export const SITE: SiteSettings = {
