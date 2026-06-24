@@ -17,7 +17,6 @@ export default async function Home() {
     getPublished("articles"),
   ]);
 
-  const work = projects.slice(0, 6);
   const heroClips = (settings.hero_media ?? []).filter((c) => c?.url);
   const hasHeroVideo = heroClips.length > 0;
 
@@ -37,13 +36,9 @@ export default async function Home() {
             <span className="text-fmaccent">●</span>&nbsp; Available for projects — Tunis, TN&nbsp; /&nbsp; Since 2017
           </p>
 
-          <h1 className={`fm-display fm-rise mt-8 text-[clamp(3rem,11vw,9.5rem)] ${hasHeroVideo ? "fm-glass-see" : "fm-glass-text"}`} style={{ animationDelay: "80ms" }}>
-            Creative
-            <br />
-            Technology
-          </h1>
+          <h1 className="sr-only">FMRXR — Creative Technology</h1>
 
-          <div className="fm-rise mt-10 grid gap-8 md:grid-cols-[1.3fr_1fr]" style={{ animationDelay: "160ms" }}>
+          <div className="fm-rise mt-8 grid gap-8 md:grid-cols-[1.3fr_1fr]" style={{ animationDelay: "120ms" }}>
             <p className="fm-grotesk max-w-xl text-base leading-relaxed text-fmfg/85 md:text-lg">
               Immersive systems, generative worlds, real-time AI art and marketing automation.
             </p>
@@ -69,65 +64,75 @@ export default async function Home() {
 
         {/* ===== SELECTED WORK ===== */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-          <SectionHeader index="S/01" title="Selected Work" href="/projects" cta="All projects" />
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {work.map((p: any, i: number) => (
-              <Link key={p.id} href={`/projects/${p.slug}`} className="group block">
-                <div className="relative aspect-[4/3] overflow-hidden border border-fmborder bg-fmmutedbg">
-                  {p.cover_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={p.cover_url}
-                      alt={p.title}
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <span className="fm-display text-6xl text-white/5">{pad(i + 1)}</span>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                  <span className="absolute right-4 top-4 fm-arrow text-lg text-fmfg opacity-0 transition-opacity group-hover:opacity-100">→</span>
-                  <div className="absolute inset-x-0 bottom-0 p-5">
-                    <span className="text-[10px] tabular-nums text-fmmuted">{pad(i + 1)}</span>
-                    <h3 className="fm-display mt-1 text-xl text-fmfg md:text-2xl">{p.title}</h3>
+          <SectionHeader index="S/01" title="Real systems, shipped under live conditions." href="/projects" cta="All projects" />
+          <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+            <div className="fm-marquee flex w-max gap-4">
+              {[...projects, ...projects].map((p: any, idx: number) => (
+                <Link
+                  key={idx}
+                  href={`/projects/${p.slug}`}
+                  className="fm-glass-card group block w-72 shrink-0 overflow-hidden rounded-xl"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    {p.cover_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.cover_url}
+                        alt={p.title}
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-fmmutedbg">
+                        <span className="fm-display text-6xl text-white/5">{pad((idx % projects.length) + 1)}</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="fm-display text-base text-fmfg">{p.title}</h3>
                     <p className="mt-1 text-[10px] uppercase tracking-[0.1em] text-fmmuted">
                       {[p.client, p.year, p.category].filter(Boolean).join(" · ")}
                     </p>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* ===== CAPABILITIES ===== */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-          <SectionHeader index="S/02" title="Services" href="/services" cta="All services" />
-          <div className="mt-10 grid gap-px overflow-hidden border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((s: any, i: number) => (
-              <Link
-                key={s.id}
-                href={`/services/${s.slug}`}
-                className="group bg-fmcard p-6 transition-colors hover:bg-fmmutedbg"
-              >
-                <span className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">S/{pad(i + 1)}</span>
-                <h3 className="fm-display mt-3 text-lg text-fmfg">{s.title}</h3>
-                <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{s.short}</p>
-              </Link>
-            ))}
+          <SectionHeader index="S/02" title="One studio, Fullstack Brand Activation." href="/services" cta="All services" />
+          <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+            <div className="fm-marquee-rev flex w-max gap-3">
+              {[...services, ...services].map((s: any, idx: number) => (
+                <Link
+                  key={idx}
+                  href={`/services/${s.slug}`}
+                  className="fm-glass-card group flex items-baseline gap-2 whitespace-nowrap rounded-full px-5 py-2.5"
+                >
+                  <span className="text-[10px] tracking-[0.1em] text-fmmuted">S/{pad((idx % services.length) + 1)}</span>
+                  <span className="fm-display text-sm text-fmfg/80">{s.title}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* ===== CLIENTS ===== */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-          <SectionHeader index="S/03" title="Selected Clients" />
-          <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4">
-            {clients.map((c: any) => (
-              <span key={c.id} className="fm-display text-xl text-fmfg/55 transition-colors hover:text-fmfg md:text-2xl">
-                {c.name}
-              </span>
-            ))}
+          <SectionHeader index="S/03" title="Trusted by leaders" />
+          <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+            <div className="fm-marquee flex w-max gap-3">
+              {[...clients, ...clients].map((c: any, idx: number) => (
+                <span
+                  key={idx}
+                  className="fm-glass-card whitespace-nowrap rounded-full px-5 py-2.5"
+                >
+                  <span className="fm-display text-sm text-fmfg/80">{c.name}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -135,11 +140,15 @@ export default async function Home() {
         {articles.length > 0 && (
           <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
             <SectionHeader index="S/04" title="Journal" href="/journal" cta="All entries" />
-            <ul className="mt-10 grid gap-4 md:grid-cols-3">
-              {articles.slice(0, 3).map((a: any) => (
-                <li key={a.id}>
-                  <Link href={`/journal/${a.slug}`} className="group flex h-full flex-col border border-fmborder bg-fmcard transition-colors hover:bg-fmmutedbg">
-                    <div className="relative aspect-[16/9] overflow-hidden bg-fmmutedbg">
+            <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+              <div className="fm-marquee-rev flex w-max gap-4">
+                {[...articles, ...articles].map((a: any, idx: number) => (
+                  <Link
+                    key={idx}
+                    href={`/journal/${a.slug}`}
+                    className="fm-glass-card group block w-80 shrink-0 overflow-hidden rounded-xl"
+                  >
+                    <div className="relative aspect-[16/9] overflow-hidden">
                       {a.cover_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -148,22 +157,21 @@ export default async function Home() {
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center border-b border-fmborder">
+                        <div className="flex h-full w-full items-center justify-center bg-fmmutedbg">
                           <span className="fm-display text-3xl text-white/5">FMRXR//</span>
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-1 flex-col p-6">
+                    <div className="p-4">
                       <span className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">
                         {[a.category, a.read_time].filter(Boolean).join(" · ")}
                       </span>
-                      <h3 className="fm-grotesk mt-3 text-lg font-medium leading-snug text-fmfg">{a.title}</h3>
-                      <p className="mt-2 text-[13px] leading-relaxed text-fmmuted">{a.excerpt}</p>
+                      <h3 className="fm-grotesk mt-2 text-base font-medium leading-snug text-fmfg">{a.title}</h3>
                     </div>
                   </Link>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+            </div>
           </section>
         )}
 
