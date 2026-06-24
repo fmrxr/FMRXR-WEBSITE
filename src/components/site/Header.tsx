@@ -29,8 +29,13 @@ export function Header() {
       }`}
     >
       <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-4 md:px-8">
-        <Link href="/" className="fm-display text-base tracking-[0.04em] text-fmfg">
-          FMRXR<span className="text-fmaccent">//</span>
+        <Link href="/" className="group flex items-baseline gap-2.5" aria-label="FMRXR — Creative Technology">
+          <span className="fm-display text-base tracking-[0.04em] text-fmfg">
+            FMRXR<span className="text-fmaccent">//</span>
+          </span>
+          <span className="hidden text-[9px] uppercase tracking-[0.22em] text-fmmuted sm:inline">
+            Creative Technology
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
