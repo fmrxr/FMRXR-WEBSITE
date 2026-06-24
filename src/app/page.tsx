@@ -45,9 +45,7 @@ export default async function Home() {
 
           <div className="fm-rise mt-10 grid gap-8 md:grid-cols-[1.3fr_1fr]" style={{ animationDelay: "160ms" }}>
             <p className="fm-grotesk max-w-xl text-base leading-relaxed text-fmfg/85 md:text-lg">
-              We design immersive experiences at the intersection of art, technology and brand.
-              TouchDesigner-first, hardware-aware, editorially rigorous. Every project is treated
-              as a living system that must survive live conditions.
+              Immersive systems, generative worlds, real-time AI art and marketing automation.
             </p>
             <div className="flex flex-col items-start gap-4 md:items-end md:justify-end">
               <Link
@@ -66,19 +64,6 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* meta row */}
-          <dl className="fm-rise mt-16 grid grid-cols-1 gap-px overflow-hidden rounded border border-fmborder bg-fmborder sm:grid-cols-3" style={{ animationDelay: "240ms" }}>
-            {[
-              ["Studio", "FMRXR//"],
-              ["Based", "Tunis, Tunisie · Miami 2027"],
-              ["Discipline", "Immersive / XR / Live A/V"],
-            ].map(([label, value]) => (
-              <div key={label} className="bg-fmbg p-5">
-                <dt className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">{label}</dt>
-                <dd className="fm-grotesk mt-2 text-sm text-fmfg">{value}</dd>
-              </div>
-            ))}
-          </dl>
           </div>
         </section>
 

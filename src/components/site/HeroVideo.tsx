@@ -7,31 +7,31 @@ type Clip = { url: string; poster?: string };
 export function HeroVideo({ clips }: { clips: Clip[] }) {
   const valid = (clips ?? []).filter((c) => c?.url);
   const [i, setI] = useState(0);
-  const [reduced, setReduced] = useState(false);
   const refs = useRef<(HTMLVideoElement | null)[]>([]);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = () => setReduced(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  useEffect(() => {
-    if (reduced || valid.length <= 1) return;
-    const t = setInterval(() => setI((p) => (p + 1) % valid.length), 9000);
-    return () => clearInterval(t);
-  }, [reduced, valid.length]);
-
-  useEffect(() => {
-    if (reduced) return;
+  // Force muted + inline as DOM properties (React's `muted` attribute alone
+  // isn't always honored, which blocks autoplay on iOS/Chrome), then play.
+  const playActive = () => {
     refs.current.forEach((v, idx) => {
       if (!v) return;
+      v.muted = true;
+      v.defaultMuted = true;
+      v.playsInline = true;
       if (idx === i) v.play().catch(() => {});
       else v.pause();
     });
-  }, [i, reduced]);
+  };
+
+  useEffect(() => {
+    playActive();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i, valid.length]);
+
+  useEffect(() => {
+    if (valid.length <= 1) return;
+    const t = setInterval(() => setI((p) => (p + 1) % valid.length), 9000);
+    return () => clearInterval(t);
+  }, [valid.length]);
 
   if (valid.length === 0) return null;
 
@@ -43,14 +43,21 @@ export function HeroVideo({ clips }: { clips: Clip[] }) {
           key={c.url}
           ref={(el) => {
             refs.current[idx] = el;
+            if (el) {
+              el.muted = true;
+              el.defaultMuted = true;
+            }
           }}
-          src={reduced ? undefined : c.url}
+          src={c.url}
           poster={c.poster || undefined}
           muted
           loop
+          autoPlay
           playsInline
-          autoPlay={!reduced && idx === 0}
-          preload={idx === 0 ? "auto" : "none"}
+          preload={idx === 0 ? "auto" : "metadata"}
+          onLoadedData={(e) => {
+            if (idx === i) (e.currentTarget as HTMLVideoElement).play().catch(() => {});
+          }}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
             idx === i ? "opacity-100" : "opacity-0"
           }`}
