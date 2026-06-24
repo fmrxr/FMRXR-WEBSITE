@@ -205,6 +205,21 @@
   filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.5));
 }
 
+/* See-through glass headline — like the translucent header: the video reads
+   THROUGH the letters (faint light tint), blurred + saturated, with a bright
+   glass rim. Used only when a hero video is present. */
+.fm-glass-see {
+  color: rgba(245, 245, 248, 0.16);
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.5);
+  paint-order: stroke fill;
+  -webkit-backdrop-filter: blur(7px) saturate(150%);
+  backdrop-filter: blur(7px) saturate(150%);
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22),
+    0 0 1px rgba(255, 255, 255, 0.5),
+    0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
 /* Staggered entrance */
 @keyframes fm-rise {
   from { opacity: 0; transform: translateY(16px); }
