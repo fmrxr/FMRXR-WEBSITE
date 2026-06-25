@@ -49,7 +49,7 @@ export function Header() {
             </Link>
           ))}
           <Link
-            href="/contact"
+            href="/start"
             className="group text-[11px] uppercase tracking-[0.12em] text-fmfg"
           >
             Start a project{" "}

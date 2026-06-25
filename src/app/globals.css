@@ -190,6 +190,10 @@
 
 .fm-grotesk { font-family: var(--font-space-grotesk), var(--font-geist-sans), sans-serif; }
 
+/* Hidden scrollbar for draggable rails */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Frosted textured glass — a sandblasted white→grey glass material clipped
    to the letterforms (fine fractal-noise texture over a soft vertical fade). */
 .fm-glass-text {
@@ -244,6 +248,26 @@
 .fm-marquee-rev:hover { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
   .fm-marquee { animation: none; }
+}
+
+/* Cinematic pulsing halo (keeps the centering translate inside the keyframe) */
+@keyframes fm-halo {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.35; }
+  50% { transform: translate(-50%, -50%) scale(1.22); opacity: 1; }
+}
+.fm-halo { animation: fm-halo 4.5s ease-in-out infinite; will-change: transform, opacity; }
+@media (prefers-reduced-motion: reduce) {
+  .fm-halo { animation: none; transform: translate(-50%, -50%); opacity: 0.6; }
+}
+
+/* Pulsing green glow on accent words only */
+@keyframes fm-text-glow {
+  0%, 100% { text-shadow: 0 0 16px rgba(123, 239, 123, 0.35), 0 0 38px rgba(123, 239, 123, 0.14); }
+  50% { text-shadow: 0 0 26px rgba(123, 239, 123, 0.6), 0 0 64px rgba(123, 239, 123, 0.28); }
+}
+.fm-glow-accent { animation: fm-text-glow 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .fm-glow-accent { animation: none; text-shadow: 0 0 22px rgba(123, 239, 123, 0.4); }
 }
 
 /* Staggered entrance */

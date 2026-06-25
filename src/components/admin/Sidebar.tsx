@@ -3,6 +3,7 @@ import { signOut } from "@/app/actions/auth";
 
 const LINKS = [
   ["Overview", "/admin"],
+  ["Requests", "/admin/requests"],
   ["Projects", "/admin/projects"],
   ["Articles", "/admin/articles"],
   ["Services", "/admin/services"],

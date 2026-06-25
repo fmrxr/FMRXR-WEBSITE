@@ -9,7 +9,7 @@ import { Dropzone } from "@/components/admin/Dropzone";
 import { settingsSchema } from "@/lib/schemas";
 import { saveSettings } from "@/app/actions/settings";
 
-type Clip = { url: string; poster?: string };
+type Clip = { url: string; poster?: string; title?: string; description?: string };
 
 const FIELDS = ["name","tagline","description","email","phone","location","founder","artist_alias"] as const;
 const SOCIALS = ["instagram","tiktok","linkedin","x","web"] as const;
@@ -63,6 +63,18 @@ export function SettingsForm({ initial }: { initial: Record<string, any> }) {
             placeholder="https://…/clip.mp4"
             value={c.url ?? ""}
             onChange={(e) => setClip(i, { url: e.target.value })}
+          />
+          <Label className="mt-1">Card title</Label>
+          <Input
+            placeholder="e.g. SPECTRUM — The Birth of Light"
+            value={c.title ?? ""}
+            onChange={(e) => setClip(i, { title: e.target.value })}
+          />
+          <Label className="mt-1">Card description</Label>
+          <Input
+            placeholder="e.g. Generative dome mapping · GAT Assurances · 2025"
+            value={c.description ?? ""}
+            onChange={(e) => setClip(i, { description: e.target.value })}
           />
           <Label className="mt-1">Poster image (optional)</Label>
           <Dropzone value={c.poster ?? ""} onChange={(url) => setClip(i, { poster: url })} />

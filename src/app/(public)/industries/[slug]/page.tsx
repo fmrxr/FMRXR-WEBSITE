@@ -19,7 +19,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       <h1 className="fm-display mt-8 text-[clamp(2.25rem,6vw,4.5rem)] text-fmfg">{r.name}</h1>
       {r.note && <p className="fm-grotesk mt-6 max-w-2xl text-lg leading-relaxed text-fmmuted">{r.note}</p>}
       <div className="mt-16 border-t border-fmborder pt-8">
-        <Link href="/contact" className="group text-sm uppercase tracking-[0.12em] text-fmfg">
+        <Link href="/start" className="group text-sm uppercase tracking-[0.12em] text-fmfg">
           Start a project{" "}
           <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
         </Link>

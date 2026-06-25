@@ -93,6 +93,17 @@ export const settingsSchema = z.object({
       web: otext(120),
     }),
   ),
-  // Hero background video slider — list of clips (mp4/webm URL + optional poster).
-  hero_media: arr(z.object({ url: ourl, poster: ourl })),
+  // Hero background video slider — clips with optional poster + info-card data.
+  hero_media: arr(z.object({ url: ourl, poster: ourl, title: otext(120), description: otext(240) })),
+});
+
+// Public project-request (lead) submitted from the site.
+export const leadSchema = z.object({
+  name: z.string().min(1).max(120),
+  email: z.string().email(),
+  company: otext(160),
+  industry: otext(120),
+  service: otext(120),
+  message: otext(2000),
+  attachments: arr(z.object({ url: z.string().url(), name: otext(200), type: otext(80) })),
 });
