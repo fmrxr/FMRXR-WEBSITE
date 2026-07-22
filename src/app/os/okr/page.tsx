@@ -1,0 +1,160 @@
+"use client";
+
+import { useState } from "react";
+import { useOs } from "@/lib/os/store";
+import { curQuarter, okrObjectiveProgress } from "@/lib/os/compute";
+import { genId } from "@/lib/os/id";
+import { OkrSummaryCards } from "@/components/os/okr/OkrSummaryCards";
+import { OkrObjectiveCard } from "@/components/os/okr/OkrObjectiveCard";
+
+export default function OkrPage() {
+  const { graph, loading, error, mutate, logChange } = useOs();
+  const [newObjective, setNewObjective] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  if (loading) return <p className="fm-rise font-grotesk text-sm text-fmmuted">Chargement du graphe…</p>;
+  if (error && !graph) return <p className="fm-rise font-grotesk text-sm text-[#ff4d5e]">{error}</p>;
+  if (!graph) return null;
+
+  const now = new Date();
+  const q = curQuarter(now);
+  const all = graph.okrs || [];
+  const current = all.filter((o) => o.quarter === q);
+  const past = all.filter((o) => o.quarter !== q);
+  const globalProgress = current.length
+    ? current.reduce((s, o) => s + okrObjectiveProgress(o, graph, now), 0) / current.length
+    : 0;
+
+  const qi = Math.floor(now.getMonth() / 3);
+  const qs = new Date(now.getFullYear(), qi * 3, 1);
+  const qe = new Date(now.getFullYear(), qi * 3 + 3, 0);
+  const quarterElapsedPct = Math.min(100, ((now.getTime() - qs.getTime()) / (qe.getTime() - qs.getTime())) * 100);
+  const daysLeft = Math.max(0, Math.ceil((qe.getTime() - now.getTime()) / 86_400_000));
+
+  function addObjective() {
+    if (!newObjective.trim()) return;
+    const id = genId("okr");
+    mutate((draft) => {
+      draft.okrs = draft.okrs || [];
+      draft.okrs.push({ id, quarter: q, objective: newObjective.trim(), krs: [] });
+    });
+    logChange("create", id, `OKR créé : ${newObjective.trim()}`);
+    setNewObjective("");
+    setAdding(false);
+  }
+
+  function addKr(okrId: string, label: string, target: number, unit: string) {
+    const krId = genId("kr");
+    mutate((draft) => {
+      const o = (draft.okrs || []).find((x) => x.id === okrId);
+      if (!o) return;
+      o.krs = o.krs || [];
+      o.krs.push({ id: krId, label, target, value: 0, unit });
+    });
+    logChange("update", okrId, `KR ajouté : ${label}`);
+  }
+
+  function setKrValue(okrId: string, krId: string, value: number) {
+    let label = "";
+    let oldValue: number | undefined;
+    mutate((draft) => {
+      const o = (draft.okrs || []).find((x) => x.id === okrId);
+      const kr = o?.krs.find((k) => k.id === krId);
+      if (!kr) return;
+      label = kr.label;
+      oldValue = kr.value;
+      kr.value = value;
+    });
+    logChange("update", okrId, `OKR — ${label} : ${oldValue ?? 0} → ${value}`);
+  }
+
+  function deleteObjective(okrId: string, objective: string) {
+    if (!confirm(`Supprimer l'objectif « ${objective} » et ses résultats clés ?`)) return;
+    mutate((draft) => {
+      draft.okrs = (draft.okrs || []).filter((o) => o.id !== okrId);
+    });
+    logChange("delete", okrId, `OKR supprimé : ${objective}`);
+  }
+
+  return (
+    <div className="fm-rise flex flex-col gap-6">
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          {adding ? (
+            <div className="flex items-center gap-2">
+              <input
+                className="w-72 rounded border border-fmborder bg-fmmutedbg px-3 py-1.5 font-grotesk text-sm text-fmfg"
+                placeholder="Nouvel objectif trimestriel…"
+                value={newObjective}
+                autoFocus
+                onChange={(e) => setNewObjective(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addObjective()}
+              />
+              <button type="button" className="fm-link font-grotesk text-sm text-fmaccent" onClick={addObjective}>
+                Ajouter
+              </button>
+              <button type="button" className="fm-link font-grotesk text-sm text-fmmuted" onClick={() => setAdding(false)}>
+                Annuler
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="rounded-lg border border-fmborder px-3 py-1.5 font-grotesk text-sm text-fmfg hover:border-fmaccent/40"
+              onClick={() => setAdding(true)}
+            >
+              + Objectif
+            </button>
+          )}
+        </div>
+        <span className="font-grotesk text-sm text-fmmuted">Trimestre {q}</span>
+      </header>
+
+      <OkrSummaryCards
+        globalProgress={globalProgress}
+        quarterElapsedPct={quarterElapsedPct}
+        quarter={q}
+        objectiveCount={current.length}
+        daysLeft={daysLeft}
+      />
+
+      <div>
+        <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Objectifs — {q}</h2>
+        {current.length === 0 ? (
+          <p className="font-grotesk text-sm text-fmmuted">Aucun objectif ce trimestre. Clique « + Objectif ».</p>
+        ) : (
+          current.map((o) => (
+            <OkrObjectiveCard
+              key={o.id}
+              okr={o}
+              graph={graph}
+              identityName={graph.identities.find((i) => i.id === o.identity)?.name}
+              now={now}
+              onAddKr={(label, target, unit) => addKr(o.id, label, target, unit)}
+              onSetKrValue={(krId, value) => setKrValue(o.id, krId, value)}
+              onDelete={() => deleteObjective(o.id, o.objective)}
+            />
+          ))
+        )}
+      </div>
+
+      {past.length > 0 && (
+        <div>
+          <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Trimestres précédents</h2>
+          {past.map((o) => (
+            <OkrObjectiveCard
+              key={o.id}
+              okr={o}
+              graph={graph}
+              identityName={graph.identities.find((i) => i.id === o.identity)?.name}
+              now={now}
+              onAddKr={(label, target, unit) => addKr(o.id, label, target, unit)}
+              onSetKrValue={(krId, value) => setKrValue(o.id, krId, value)}
+              onDelete={() => deleteObjective(o.id, o.objective)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
