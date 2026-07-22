@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signOut } from "@/app/actions/auth";
 
 const LINKS = [
+  ["OS", "/os"],
   ["Overview", "/admin"],
   ["Requests", "/admin/requests"],
   ["Projects", "/admin/projects"],

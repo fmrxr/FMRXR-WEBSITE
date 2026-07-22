@@ -3,7 +3,9 @@ import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
-  if (request.nextUrl.pathname.startsWith("/admin") && !user) {
+  const p = request.nextUrl.pathname;
+  const gated = p.startsWith("/admin") || p.startsWith("/os") || p.startsWith("/api/os");
+  if (gated && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
     return NextResponse.redirect(url);
