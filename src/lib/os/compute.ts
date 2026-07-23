@@ -246,6 +246,12 @@ export interface GanttItem {
   pct: number;
 }
 
+export interface GanttResult {
+  items: GanttItem[];
+  /** Position 0–100 d'"aujourd'hui" sur la même frise que les items (0 ou 100 si hors plage). */
+  nowPct: number;
+}
+
 /**
  * Jalons (deadlines + tâches datées) positionnés proportionnellement sur une frise, du plus tôt
  * entre "aujourd'hui" et le premier jalon, jusqu'au dernier jalon — porte ganttFor() du monolithe.
@@ -256,7 +262,7 @@ export function ganttItems(
   tasks: OsTask[] = [],
   projectId?: string,
   now: Date = new Date(),
-): GanttItem[] {
+): GanttResult {
   const fromDeadlines: Omit<GanttItem, "pct">[] = deadlines
     .filter((d) => !projectId || d.project === projectId)
     .map((d) => ({ id: d.id, label: d.label, date: d.date, done: !!d.done, critical: !!d.critical }));
@@ -268,14 +274,17 @@ export function ganttItems(
     .filter((i) => i.date)
     .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
 
-  if (!items.length) return [];
+  if (!items.length) return { items: [], nowPct: 0 };
 
   const t0 = Math.min(now.getTime(), Date.parse(items[0].date));
   const t1 = Math.max(...items.map((i) => Date.parse(i.date)));
   const span = Math.max(1, (t1 - t0) / 86_400_000);
-  const pos = (dateStr: string) => Math.max(0, Math.min(100, ((Date.parse(dateStr) - t0) / 86_400_000 / span) * 100));
+  const pos = (ms: number) => Math.max(0, Math.min(100, ((ms - t0) / 86_400_000 / span) * 100));
 
-  return items.map((i) => ({ ...i, pct: pos(i.date) }));
+  return {
+    items: items.map((i) => ({ ...i, pct: pos(Date.parse(i.date)) })),
+    nowPct: pos(now.getTime()),
+  };
 }
 
 // ═══════════ Dashboard (§Business, porté de RENDER.dashboard) ═══════════

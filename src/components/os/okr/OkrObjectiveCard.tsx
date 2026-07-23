@@ -129,7 +129,7 @@ export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSet
           </div>
           <div className="font-grotesk text-[14.5px] font-semibold text-fmfg">{okr.objective}</div>
         </div>
-        <div className={`font-display text-xl ${progressTone(pct) === "accent" ? "text-fmaccent" : progressTone(pct) === "warn" ? "text-[#d9a441]" : "text-[#ff4d5e]"}`}>
+        <div className={`font-display text-lg md:text-xl ${progressTone(pct) === "accent" ? "text-fmaccent" : progressTone(pct) === "warn" ? "text-[#d9a441]" : "text-[#ff4d5e]"}`}>
           {Math.round(pct)} %
         </div>
       </div>

@@ -7,7 +7,7 @@ export function RunRateProjectionCard({ projection, now }: { projection: RunRate
   return (
     <Card href="/os/finance">
       <CardTitle>Projection run-rate {now.getFullYear()}</CardTitle>
-      <div className="mt-2 font-display text-xl text-fmfg">
+      <div className="mt-2 font-display text-lg text-fmfg md:text-xl">
         <Money amountTND={projection.projectedYearEnd} />
       </div>
       <p className="mt-1 font-grotesk text-xs text-fmmuted">

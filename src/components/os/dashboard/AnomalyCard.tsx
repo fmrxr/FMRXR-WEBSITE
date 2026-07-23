@@ -16,7 +16,7 @@ export function AnomalyCard({ anomaly }: { anomaly: MonthlyAnomaly }) {
   return (
     <Card href="/os/finance">
       <CardTitle>Anomalie du mois</CardTitle>
-      <div className={`font-display mt-2 text-xl ${above ? "text-fmaccent" : "text-[#ff4d5e]"}`}>
+      <div className={`font-display mt-2 text-lg md:text-xl ${above ? "text-fmaccent" : "text-[#ff4d5e]"}`}>
         {anomaly.deviationPct >= 0 ? "+" : ""}
         {Math.round(anomaly.deviationPct)} %
       </div>

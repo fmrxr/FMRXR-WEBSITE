@@ -17,9 +17,9 @@ export function PriorityHero({ focus, graph }: { focus: FocusToday; graph: OsGra
     const d = daysUntil(focus.deadline.date, now) ?? 0;
     const overdue = d < 0;
     return (
-      <div className={`fm-glass-card rounded-2xl border p-8 ${overdue ? "border-[#ff4d5e]/40" : "border-fmaccent/30"}`}>
+      <div className={`fm-glass-card rounded-2xl border p-5 md:p-8 ${overdue ? "border-[#ff4d5e]/40" : "border-fmaccent/30"}`}>
         <div className="font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">🔥 Priorité #1</div>
-        <h2 className={`font-display mt-2 text-3xl ${overdue ? "text-[#ff4d5e]" : "text-fmfg"}`}>{focus.deadline.label}</h2>
+        <h2 className={`font-display mt-2 text-xl md:text-3xl ${overdue ? "text-[#ff4d5e]" : "text-fmfg"}`}>{focus.deadline.label}</h2>
         <p className="mt-2 font-grotesk text-sm text-fmmuted">
           {overdue ? `En retard de ${Math.abs(d)} j` : d === 0 ? "Aujourd'hui" : `Dans ${d} j`}
           {focus.deadline.project ? ` · ${focus.deadline.project}` : ""}
@@ -34,9 +34,9 @@ export function PriorityHero({ focus, graph }: { focus: FocusToday; graph: OsGra
   if (focus.task) {
     const d = daysUntil(focus.task.due, now) ?? 0;
     return (
-      <div className="fm-glass-card rounded-2xl border border-fmaccent/30 p-8">
+      <div className="fm-glass-card rounded-2xl border border-fmaccent/30 p-5 md:p-8">
         <div className="font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">🔥 Priorité #1</div>
-        <h2 className="font-display mt-2 text-3xl text-fmfg">{focus.task.label}</h2>
+        <h2 className="font-display mt-2 text-xl text-fmfg md:text-3xl">{focus.task.label}</h2>
         <p className="mt-2 font-grotesk text-sm text-fmmuted">
           {d < 0 ? `En retard de ${Math.abs(d)} j` : d === 0 ? "Échéance aujourd'hui" : `Échéance dans ${d} j`}
         </p>
@@ -51,9 +51,9 @@ export function PriorityHero({ focus, graph }: { focus: FocusToday; graph: OsGra
     const amount = toTND(restOf(focus.cashInvoice), focus.cashInvoice.currency, graph.meta?.eur_tnd);
     const client = entityName(graph, focus.cashInvoice.client);
     return (
-      <div className="fm-glass-card rounded-2xl border border-fmprimary/30 p-8">
+      <div className="fm-glass-card rounded-2xl border border-fmprimary/30 p-5 md:p-8">
         <div className="font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">🔥 Priorité #1</div>
-        <h2 className="font-display mt-2 text-3xl text-fmfg">
+        <h2 className="font-display mt-2 text-xl text-fmfg md:text-3xl">
           {focus.cashInvoice.ref || focus.cashInvoice.label || focus.cashInvoice.id}
         </h2>
         <p className="mt-2 font-grotesk text-sm text-fmmuted">
@@ -67,9 +67,9 @@ export function PriorityHero({ focus, graph }: { focus: FocusToday; graph: OsGra
   }
 
   return (
-    <div className="fm-glass-card rounded-2xl p-8">
+    <div className="fm-glass-card rounded-2xl p-5 md:p-8">
       <div className="font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">🔥 Priorité #1</div>
-      <h2 className="font-display mt-2 text-2xl text-fmfg">Rien d&apos;urgent — RAS</h2>
+      <h2 className="font-display mt-2 text-lg text-fmfg md:text-2xl">Rien d&apos;urgent — RAS</h2>
     </div>
   );
 }

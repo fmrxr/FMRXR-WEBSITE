@@ -9,7 +9,7 @@ export function PipelineWinRateCard({ winRate }: { winRate: PipelineWinRate }) {
         <p className="mt-2 font-grotesk text-sm text-fmmuted">Pas encore d&apos;opportunité clôturée.</p>
       ) : (
         <>
-          <div className={`font-display mt-2 text-xl ${winRate.winRatePct >= 50 ? "text-fmaccent" : "text-[#d9a441]"}`}>
+          <div className={`font-display mt-2 text-lg md:text-xl ${winRate.winRatePct >= 50 ? "text-fmaccent" : "text-[#d9a441]"}`}>
             {Math.round(winRate.winRatePct)} %
           </div>
           <p className="mt-1 font-grotesk text-xs text-fmmuted">

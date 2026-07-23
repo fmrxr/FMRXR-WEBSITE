@@ -18,7 +18,7 @@ export function ConcentrationRiskCard({ concentration, graph }: ConcentrationRis
       <CardTitle>Risque de concentration client</CardTitle>
       {clientName ? (
         <>
-          <div className={`font-display mt-2 text-xl ${concentration.risk === "high" ? "text-[#ff4d5e]" : "text-fmaccent"}`}>
+          <div className={`font-display mt-2 text-lg md:text-xl ${concentration.risk === "high" ? "text-[#ff4d5e]" : "text-fmaccent"}`}>
             {Math.round(concentration.topClientPct)} %
           </div>
           <p className="mt-1 font-grotesk text-xs text-fmmuted">

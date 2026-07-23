@@ -18,7 +18,7 @@ export function Stat({ label, value, sub, tone = "default" }: StatProps) {
   return (
     <div>
       <div className="font-grotesk text-xs uppercase tracking-[0.14em] text-fmmuted">{label}</div>
-      <div className={cn("font-display mt-1 text-3xl", TONE_CLASS[tone])}>{value}</div>
+      <div className={cn("font-display mt-1 text-2xl md:text-3xl", TONE_CLASS[tone])}>{value}</div>
       {sub ? <div className="mt-1 text-xs text-fmmuted">{sub}</div> : null}
     </div>
   );

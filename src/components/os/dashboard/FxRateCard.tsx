@@ -54,7 +54,7 @@ export function FxRateCard() {
     <Card>
       <CardTitle>Taux EUR → TND</CardTitle>
       <div className="mt-2 flex items-baseline gap-2">
-        <span className="font-display text-2xl text-fmfg">{configured.toFixed(3)}</span>
+        <span className="font-display text-xl text-fmfg md:text-2xl">{configured.toFixed(3)}</span>
         <span className="font-grotesk text-xs text-fmmuted">configuré · fait foi sur les factures</span>
       </div>
       <div className="mt-2 font-grotesk text-xs text-fmmuted">

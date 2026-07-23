@@ -182,7 +182,7 @@ describe("curQuarter / okrKrValue / okrKrProgress / okrObjectiveProgress", () =>
 
 describe("ganttItems", () => {
   it("returns an empty frise when there is nothing dated", () => {
-    expect(ganttItems([], [], undefined, NOW)).toEqual([]);
+    expect(ganttItems([], [], undefined, NOW)).toEqual({ items: [], nowPct: 0 });
   });
 
   it("combines deadlines and dated tasks, filtered by project, sorted chronologically", () => {
@@ -194,7 +194,7 @@ describe("ganttItems", () => {
       { id: "t1", label: "T1", done: false, project: "p1", due: "2026-07-28" },
       { id: "t2", label: "T2", done: false, project: "p2", due: "2026-07-20" },
     ];
-    const items = ganttItems(deadlines, tasks, "p1", NOW);
+    const { items } = ganttItems(deadlines, tasks, "p1", NOW);
     expect(items.map((i) => i.id)).toEqual(["t1", "d1"]);
   });
 
@@ -203,9 +203,34 @@ describe("ganttItems", () => {
       { id: "d1", date: "2026-07-22", label: "Start", done: false },
       { id: "d2", date: "2026-08-01", label: "End", done: false },
     ];
-    const items = ganttItems(deadlines, [], undefined, NOW);
+    const { items } = ganttItems(deadlines, [], undefined, NOW);
     expect(items[0].pct).toBe(0);
     expect(items[items.length - 1].pct).toBe(100);
+  });
+
+  it("positions 'now' at 0% when every item is in the future", () => {
+    const deadlines = [{ id: "d1", date: "2026-08-01", label: "Future", done: false }];
+    const { nowPct } = ganttItems(deadlines, [], undefined, NOW);
+    expect(nowPct).toBe(0);
+  });
+
+  it("positions 'now' at 100% when every item is in the past", () => {
+    const deadlines = [
+      { id: "d1", date: "2026-07-01", label: "Past 1", done: false },
+      { id: "d2", date: "2026-07-10", label: "Past 2", done: false },
+    ];
+    const { nowPct } = ganttItems(deadlines, [], undefined, NOW);
+    expect(nowPct).toBe(100);
+  });
+
+  it("positions 'now' proportionally between past and future items", () => {
+    const deadlines = [
+      { id: "d1", date: "2026-07-12", label: "Start", done: false },
+      { id: "d2", date: "2026-08-01", label: "End", done: false },
+    ];
+    // span 2026-07-12T00:00 -> 2026-08-01T00:00 = 20 days ; NOW = 2026-07-22T12:00 = 10.5 days in -> 52.5%
+    const { nowPct } = ganttItems(deadlines, [], undefined, NOW);
+    expect(nowPct).toBeCloseTo(52.5);
   });
 });
 

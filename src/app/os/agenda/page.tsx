@@ -87,7 +87,7 @@ export default function AgendaPage() {
         <div>
           <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">📅 Gantt — {criticalProject.name}</h2>
           <div className="fm-glass-card rounded-2xl p-5">
-            <MiniGantt items={ganttItems(graph.deadlines, graph.tasks, criticalProject.id, now)} />
+            <MiniGantt {...ganttItems(graph.deadlines, graph.tasks, criticalProject.id, now)} />
           </div>
         </div>
       )}

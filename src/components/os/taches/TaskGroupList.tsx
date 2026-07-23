@@ -15,21 +15,26 @@ interface TaskRowProps {
 function TaskRow({ task, now, onToggle, onDelete }: TaskRowProps) {
   const late = task.due && !task.done && (daysUntil(task.due, now) ?? 0) < 0;
   const dueDays = task.due ? daysUntil(task.due, now) : null;
+  const hasMeta = task.owner || task.due;
   return (
-    <div className="flex items-center gap-2.5 py-1.5">
+    <div className="flex items-start gap-2.5 py-2">
       <button
         type="button"
         onClick={() => onToggle(task.id)}
-        className={`font-grotesk text-base ${task.done ? "text-fmaccent" : "text-fmmuted"}`}
+        className={`mt-0.5 shrink-0 font-grotesk text-base leading-none ${task.done ? "text-fmaccent" : "text-fmmuted"}`}
       >
         {task.done ? "☑" : "☐"}
       </button>
-      <span className={`flex-1 font-grotesk text-sm ${task.done ? "text-fmmuted line-through" : "text-fmfg"}`}>{task.label}</span>
-      <span className="font-mono text-[10.5px] text-fmmuted">
-        {task.owner}
-        {task.due ? ` · ${task.due}${late ? " retard" : !task.done && (dueDays ?? 0) >= 0 ? ` · J-${dueDays}` : ""}` : ""}
-      </span>
-      <button type="button" onClick={() => onDelete(task.id)} title="Supprimer" className="px-0.5 text-fmmuted hover:text-[#ff4d5e]">
+      <div className="min-w-0 flex-1">
+        <div className={`font-grotesk text-sm ${task.done ? "text-fmmuted line-through" : "text-fmfg"}`}>{task.label}</div>
+        {hasMeta && (
+          <div className="mt-0.5 font-mono text-[10.5px] text-fmmuted">
+            {task.owner}
+            {task.due ? `${task.owner ? " · " : ""}${task.due}${late ? " retard" : !task.done && (dueDays ?? 0) >= 0 ? ` · J-${dueDays}` : ""}` : ""}
+          </div>
+        )}
+      </div>
+      <button type="button" onClick={() => onDelete(task.id)} title="Supprimer" className="shrink-0 px-0.5 text-fmmuted hover:text-[#ff4d5e]">
         ✕
       </button>
     </div>
