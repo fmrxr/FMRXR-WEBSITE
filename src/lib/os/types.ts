@@ -71,6 +71,8 @@ export interface OsPerson {
   email?: string;
   phone?: string;
   notes?: string;
+  /** id d'une identité/organisation liée (ex : "explab") — utilisé pour le graphe (Brain). */
+  org?: string;
 }
 
 export interface OsClient {
@@ -296,6 +298,13 @@ export interface OsLogEntry {
   detail: string;
   by: string;
   synced: boolean;
+  /** Type de l'entité concernée (ex : "project", "cf_batch") — permet de filtrer l'historique d'une entité précise. */
+  entityType?: string;
+  /**
+   * État complet de l'entité au moment de l'événement — notamment sur suppression : la tombe garde
+   * la dernière forme connue de l'objet, pas seulement une phrase, pour que l'historique reste rejouable.
+   */
+  snapshot?: unknown;
 }
 
 export interface OsMeta {

@@ -41,28 +41,33 @@ export default function KnowledgePage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "library", data: item });
       draft.library = (draft.library || []).filter((i) => i.id !== id);
     });
-    logChange("delete", id, `item bibliothèque retiré : ${item.title}`);
+    logChange("delete", id, `item bibliothèque retiré : ${item.title}`, { entityType: "library", snapshot: item });
   }
 
   function classify(id: string, category: string, subcategory: string) {
-    let title = "";
+    const before = library.find((i) => i.id === id);
+    if (!before) return;
     mutate((draft) => {
       const item = (draft.library || []).find((i) => i.id === id);
       if (!item) return;
-      title = item.title;
       item.category = category;
       if (subcategory) item.subcategory = subcategory;
     });
-    logChange("update", id, `item classé : ${title} → ${category}${subcategory ? ` / ${subcategory}` : ""}`);
+    const after = { ...before, category, ...(subcategory ? { subcategory } : {}) };
+    logChange("update", id, `item classé : ${before.title} → ${category}${subcategory ? ` / ${subcategory}` : ""}`, {
+      entityType: "library",
+      snapshot: { before, after },
+    });
   }
 
   function addItem(fields: Omit<OsLibraryItem, "id" | "favorite" | "created">) {
     const id = genId("lib");
+    const created = { id, favorite: false, created: new Date().toISOString(), ...fields };
     mutate((draft) => {
       draft.library = draft.library || [];
-      draft.library.unshift({ id, favorite: false, created: new Date().toISOString(), ...fields });
+      draft.library.unshift(created);
     });
-    logChange("create", id, `item bibliothèque ajouté : ${fields.title}`);
+    logChange("create", id, `item bibliothèque ajouté : ${fields.title}`, { entityType: "library", snapshot: created });
     setAdding(false);
   }
 

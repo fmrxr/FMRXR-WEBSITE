@@ -62,20 +62,21 @@ export default function PipelinePage() {
     let id = `opp-${slugify(name)}`;
     let i = 2;
     while (opportunities.find((o) => o.id === id)) id = `opp-${slugify(name).slice(0, 30)}-${i++}`;
+    const created = {
+      id,
+      name: name.trim(),
+      type,
+      status: "lead" as const,
+      ...(identity ? { identity } : {}),
+      ...(deadline ? { deadline } : {}),
+      ...(url.trim() ? { url: url.trim() } : {}),
+      ...(notes.trim() ? { notes: notes.trim() } : {}),
+    };
     mutate((draft) => {
       draft.bdm = draft.bdm || { opportunities: [] };
-      draft.bdm.opportunities.unshift({
-        id,
-        name: name.trim(),
-        type,
-        status: "lead",
-        ...(identity ? { identity } : {}),
-        ...(deadline ? { deadline } : {}),
-        ...(url.trim() ? { url: url.trim() } : {}),
-        ...(notes.trim() ? { notes: notes.trim() } : {}),
-      });
+      draft.bdm.opportunities.unshift(created);
     });
-    logChange("create", id, `opportunité BDM : ${name.trim()}`);
+    logChange("create", id, `opportunité BDM : ${name.trim()}`, { entityType: "opportunity", snapshot: created });
     setName("");
     setDeadline("");
     setUrl("");
@@ -84,16 +85,16 @@ export default function PipelinePage() {
   }
 
   function setStatus(id: string, status: OpportunityStatus) {
-    let oppName = "";
-    let oldStatus: OpportunityStatus | null = null;
+    const before = opportunities.find((x) => x.id === id);
+    if (!before || before.status === status) return;
     mutate((draft) => {
       const o = draft.bdm?.opportunities.find((x) => x.id === id);
-      if (!o || o.status === status) return;
-      oppName = o.name;
-      oldStatus = o.status;
-      o.status = status;
+      if (o && o.status !== status) o.status = status;
     });
-    if (oldStatus) logChange("update", id, `opportunité ${oppName} : ${oldStatus} → ${status}`);
+    logChange("update", id, `opportunité ${before.name} : ${before.status} → ${status}`, {
+      entityType: "opportunity",
+      snapshot: { before, after: { ...before, status } },
+    });
   }
 
   function deleteOpp(id: string) {
@@ -105,7 +106,7 @@ export default function PipelinePage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "opportunity", data: o });
       if (draft.bdm) draft.bdm.opportunities = draft.bdm.opportunities.filter((x) => x.id !== id);
     });
-    logChange("delete", id, `opportunité retirée : ${o.name}`);
+    logChange("delete", id, `opportunité retirée : ${o.name}`, { entityType: "opportunity", snapshot: o });
   }
 
   return (

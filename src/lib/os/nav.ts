@@ -31,7 +31,7 @@ export const OS_MODULES: OsNavModule[] = [
   { id: "finance", label: "Finance", group: "Business", phase: "C", native: true, href: "/os/finance" },
   { id: "studio", label: "Studio & Assets", group: "Creation", phase: "D", native: true, href: "/os/studio" },
   { id: "content-factory", label: "Content Factory", group: "Creation", phase: "D", native: true, href: "/os/content-factory" },
-  { id: "graph", label: "Brain", group: "Knowledge", phase: "D", native: false, href: "/os/brain" },
+  { id: "graph", label: "Brain", group: "Knowledge", phase: "D", native: true, href: "/os/brain" },
   { id: "stack", label: "Knowledge", group: "Knowledge", phase: "D", native: true, href: "/os/knowledge" },
   { id: "aihub", label: "AI Workforce", group: "AI Workforce", phase: "D", native: true, href: "/os/ai-workforce" },
 ];

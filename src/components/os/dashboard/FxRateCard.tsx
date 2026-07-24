@@ -47,7 +47,10 @@ export function FxRateCard() {
       draft.meta = draft.meta || {};
       draft.meta.eur_tnd = live.rate;
     });
-    logChange("update", "meta", `taux EUR→TND : ${old} → ${live.rate} (aligné sur le taux marché)`);
+    logChange("update", "meta", `taux EUR→TND : ${old} → ${live.rate} (aligné sur le taux marché)`, {
+      entityType: "meta",
+      snapshot: { before: { eur_tnd: old }, after: { eur_tnd: live.rate } },
+    });
   }
 
   return (

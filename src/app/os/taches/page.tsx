@@ -32,30 +32,32 @@ export default function TachesPage() {
     let i = 2;
     while (graph!.tasks.find((t) => t.id === id)) id = `t-${slugify(label).slice(0, 30)}-${i++}`;
     const projectName = project ? (graph!.projects.find((p) => p.id === project)?.name ?? graph!.identities.find((x) => x.id === project)?.name) : undefined;
+    const created = {
+      id,
+      label,
+      done: false,
+      ...(project ? { project } : {}),
+      ...(owner ? { owner } : {}),
+      ...(due ? { due } : {}),
+    };
     mutate((draft) => {
-      draft.tasks.push({
-        id,
-        label,
-        done: false,
-        ...(project ? { project } : {}),
-        ...(owner ? { owner } : {}),
-        ...(due ? { due } : {}),
-      });
+      draft.tasks.push(created);
     });
-    logChange("create", id, `nouvelle tâche : ${label}${projectName ? ` → ${projectName}` : ""}`);
+    logChange("create", id, `nouvelle tâche : ${label}${projectName ? ` → ${projectName}` : ""}`, { entityType: "task", snapshot: created });
   }
 
   function toggleTask(id: string) {
-    let label = "";
-    let nowDone = false;
+    const before = graph!.tasks.find((x) => x.id === id);
+    if (!before) return;
+    const nowDone = !before.done;
     mutate((draft) => {
       const t = draft.tasks.find((x) => x.id === id);
-      if (!t) return;
-      t.done = !t.done;
-      label = t.label;
-      nowDone = t.done;
+      if (t) t.done = nowDone;
     });
-    if (label) logChange("update", id, `tâche ${nowDone ? "✓ faite" : "réouverte"} : ${label}`);
+    logChange("update", id, `tâche ${nowDone ? "✓ faite" : "réouverte"} : ${before.label}`, {
+      entityType: "task",
+      snapshot: { before, after: { ...before, done: nowDone } },
+    });
   }
 
   function deleteTask(id: string) {
@@ -67,7 +69,7 @@ export default function TachesPage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "task", data: t });
       draft.tasks = draft.tasks.filter((x) => x.id !== id);
     });
-    logChange("delete", id, `tâche supprimée (→ corbeille) : ${t.label}`);
+    logChange("delete", id, `tâche supprimée (→ corbeille) : ${t.label}`, { entityType: "task", snapshot: t });
   }
 
   return (

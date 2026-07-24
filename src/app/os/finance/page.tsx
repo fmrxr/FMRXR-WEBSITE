@@ -44,26 +44,25 @@ export default function FinancePage() {
   const expensesSorted = [...(graph.expenses || [])].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   function setInvoiceStatus(id: string, status: InvoiceStatus) {
-    let ref = "";
-    let oldStatus: InvoiceStatus | null = null;
+    const before = graph!.finance.find((x) => x.id === id);
+    if (!before || before.status === status) return;
     mutate((draft) => {
       const f = draft.finance.find((x) => x.id === id);
       if (!f || f.status === status) return;
-      ref = f.ref || f.id;
-      oldStatus = f.status;
       f.status = status;
       if (status === "paid" && !f.paid_date) f.paid_date = new Date().toISOString().slice(0, 10);
       if (status !== "paid") delete f.paid_date;
     });
-    if (oldStatus) logChange("update", id, `statut facture ${ref} : ${oldStatus} → ${status}`);
+    const after = { ...before, status, ...(status === "paid" && !before.paid_date ? { paid_date: new Date().toISOString().slice(0, 10) } : {}) };
+    logChange("update", id, `statut facture ${before.ref || id} : ${before.status} → ${status}`, { entityType: "invoice", snapshot: { before, after } });
   }
 
   function saveInvoice(id: string, patch: InvoicePatch) {
-    let ref = "";
+    const before = graph!.finance.find((x) => x.id === id);
+    if (!before) return;
     mutate((draft) => {
       const f = draft.finance.find((x) => x.id === id);
       if (!f) return;
-      ref = f.ref || f.id;
       f.amount = patch.amount;
       f.currency = patch.currency;
       if (patch.advance != null) {
@@ -76,7 +75,8 @@ export default function FinancePage() {
       if (patch.notes) f.notes = patch.notes;
       else delete f.notes;
     });
-    logChange("update", id, `facture modifiée : ${ref}`);
+    const after = { ...before, amount: patch.amount, currency: patch.currency, advance: patch.advance, issued: patch.issued || before.issued };
+    logChange("update", id, `facture modifiée : ${before.ref || id}`, { entityType: "invoice", snapshot: { before, after } });
   }
 
   function deleteInvoice(id: string) {
@@ -88,20 +88,20 @@ export default function FinancePage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "invoice", data: f });
       draft.finance = draft.finance.filter((x) => x.id !== id);
     });
-    logChange("delete", id, `facture supprimée (→ corbeille) : ${f.ref}`);
+    logChange("delete", id, `facture supprimée (→ corbeille) : ${f.ref}`, { entityType: "invoice", snapshot: f });
   }
 
   function setQuoteStatus(id: string, status: QuoteStatus) {
-    let ref = "";
-    let oldStatus: QuoteStatus | null = null;
+    const before = (graph!.quotes || []).find((x) => x.id === id);
+    if (!before || before.status === status) return;
     mutate((draft) => {
       const q = (draft.quotes || []).find((x) => x.id === id);
-      if (!q || q.status === status) return;
-      ref = q.ref || q.id;
-      oldStatus = q.status;
-      q.status = status;
+      if (q && q.status !== status) q.status = status;
     });
-    if (oldStatus) logChange("update", id, `statut devis ${ref} : ${oldStatus} → ${status}`);
+    logChange("update", id, `statut devis ${before.ref || id} : ${before.status} → ${status}`, {
+      entityType: "quote",
+      snapshot: { before, after: { ...before, status } },
+    });
   }
 
   function deleteQuote(id: string) {
@@ -113,7 +113,7 @@ export default function FinancePage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "quote", data: q });
       draft.quotes = (draft.quotes || []).filter((x) => x.id !== id);
     });
-    logChange("delete", id, `devis supprimé (→ corbeille) : ${q.ref}`);
+    logChange("delete", id, `devis supprimé (→ corbeille) : ${q.ref}`, { entityType: "quote", snapshot: q });
   }
 
   function convertQuoteToInvoice(q: OsQuote) {
@@ -122,27 +122,38 @@ export default function FinancePage() {
         const target = (draft.quotes || []).find((x) => x.id === q.id);
         if (target) target.status = "accepted";
       });
-      logChange("update", q.id, `statut devis : → accepté (conversion en facture)`);
+      logChange("update", q.id, `statut devis : → accepté (conversion en facture)`, {
+        entityType: "quote",
+        snapshot: { before: q, after: { ...q, status: "accepted" } },
+      });
     }
     setGenerator({ kind: "invoice", presetClientId: q.client, presetTitle: q.label, presetPu: q.amount });
   }
 
   function addExpense(draft: ExpenseDraft) {
     const id = genId("exp");
+    const created = { id, ...draft };
     mutate((g) => {
       g.expenses = g.expenses || [];
-      g.expenses.push({ id, ...draft });
+      g.expenses.push(created);
     });
-    logChange("create", id, `dépense ajoutée : ${draft.label} · ${draft.amount.toLocaleString("fr-FR")} ${draft.currency}`);
+    logChange("create", id, `dépense ajoutée : ${draft.label} · ${draft.amount.toLocaleString("fr-FR")} ${draft.currency}`, {
+      entityType: "expense",
+      snapshot: created,
+    });
   }
 
   function saveExpense(id: string, patch: ExpenseDraft) {
+    const before = (graph!.expenses || []).find((x) => x.id === id);
+    if (!before) return;
     mutate((g) => {
       const e = (g.expenses || []).find((x) => x.id === id);
-      if (!e) return;
-      Object.assign(e, patch);
+      if (e) Object.assign(e, patch);
     });
-    logChange("update", id, `dépense modifiée : ${patch.label} · ${patch.amount.toLocaleString("fr-FR")} ${patch.currency}`);
+    logChange("update", id, `dépense modifiée : ${patch.label} · ${patch.amount.toLocaleString("fr-FR")} ${patch.currency}`, {
+      entityType: "expense",
+      snapshot: { before, after: { ...before, ...patch } },
+    });
   }
 
   function deleteExpense(id: string) {
@@ -154,7 +165,7 @@ export default function FinancePage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "expense", data: e });
       draft.expenses = (draft.expenses || []).filter((x) => x.id !== id);
     });
-    logChange("delete", id, `dépense supprimée (→ corbeille) : ${e.label}`);
+    logChange("delete", id, `dépense supprimée (→ corbeille) : ${e.label}`, { entityType: "expense", snapshot: e });
   }
 
   function handleGenerated(doc: GeneratedDocument) {
@@ -170,50 +181,58 @@ export default function FinancePage() {
 
     if (doc.kind === "invoice") {
       const id = `fact-${slugify(doc.ref)}`;
+      const created = {
+        id,
+        type: "invoice" as const,
+        ref: doc.ref,
+        client: doc.clientId,
+        label,
+        amount: doc.total,
+        currency: doc.currency,
+        issued: doc.issued,
+        status: doc.advance ? ("partial" as const) : ("draft" as const),
+        ...(doc.advance ? { advance: doc.advance } : {}),
+        notes: `Générée depuis FMRXR OS le ${new Date().toLocaleDateString("fr-FR")}`,
+      };
       mutate((draft) => {
-        draft.finance.push({
-          id,
-          type: "invoice",
-          ref: doc.ref,
-          client: doc.clientId,
-          label,
-          amount: doc.total,
-          currency: doc.currency,
-          issued: doc.issued,
-          status: doc.advance ? "partial" : "draft",
-          ...(doc.advance ? { advance: doc.advance } : {}),
-          notes: `Générée depuis FMRXR OS le ${new Date().toLocaleDateString("fr-FR")}`,
-        });
+        draft.finance.push(created);
         if (seq) {
           draft.meta = draft.meta || {};
           draft.meta.seq = draft.meta.seq || {};
           draft.meta.seq[seq.key] = Math.max(draft.meta.seq[seq.key] || 0, seq.value);
         }
       });
-      logChange("create", id, `facture générée : ${doc.ref} · ${label} · ${doc.total.toLocaleString("fr-FR")} ${doc.currency}`);
+      logChange("create", id, `facture générée : ${doc.ref} · ${label} · ${doc.total.toLocaleString("fr-FR")} ${doc.currency}`, {
+        entityType: "invoice",
+        snapshot: created,
+      });
     } else {
       const id = `quo-${slugify(doc.ref)}`;
+      const created = {
+        id,
+        ref: doc.ref,
+        client: doc.clientId,
+        label,
+        amount: doc.total,
+        currency: doc.currency,
+        issued: doc.issued,
+        validity: doc.due,
+        status: "draft" as const,
+        ...(doc.advance ? { advance: doc.advance } : {}),
+      };
       mutate((draft) => {
         draft.quotes = draft.quotes || [];
-        draft.quotes.push({
-          id,
-          ref: doc.ref,
-          client: doc.clientId,
-          label,
-          amount: doc.total,
-          currency: doc.currency,
-          issued: doc.issued,
-          validity: doc.due,
-          status: "draft",
-          ...(doc.advance ? { advance: doc.advance } : {}),
-        });
+        draft.quotes.push(created);
         if (seq) {
           draft.meta = draft.meta || {};
           draft.meta.seq = draft.meta.seq || {};
           draft.meta.seq[seq.key] = Math.max(draft.meta.seq[seq.key] || 0, seq.value);
         }
       });
-      logChange("create", id, `devis généré : ${doc.ref} · ${label} · ${doc.total.toLocaleString("fr-FR")} ${doc.currency}`);
+      logChange("create", id, `devis généré : ${doc.ref} · ${label} · ${doc.total.toLocaleString("fr-FR")} ${doc.currency}`, {
+        entityType: "quote",
+        snapshot: created,
+      });
     }
     setGenerator(null);
   }

@@ -35,18 +35,19 @@ export default function ClientsPage() {
     let id = slugify(name);
     let i = 2;
     while (clients.find((c) => c.id === id)) id = `${slugify(name)}-${i++}`;
+    const created = {
+      id,
+      name: name.trim(),
+      type: "client" as const,
+      ...(segment ? { segment } : {}),
+      ...(email.trim() ? { email: email.trim() } : {}),
+      ...(phone.trim() ? { phone: phone.trim() } : {}),
+    };
     mutate((draft) => {
       draft.clients = draft.clients || [];
-      draft.clients.push({
-        id,
-        name: name.trim(),
-        type: "client",
-        ...(segment ? { segment } : {}),
-        ...(email.trim() ? { email: email.trim() } : {}),
-        ...(phone.trim() ? { phone: phone.trim() } : {}),
-      });
+      draft.clients.push(created);
     });
-    logChange("create", id, `nouveau client : ${name.trim()}${segment ? ` (${segment})` : ""}`);
+    logChange("create", id, `nouveau client : ${name.trim()}${segment ? ` (${segment})` : ""}`, { entityType: "client", snapshot: created });
     setName("");
     setSegment("");
     setEmail("");

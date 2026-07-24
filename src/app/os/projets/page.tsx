@@ -31,33 +31,34 @@ export default function ProjetsPage() {
   });
 
   function dropStatus(projectId: string, status: ProjectStatus) {
-    let name = projectId;
-    let oldStatus = "";
+    const before = graph!.projects.find((x) => x.id === projectId);
+    if (!before || before.status === status) return;
     mutate((draft) => {
       const p = draft.projects.find((x) => x.id === projectId);
-      if (!p || p.status === status) return;
-      name = p.name;
-      oldStatus = p.status;
-      p.status = status;
+      if (p && p.status !== status) p.status = status;
     });
-    if (oldStatus) logChange("update", projectId, `${name} : status ${oldStatus} → ${status} (glissé au kanban)`);
+    logChange("update", projectId, `${before.name} : status ${before.status} → ${status} (glissé au kanban)`, {
+      entityType: "project",
+      snapshot: { before, after: { ...before, status } },
+    });
   }
 
   function createProject() {
     if (!name.trim()) return;
     const id = genId("proj");
+    const created = {
+      id,
+      name: name.trim(),
+      type: "project" as const,
+      status: "active" as const,
+      identity,
+      category: category.trim() || undefined,
+      client: client || undefined,
+    };
     mutate((draft) => {
-      draft.projects.push({
-        id,
-        name: name.trim(),
-        type: "project",
-        status: "active",
-        identity,
-        category: category.trim() || undefined,
-        client: client || undefined,
-      });
+      draft.projects.push(created);
     });
-    logChange("create", id, `nouveau projet : ${name.trim()}`);
+    logChange("create", id, `nouveau projet : ${name.trim()}`, { entityType: "project", snapshot: created });
     setName("");
     setCategory("");
     setClient("");

@@ -21,8 +21,12 @@ interface OsContextValue {
   conflict: OsConflict | null;
   /** Applique une mutation au graphe (clone défensif) et programme l'autosave. */
   mutate: (fn: (draft: OsGraph) => void) => void;
-  /** Raccourci : pousse une entrée dans `log` via mutate(). */
-  logChange: (action: string, entity: string, detail: string) => void;
+  /**
+   * Raccourci : pousse une entrée dans `log` via mutate(). `extra.snapshot` — état complet de
+   * l'entité au moment de l'événement, notamment sur suppression — rend l'historique d'une entité
+   * rejouable (filtrer `log` par `entity`/`snapshot`) au lieu de n'être qu'une phrase perdue.
+   */
+  logChange: (action: string, entity: string, detail: string, extra?: { entityType?: string; snapshot?: unknown }) => void;
   /** Sauvegarde immédiate (annule le debounce en cours). */
   save: () => Promise<void>;
   /** Conflit 409 : écrase le distant avec la version locale. */
@@ -135,10 +139,19 @@ export function OsProvider({ children }: { children: ReactNode }) {
   );
 
   const logChange = useCallback(
-    (action: string, entity: string, detail: string) => {
+    (action: string, entity: string, detail: string, extra?: { entityType?: string; snapshot?: unknown }) => {
       mutate((draft) => {
         draft.log = draft.log || [];
-        draft.log.unshift({ ts: new Date().toISOString(), action, entity, detail, by: "OS web", synced: true });
+        draft.log.unshift({
+          ts: new Date().toISOString(),
+          action,
+          entity,
+          detail,
+          by: "OS web",
+          synced: true,
+          ...(extra?.entityType ? { entityType: extra.entityType } : {}),
+          ...(extra?.snapshot !== undefined ? { snapshot: extra.snapshot } : {}),
+        });
       });
     },
     [mutate],

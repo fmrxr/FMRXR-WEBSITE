@@ -9,8 +9,9 @@ import {
   libraryTriage, libraryMatches, libraryByCategory, libraryCategoryCounts, graphEntityCount,
   assetKindLabel, assetMatches, assetKindGroups, assetKindCounts, assetClientLabel, assetClientGroups,
   cfStageLabel, cfAdjacentStage, cfSummary,
+  graphEntities, graphEdges, graphNodeDegrees, loadHistoricalEntities, graphEntitiesWithHistory, loadHistoricalEdges,
 } from "@/lib/os/compute";
-import type { OsAsset, OsCfBatch, OsClient, OsIdentity, OsLibraryItem, OsProject } from "@/lib/os/types";
+import type { OsAsset, OsCfBatch, OsClient, OsIdentity, OsLibraryItem, OsLogEntry, OsProject } from "@/lib/os/types";
 
 const NOW = new Date("2026-07-22T12:00:00.000Z");
 
@@ -638,5 +639,174 @@ describe("assetClientLabel / assetClientGroups", () => {
   it("applies the search query before grouping", () => {
     const groups = assetClientGroups(assets, graph, "brand");
     expect(groups).toEqual([{ client: "FMRXR", items: [assets[2]] }]);
+  });
+});
+
+describe("graphEntities / graphEdges / graphNodeDegrees", () => {
+  const source = {
+    identities: [{ id: "fmrxr-studio", name: "FMRXR Studio", type: "identity" as const }],
+    projects: [
+      { id: "vz-calypso", name: "VZ × Calypso", type: "project" as const, status: "active", identity: ["fmrxr-studio"], client: "morninglory-paris" },
+    ],
+    // momo a un org direct (person→org) ; sofien n'en a pas, donc client↔sofien ne peut venir que du
+    // chemin dérivé (relation projet→personne + projet.client) — isole les deux mécanismes dans les tests.
+    people: [
+      { id: "momo", name: "Momo", type: "person" as const, org: "morninglory-paris" },
+      { id: "sofien", name: "Sofien", type: "person" as const },
+    ],
+    clients: [{ id: "morninglory-paris", name: "Morninglory Paris", type: "client" as const }],
+    finance: [{ id: "f1", ref: "INV-1", type: "invoice" as const, client: "morninglory-paris", project: "vz-calypso", amount: 100, currency: "EUR" as const, status: "sent" as const }],
+    quotes: [{ id: "q1", ref: "DEV-1", type: "quote" as const, client: "morninglory-paris", amount: 100, currency: "EUR" as const, status: "sent" as const }],
+    assets: [{ id: "a1", name: "Asset 1", type: "asset" as const, project: "vz-calypso" }],
+    tools: [{ id: "t1", name: "Tool 1" }],
+    relations: [
+      { from: "vz-calypso", to: "momo", rel: "collaborator" },
+      { from: "vz-calypso", to: "sofien", rel: "collaborator" },
+    ],
+  };
+
+  it("builds a unified entity roster with the right types and count", () => {
+    const entities = graphEntities(source);
+    // 1 identity + 1 project + 2 people + 1 client + 1 invoice + 1 quote + 1 asset + 1 tool
+    expect(entities).toHaveLength(9);
+    expect(entities.filter((e) => e.type === "project")).toHaveLength(1);
+  });
+
+  it("resolves invoice/quote display names from ref + label, falling back to id", () => {
+    const entities = graphEntities(source);
+    expect(entities.find((e) => e.id === "f1")?.name).toBe("INV-1");
+    expect(entities.find((e) => e.id === "q1")?.name).toBe("DEV-1");
+  });
+
+  it("builds direct edges (project↔identity, project↔client, invoice/quote↔client/project, person↔org, asset↔project, relations)", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const direct = (a: string, b: string) => edges.some((e) => !e.derived && ((e.a === a && e.b === b) || (e.a === b && e.b === a)));
+    expect(direct("vz-calypso", "fmrxr-studio")).toBe(true); // project → identity
+    expect(direct("vz-calypso", "morninglory-paris")).toBe(true); // project → client
+    expect(direct("f1", "morninglory-paris")).toBe(true); // invoice → client
+    expect(direct("f1", "vz-calypso")).toBe(true); // invoice → project
+    expect(direct("q1", "morninglory-paris")).toBe(true); // quote → client
+    expect(direct("momo", "morninglory-paris")).toBe(true); // person → org
+    expect(direct("a1", "vz-calypso")).toBe(true); // asset → project
+    expect(direct("vz-calypso", "momo")).toBe(true); // relation
+    expect(direct("vz-calypso", "sofien")).toBe(true); // relation
+  });
+
+  it("derives identity↔client edges through shared projects, and client↔person edges through project relations", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const derived = (a: string, b: string) => edges.some((e) => e.derived && ((e.a === a && e.b === b) || (e.a === b && e.b === a)));
+    expect(derived("morninglory-paris", "fmrxr-studio")).toBe(true);
+    expect(derived("morninglory-paris", "sofien")).toBe(true);
+  });
+
+  it("keeps the first-claimed edge as direct when a derived link would duplicate it (momo already has a direct person→org edge)", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const momoLink = edges.find((e) => (e.a === "momo" && e.b === "morninglory-paris") || (e.a === "morninglory-paris" && e.b === "momo"));
+    expect(momoLink?.derived).toBe(false);
+  });
+
+  it("dedupes a↔b vs b↔a into a single edge", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const pairs = edges.map((e) => [e.a, e.b].sort().join("|"));
+    expect(new Set(pairs).size).toBe(pairs.length);
+  });
+
+  it("drops edges whose endpoint isn't in the visible entity set (e.g. hidden by a type filter)", () => {
+    const withoutAssets = graphEntities(source).filter((e) => e.type !== "asset");
+    const edges = graphEdges(source, withoutAssets);
+    expect(edges.some((e) => e.a === "a1" || e.b === "a1")).toBe(false);
+  });
+
+  it("computes node degree from edges", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const deg = graphNodeDegrees(edges);
+    // morninglory-paris : vz-calypso, f1, q1, momo (direct) + sofien, fmrxr-studio (dérivé) = 6
+    expect(deg["morninglory-paris"]).toBe(6);
+    expect(deg["t1"]).toBeUndefined(); // aucun lien vers l'outil isolé
+  });
+});
+
+describe("loadHistoricalEntities / graphEntitiesWithHistory / loadHistoricalEdges", () => {
+  const log: OsLogEntry[] = [
+    {
+      // cf_batch n'a jamais été un type de nœud du graphe (comme l'annulation Tazarka évoquée dans
+      // la conversation) — doit être ignoré, pas de fantôme pour un type hors vocabulaire.
+      ts: "2026-07-21T20:12:00.000Z", action: "delete", entity: "cf-tazarka", entityType: "cf_batch", by: "Claude", synced: true,
+      detail: "lot retiré", snapshot: { id: "cf-tazarka", name: "Tournage Tazarka", project: "vz-calypso" },
+    },
+    {
+      ts: "2026-07-08T00:00:00.000Z", action: "delete", entity: "asset-old-poster", entityType: "asset", by: "Claude", synced: true,
+      detail: "asset supprimé", snapshot: { id: "asset-old-poster", name: "Ancienne affiche", project: "vz-calypso" },
+    },
+    {
+      ts: "2026-06-01T00:00:00.000Z", action: "delete", entity: "old-proj", entityType: "project", by: "Claude", synced: true,
+      detail: "projet supprimé", snapshot: { id: "old-proj", name: "Ancien Projet", client: "morninglory-paris" },
+    },
+    {
+      ts: "2026-06-05T00:00:00.000Z", action: "update", entity: "old-proj", entityType: "project", by: "Claude", synced: true,
+      detail: "reclassé par erreur, ne doit pas compter comme suppression la plus récente",
+    },
+    {
+      // deuxième suppression du même id → seule la plus récente doit être gardée
+      ts: "2026-06-10T00:00:00.000Z", action: "delete", entity: "old-proj", entityType: "project", by: "Claude", synced: true,
+      detail: "resupprimé", snapshot: { id: "old-proj", name: "Ancien Projet (v2)", client: "morninglory-paris" },
+    },
+    {
+      ts: "2026-05-01T00:00:00.000Z", action: "delete", entity: "t-old", entityType: "task", by: "Claude", synced: true,
+      detail: "tâche supprimée", snapshot: { id: "t-old", label: "Vieille tâche" },
+    },
+  ];
+
+  it("derives one ghost per entity from its most recent delete, ignoring types outside the graph vocabulary", () => {
+    const ghosts = loadHistoricalEntities({ log });
+    const ids = ghosts.map((g) => g.id).sort();
+    // "cf-tazarka" (cf_batch) et "t-old" (task) sont hors vocabulaire ; le doublon "old-proj" est dédupliqué.
+    expect(ids).toEqual(["asset-old-poster", "old-proj"]);
+    expect(ghosts.every((g) => g.state === "ghost")).toBe(true);
+  });
+
+  it("keeps the latest snapshot when an entity was deleted more than once", () => {
+    const ghosts = loadHistoricalEntities({ log });
+    const oldProj = ghosts.find((g) => g.id === "old-proj");
+    expect(oldProj?.name).toBe("Ancien Projet (v2)");
+    expect(oldProj?.lastSeen).toBe("2026-06-10T00:00:00.000Z");
+  });
+
+  it("names asset ghosts from their snapshot's name field", () => {
+    const ghosts = loadHistoricalEntities({ log });
+    expect(ghosts.find((g) => g.id === "asset-old-poster")?.name).toBe("Ancienne affiche");
+  });
+
+  it("merges active and historical entities, letting a live entity win over a same-id ghost", () => {
+    const source = {
+      identities: [] as never[], projects: [{ id: "old-proj", name: "Recréé depuis", type: "project" as const, status: "active" as const }],
+      people: [] as never[], clients: [] as never[], finance: [] as never[], quotes: [] as never[], assets: [] as never[], tools: [] as never[],
+      relations: [] as never[], log,
+    };
+    const all = graphEntitiesWithHistory(source);
+    expect(all.filter((e) => e.id === "old-proj")).toHaveLength(1);
+    expect(all.find((e) => e.id === "old-proj")?.state).toBe("active");
+    expect(all.find((e) => e.id === "asset-old-poster")?.state).toBe("ghost");
+    expect(all.some((e) => e.id === "cf-tazarka")).toBe(false); // hors vocabulaire, jamais un nœud
+  });
+
+  it("reconstructs edges from ghost snapshots toward still-visible entities only", () => {
+    const visible = new Set(["asset-old-poster", "old-proj", "vz-calypso", "morninglory-paris"]);
+    const edges = loadHistoricalEdges({ log }, visible);
+    const has = (a: string, b: string) => edges.some((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a));
+    expect(has("asset-old-poster", "vz-calypso")).toBe(true);
+    expect(has("old-proj", "morninglory-paris")).toBe(true);
+    expect(edges.every((e) => !e.derived)).toBe(true);
+  });
+
+  it("drops reconstructed edges whose target isn't visible", () => {
+    const visible = new Set(["asset-old-poster", "old-proj"]); // sans vz-calypso ni morninglory-paris
+    const edges = loadHistoricalEdges({ log }, visible);
+    expect(edges).toHaveLength(0);
   });
 });

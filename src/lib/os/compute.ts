@@ -2,7 +2,7 @@
 // focusToday/kpiValue/toTND) pour préserver la logique métier validée par le monolithe (§0 du brief).
 // Toute fonction qui dépend de "maintenant" accepte `now` en paramètre pour rester testable.
 
-import type { AssetKind, Currency, OsAsset, OsCfBatch, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsTask } from "./types";
+import type { AssetKind, Currency, OsAsset, OsCfBatch, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsLogEntry, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsTask } from "./types";
 
 const DEFAULT_EUR_TND = 3.4;
 const PENDING_STATUSES = new Set(["sent", "partial", "late", "disputed"]);
@@ -891,4 +891,200 @@ export function cfSummary(batches: OsCfBatch[] = []): CfSummary {
   for (const s of CF_STAGES) counts[s.key] = 0;
   for (const b of batches) counts[b.stage] = (counts[b.stage] || 0) + 1;
   return { total: batches.length, doneCount: counts.livre || 0, counts };
+}
+
+// ═══════════ Brain — graphe force-directed (§Knowledge, porté de RENDER.graph/gBuild) ═══════════
+
+export type GraphEntityType = "identity" | "project" | "person" | "client" | "invoice" | "quote" | "asset" | "tool";
+
+export const GRAPH_TYPE_LABELS: [GraphEntityType, string][] = [
+  ["identity", "Identités"],
+  ["project", "Projets"],
+  ["person", "Personnes"],
+  ["client", "Clients"],
+  ["invoice", "Factures"],
+  ["quote", "Devis"],
+  ["asset", "Assets"],
+  ["tool", "Outils"],
+];
+
+export const GRAPH_TYPE_COLORS: Record<GraphEntityType, string> = {
+  identity: "#7BEF7B",
+  project: "#F5F5F8",
+  person: "#D9A441",
+  client: "#4D9FFF",
+  invoice: "#CC6666",
+  quote: "#C6A57A",
+  asset: "#7A9CC6",
+  tool: "#9A7AC6",
+};
+
+export interface GraphEntity {
+  id: string;
+  name: string;
+  type: GraphEntityType;
+  status?: string;
+  /** "ghost" = reconstruite depuis un snapshot de suppression, plus dans les tables vivantes — la couche sédiment. */
+  state?: "active" | "ghost";
+  /** Horodatage du dernier événement connu — création/modification pour un actif, suppression pour un fantôme. */
+  lastSeen?: string;
+}
+
+export interface GraphEdge {
+  a: string;
+  b: string;
+  w: number;
+  derived: boolean;
+}
+
+type GraphSourceGraph = Pick<
+  OsGraph,
+  "identities" | "projects" | "people" | "clients" | "finance" | "quotes" | "assets" | "tools" | "relations"
+>;
+
+/** Roster unifié de toutes les entités du graphe — porte la construction de `ALL` utilisée par RENDER.graph. */
+export function graphEntities(graph: GraphSourceGraph): GraphEntity[] {
+  return [
+    ...graph.identities.map((i) => ({ id: i.id, name: i.name, type: "identity" as const, state: "active" as const })),
+    ...graph.projects.map((p) => ({ id: p.id, name: p.name, type: "project" as const, status: p.status, state: "active" as const })),
+    ...(graph.people || []).map((p) => ({ id: p.id, name: p.name, type: "person" as const, state: "active" as const })),
+    ...(graph.clients || []).map((c) => ({ id: c.id, name: c.name, type: "client" as const, state: "active" as const })),
+    ...graph.finance.map((f) => ({ id: f.id, name: f.ref ? `${f.ref}${f.label ? ` — ${f.label}` : ""}` : f.id, type: "invoice" as const, state: "active" as const })),
+    ...(graph.quotes || []).map((q) => ({ id: q.id, name: q.ref ? `${q.ref}${q.label ? ` — ${q.label}` : ""}` : q.id, type: "quote" as const, state: "active" as const })),
+    ...(graph.assets || []).map((a) => ({ id: a.id, name: a.name, type: "asset" as const, state: "active" as const })),
+    ...(graph.tools || []).map((t) => ({ id: t.id, name: t.name, type: "tool" as const, state: "active" as const })),
+  ];
+}
+
+const GRAPH_VOCABULARY: ReadonlySet<string> = new Set<GraphEntityType>(["identity", "project", "person", "client", "invoice", "quote", "asset", "tool"]);
+
+function snapshotStr(snapshot: unknown, key: string): string | undefined {
+  if (!snapshot || typeof snapshot !== "object") return undefined;
+  const v = (snapshot as Record<string, unknown>)[key];
+  return typeof v === "string" ? v : undefined;
+}
+
+function ghostName(type: GraphEntityType, snapshot: unknown, fallbackId: string): string {
+  if (type === "invoice" || type === "quote") {
+    const ref = snapshotStr(snapshot, "ref");
+    const label = snapshotStr(snapshot, "label");
+    return ref ? `${ref}${label ? ` — ${label}` : ""}` : fallbackId;
+  }
+  return snapshotStr(snapshot, "name") || fallbackId;
+}
+
+/**
+ * Nœuds fantômes — la couche sédiment : une entité supprimée ne disparaît plus du graphe, elle
+ * coule dans l'état "ghost" avec sa dernière forme connue, reconstruite depuis le snapshot que
+ * `logChange` attache maintenant à chaque suppression. Dérivée de `log`, pas des tables vivantes —
+ * aucune nouvelle donnée stockée. Portée volontairement limitée aux types déjà présents dans le
+ * graphe (project/client/invoice/quote/asset/identity/person/tool) : tâches, deadlines, lots
+ * Content Factory etc. n'ont jamais été des nœuds, donc pas de fantôme pour eux ici.
+ */
+export function loadHistoricalEntities(graph: Pick<OsGraph, "log">): GraphEntity[] {
+  const latestDeleteByEntity = new Map<string, OsLogEntry>();
+  for (const entry of graph.log || []) {
+    if (entry.action !== "delete" || !entry.entityType || !GRAPH_VOCABULARY.has(entry.entityType) || entry.snapshot === undefined) continue;
+    const existing = latestDeleteByEntity.get(entry.entity);
+    if (!existing || entry.ts > existing.ts) latestDeleteByEntity.set(entry.entity, entry);
+  }
+  return Array.from(latestDeleteByEntity.values()).map((entry) => {
+    const type = entry.entityType as GraphEntityType;
+    return { id: entry.entity, name: ghostName(type, entry.snapshot, entry.entity), type, state: "ghost" as const, lastSeen: entry.ts };
+  });
+}
+
+/** Union entités vivantes + fantômes — le roster complet que voit le Brain quand l'historique est affiché. */
+export function graphEntitiesWithHistory(graph: GraphSourceGraph & Pick<OsGraph, "log">): GraphEntity[] {
+  const active = graphEntities(graph);
+  const activeIds = new Set(active.map((e) => e.id));
+  const ghosts = loadHistoricalEntities(graph).filter((g) => !activeIds.has(g.id));
+  return [...active, ...ghosts];
+}
+
+/**
+ * Liens reconstruits depuis les snapshots de suppression (client/projet référencés au moment de la
+ * mort) — sédiment relationnel : un fantôme n'est plus jamais réintégré aux boucles gBuild() qui
+ * lisent les tables vivantes, donc sans ceci il serait un point isolé. N'invente rien — ne relie que
+ * ce que le snapshot connaissait déjà, et seulement vers des entités encore visibles.
+ */
+export function loadHistoricalEdges(graph: Pick<OsGraph, "log">, visibleIds: Set<string>): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+  const seen = new Set<string>();
+  for (const entry of graph.log || []) {
+    if (entry.action !== "delete" || !entry.entityType || !GRAPH_VOCABULARY.has(entry.entityType) || entry.snapshot === undefined) continue;
+    const push = (b: string | undefined) => {
+      if (!b || !visibleIds.has(entry.entity) || !visibleIds.has(b) || entry.entity === b) return;
+      const key = entry.entity < b ? `${entry.entity}|${b}` : `${b}|${entry.entity}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      edges.push({ a: entry.entity, b, w: 0.7, derived: false });
+    };
+    push(snapshotStr(entry.snapshot, "client"));
+    push(snapshotStr(entry.snapshot, "project"));
+  }
+  return edges;
+}
+
+/**
+ * Liens directs + inférés entre entités visibles — porte gBuild() de RENDER.graph. Un lien n'est
+ * conservé que si SES DEUX extrémités existent dans `entities` (ex : masquées par un filtre de
+ * type/archives), et les doublons a↔b/b↔a sont dédupliqués — comme push()/seen dans le monolithe.
+ */
+export function graphEdges(graph: GraphSourceGraph, entities: GraphEntity[]): GraphEdge[] {
+  const ids = new Set(entities.map((e) => e.id));
+  const edges: GraphEdge[] = [];
+  const seen = new Set<string>();
+  const push = (a: string | undefined, b: string | undefined, w: number, derived = false) => {
+    if (!a || !b || a === b || !ids.has(a) || !ids.has(b)) return;
+    const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    edges.push({ a, b, w, derived });
+  };
+
+  graph.projects.forEach((p) => {
+    (p.identity || []).forEach((id) => push(p.id, id, 1));
+    if (p.client) push(p.id, p.client, 1.2);
+  });
+  graph.finance.forEach((f) => {
+    push(f.id, f.client, 1);
+    if (f.project) push(f.id, f.project, 0.8);
+  });
+  (graph.quotes || []).forEach((q) => {
+    push(q.id, q.client, 1);
+    if (q.project) push(q.id, q.project, 0.8);
+  });
+  (graph.people || []).forEach((p) => {
+    if (p.org) push(p.id, p.org, 0.8);
+  });
+  (graph.assets || []).forEach((a) => {
+    if (a.project) push(a.id, a.project, 0.6);
+    if (a.identity) push(a.id, a.identity, 0.6);
+  });
+  (graph.relations || []).forEach((r) => push(r.from, r.to, 1));
+
+  // Liens dérivés (inférés) : identité ↔ client via projets partagés — fait émerger les
+  // constellations par casquette, comme dans le monolithe.
+  graph.projects.forEach((p) => {
+    if (p.client) (p.identity || []).forEach((idn) => push(p.client, idn, 0.35, true));
+  });
+  // Client ↔ personne du même projet, via une relation projet → personne.
+  const entityById = new Map(entities.map((e) => [e.id, e]));
+  (graph.relations || []).forEach((r) => {
+    const project = graph.projects.find((p) => p.id === r.from);
+    if (project?.client && entityById.get(r.to)?.type === "person") push(project.client, r.to, 0.3, true);
+  });
+
+  return edges;
+}
+
+/** Degré (nombre de liens) par id d'entité — détermine le rayon des nœuds. */
+export function graphNodeDegrees(edges: GraphEdge[]): Record<string, number> {
+  const deg: Record<string, number> = {};
+  for (const e of edges) {
+    deg[e.a] = (deg[e.a] || 0) + 1;
+    deg[e.b] = (deg[e.b] || 0) + 1;
+  }
+  return deg;
 }

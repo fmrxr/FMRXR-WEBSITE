@@ -35,46 +35,50 @@ export default function OkrPage() {
   function addObjective() {
     if (!newObjective.trim()) return;
     const id = genId("okr");
+    const created = { id, quarter: q, objective: newObjective.trim(), krs: [] };
     mutate((draft) => {
       draft.okrs = draft.okrs || [];
-      draft.okrs.push({ id, quarter: q, objective: newObjective.trim(), krs: [] });
+      draft.okrs.push(created);
     });
-    logChange("create", id, `OKR créé : ${newObjective.trim()}`);
+    logChange("create", id, `OKR créé : ${newObjective.trim()}`, { entityType: "okr", snapshot: created });
     setNewObjective("");
     setAdding(false);
   }
 
   function addKr(okrId: string, label: string, target: number, unit: string) {
     const krId = genId("kr");
+    const before = (graph!.okrs || []).find((x) => x.id === okrId);
+    if (!before) return;
+    const kr = { id: krId, label, target, value: 0, unit };
     mutate((draft) => {
       const o = (draft.okrs || []).find((x) => x.id === okrId);
       if (!o) return;
       o.krs = o.krs || [];
-      o.krs.push({ id: krId, label, target, value: 0, unit });
+      o.krs.push(kr);
     });
-    logChange("update", okrId, `KR ajouté : ${label}`);
+    logChange("update", okrId, `KR ajouté : ${label}`, { entityType: "okr", snapshot: { before, after: { ...before, krs: [...before.krs, kr] } } });
   }
 
   function setKrValue(okrId: string, krId: string, value: number) {
-    let label = "";
-    let oldValue: number | undefined;
+    const before = (graph!.okrs || []).find((x) => x.id === okrId);
+    const beforeKr = before?.krs.find((k) => k.id === krId);
+    if (!before || !beforeKr) return;
     mutate((draft) => {
       const o = (draft.okrs || []).find((x) => x.id === okrId);
       const kr = o?.krs.find((k) => k.id === krId);
-      if (!kr) return;
-      label = kr.label;
-      oldValue = kr.value;
-      kr.value = value;
+      if (kr) kr.value = value;
     });
-    logChange("update", okrId, `OKR — ${label} : ${oldValue ?? 0} → ${value}`);
+    const after = { ...before, krs: before.krs.map((k) => (k.id === krId ? { ...k, value } : k)) };
+    logChange("update", okrId, `OKR — ${beforeKr.label} : ${beforeKr.value} → ${value}`, { entityType: "okr", snapshot: { before, after } });
   }
 
   function deleteObjective(okrId: string, objective: string) {
     if (!confirm(`Supprimer l'objectif « ${objective} » et ses résultats clés ?`)) return;
+    const o = (graph!.okrs || []).find((x) => x.id === okrId);
     mutate((draft) => {
-      draft.okrs = (draft.okrs || []).filter((o) => o.id !== okrId);
+      draft.okrs = (draft.okrs || []).filter((x) => x.id !== okrId);
     });
-    logChange("delete", okrId, `OKR supprimé : ${objective}`);
+    logChange("delete", okrId, `OKR supprimé : ${objective}`, { entityType: "okr", snapshot: o });
   }
 
   return (

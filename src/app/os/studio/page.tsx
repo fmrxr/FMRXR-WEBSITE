@@ -35,19 +35,20 @@ export default function StudioPage() {
   function saveAsset(draft: AssetDraft) {
     if (formTarget === "new") {
       const id = genId("asset");
+      const created = { id, type: "asset" as const, ...draft };
       mutate((g) => {
         g.assets = g.assets || [];
-        g.assets.push({ id, type: "asset", ...draft });
+        g.assets.push(created);
       });
-      logChange("create", id, `asset ajouté : ${draft.name}`);
+      logChange("create", id, `asset ajouté : ${draft.name}`, { entityType: "asset", snapshot: created });
     } else if (formTarget) {
       const id = formTarget.id;
+      const before = formTarget;
       mutate((g) => {
         const a = (g.assets || []).find((x) => x.id === id);
-        if (!a) return;
-        Object.assign(a, draft);
+        if (a) Object.assign(a, draft);
       });
-      logChange("update", id, `asset modifié : ${draft.name}`);
+      logChange("update", id, `asset modifié : ${draft.name}`, { entityType: "asset", snapshot: { before, after: { ...before, ...draft } } });
     }
     setFormTarget(null);
   }
@@ -61,7 +62,7 @@ export default function StudioPage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "asset", data: a });
       draft.assets = (draft.assets || []).filter((x) => x.id !== id);
     });
-    logChange("delete", id, `asset supprimé (→ corbeille) : ${a.name}`);
+    logChange("delete", id, `asset supprimé (→ corbeille) : ${a.name}`, { entityType: "asset", snapshot: a });
   }
 
   return (

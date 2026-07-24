@@ -35,16 +35,17 @@ export default function AgendaPage() {
   const criticalProject = graph.projects.find((p) => p.status === "active" && p.priority === "critical");
 
   function toggleDeadline(id: string) {
-    let label = "";
-    let nowDone = false;
+    const before = graph!.deadlines.find((x) => x.id === id);
+    if (!before) return;
+    const nowDone = !before.done;
     mutate((draft) => {
       const d = draft.deadlines.find((x) => x.id === id);
-      if (!d) return;
-      d.done = !d.done;
-      label = d.label;
-      nowDone = d.done ?? false;
+      if (d) d.done = nowDone;
     });
-    if (label) logChange("update", id, `deadline ${nowDone ? "✓ faite" : "réouverte"} : ${label}`);
+    logChange("update", id, `deadline ${nowDone ? "✓ faite" : "réouverte"} : ${before.label}`, {
+      entityType: "deadline",
+      snapshot: { before, after: { ...before, done: nowDone } },
+    });
   }
 
   function deleteDeadline(id: string) {
@@ -56,23 +57,24 @@ export default function AgendaPage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "deadline", data: d });
       draft.deadlines = draft.deadlines.filter((x) => x.id !== id);
     });
-    logChange("delete", id, `deadline supprimée (→ corbeille) : ${d.label}`);
+    logChange("delete", id, `deadline supprimée (→ corbeille) : ${d.label}`, { entityType: "deadline", snapshot: d });
   }
 
   function addDeadline(label: string, date: string, project: string, owner: string, critical: boolean) {
     const id = genId(`d-${slugify(label)}`);
+    const created = {
+      id,
+      date,
+      label,
+      done: false,
+      ...(project ? { project } : {}),
+      ...(owner ? { owner } : {}),
+      ...(critical ? { critical } : {}),
+    };
     mutate((draft) => {
-      draft.deadlines.push({
-        id,
-        date,
-        label,
-        done: false,
-        ...(project ? { project } : {}),
-        ...(owner ? { owner } : {}),
-        ...(critical ? { critical } : {}),
-      });
+      draft.deadlines.push(created);
     });
-    logChange("create", id, `nouvelle deadline : ${label}`);
+    logChange("create", id, `nouvelle deadline : ${label}`, { entityType: "deadline", snapshot: created });
   }
 
   return (

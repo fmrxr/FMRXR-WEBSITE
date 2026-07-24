@@ -23,25 +23,27 @@ export default function ContentFactoryPage() {
 
   function addBatch(draft: CfBatchDraft) {
     const id = genId("cf");
+    const created: OsCfBatch = { id, stage: "attente", ...draft };
     mutate((g) => {
       g.cf_batches = g.cf_batches || [];
-      g.cf_batches.push({ id, stage: "attente", ...draft });
+      g.cf_batches.push(created);
     });
-    logChange("create", id, `lot Content Factory ajouté : ${draft.name}`);
+    logChange("create", id, `lot Content Factory ajouté : ${draft.name}`, { entityType: "cf_batch", snapshot: created });
     setAdding(false);
   }
 
   function setStage(id: string, stage: OsCfBatch["stage"]) {
-    let name = "";
-    let oldStage: OsCfBatch["stage"] | null = null;
+    const before = batches.find((x) => x.id === id);
+    if (!before || before.stage === stage) return;
+    const after = { ...before, stage };
     mutate((draft) => {
       const b = (draft.cf_batches || []).find((x) => x.id === id);
-      if (!b || b.stage === stage) return;
-      name = b.name;
-      oldStage = b.stage;
-      b.stage = stage;
+      if (b) b.stage = stage;
     });
-    if (oldStage) logChange("update", id, `Content Factory — ${name} : ${oldStage} → ${stage}`);
+    logChange("update", id, `Content Factory — ${before.name} : ${before.stage} → ${stage}`, {
+      entityType: "cf_batch",
+      snapshot: { before, after },
+    });
   }
 
   function deleteBatch(id: string) {
@@ -53,7 +55,7 @@ export default function ContentFactoryPage() {
       draft.trash.unshift({ ts: new Date().toISOString(), kind: "cf_batch", data: b });
       draft.cf_batches = (draft.cf_batches || []).filter((x) => x.id !== id);
     });
-    logChange("delete", id, `lot Content Factory retiré : ${b.name}`);
+    logChange("delete", id, `lot Content Factory retiré : ${b.name}`, { entityType: "cf_batch", snapshot: b });
   }
 
   return (
