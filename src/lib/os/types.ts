@@ -79,6 +79,7 @@ export interface OsClient {
   type: "client";
   segment?: string;
   email?: string;
+  phone?: string;
   web?: string;
   notes?: string;
 }
@@ -93,7 +94,8 @@ export interface OsInvoice {
   project?: string;
   business_id?: string;
   label?: string;
-  amount: number;
+  /** null = montant pas encore renseigné (facture générée avant confirmation du prix). */
+  amount: number | null;
   currency: Currency;
   advance?: number;
   status: InvoiceStatus;
@@ -108,10 +110,15 @@ export interface OsQuote {
   id: string;
   ref?: string;
   client?: string;
+  project?: string;
+  business_id?: string;
+  label?: string;
   amount: number;
   currency: Currency;
+  advance?: number;
   status: QuoteStatus;
   issued?: string;
+  validity?: string;
 }
 
 export interface OsExpense {
@@ -122,6 +129,10 @@ export interface OsExpense {
   date: string;
   category?: string;
   recurring?: boolean;
+  project?: string;
+  vendor?: string;
+  notes?: string;
+  business_id?: string;
 }
 
 export interface OsTask {
@@ -153,6 +164,38 @@ export interface OsTool {
   name: string;
   cat?: string;
   notes?: string;
+  kind?: "claude-skill" | "script" | "codebase" | (string & {});
+  purpose?: string;
+  file?: string;
+  type?: "tool";
+}
+
+export type LibraryItemType = "prompt" | "preset" | "asset" | "doc" | "link" | "other";
+
+export interface OsLibraryItemContent {
+  prompt?: string;
+  negative?: string;
+  engine?: string;
+  phase?: string;
+  settings?: string;
+  notes?: string;
+  [k: string]: unknown;
+}
+
+export interface OsLibraryItem {
+  id: string;
+  title: string;
+  type: LibraryItemType;
+  /** null/absent = en attente de classement (inbox de triage). */
+  category?: string | null;
+  subcategory?: string | null;
+  tags?: string[];
+  source?: string;
+  used_in?: string[];
+  content?: OsLibraryItemContent | string | null;
+  file_ref?: string | null;
+  favorite?: boolean;
+  created?: string;
 }
 
 export interface OsRelation {
@@ -320,7 +363,8 @@ export interface OsGraph {
   okrs?: OsOkr[];
   cf_batches?: OsCfBatch[];
   stack?: OsStack;
-  library?: unknown[];
+  library?: OsLibraryItem[];
+  connectors?: string[];
   trash?: unknown[];
   log: OsLogEntry[];
   meta: OsMeta;

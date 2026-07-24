@@ -2,7 +2,7 @@
 // focusToday/kpiValue/toTND) pour préserver la logique métier validée par le monolithe (§0 du brief).
 // Toute fonction qui dépend de "maintenant" accepte `now` en paramètre pour rester testable.
 
-import type { Currency, OsDeadline, OsGraph, OsInvoice, OsKpi, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsTask } from "./types";
+import type { Currency, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsTask } from "./types";
 
 const DEFAULT_EUR_TND = 3.4;
 const PENDING_STATUSES = new Set(["sent", "partial", "late", "disputed"]);
@@ -580,4 +580,165 @@ export function monthlyAnomaly(series: MonthlyPoint[], thresholdPct = 40): Month
   if (average === 0) return { isAnomaly: false, deviationPct: 0, direction: "none", current, average };
   const deviationPct = ((current - average) / average) * 100;
   return { isAnomaly: Math.abs(deviationPct) >= thresholdPct, deviationPct, direction: deviationPct >= 0 ? "above" : "below", current, average };
+}
+
+// ═══════════ Pipeline / BDM (§Business, porté de RENDER.bdm) ═══════════
+
+/** "Expirée" = statut manuel "expired" OU deadline dépassée — porte oppIsExpired() du monolithe. */
+export function isOpportunityExpired(o: Pick<OsOpportunity, "status" | "deadline">, now: Date = new Date()): boolean {
+  return o.status === "expired" || oppDeadlineStatus(o, now).status === "expired";
+}
+
+export interface BdmSummary {
+  activeCount: number;
+  proposalCount: number;
+  closingSoonCount: number;
+  closingUrgentCount: number;
+  wonCount: number;
+}
+
+/** Compteurs du pipeline BDM — porte le bandeau de stats de RENDER.bdm. */
+export function bdmSummary(opportunities: OsOpportunity[] = [], now: Date = new Date()): BdmSummary {
+  const active = opportunities.filter((o) => o.status !== "won" && o.status !== "lost" && !isOpportunityExpired(o, now));
+  const closing = closingSoon(opportunities, now);
+  return {
+    activeCount: active.length,
+    proposalCount: active.filter((o) => o.status === "proposal").length,
+    closingSoonCount: closing.length,
+    closingUrgentCount: closing.filter((o) => oppDeadlineStatus(o, now).status === "urgent").length,
+    wonCount: opportunities.filter((o) => o.status === "won").length,
+  };
+}
+
+// ═══════════ Finance (§Finance, porté de RENDER.finance) ═══════════
+
+export interface MoneyItem {
+  amount: number;
+  currency: Currency;
+}
+
+export interface FinanceOverview {
+  cashInItems: MoneyItem[];
+  cashInTND: number;
+  pendingItems: MoneyItem[];
+  pendingTND: number;
+  pendingCount: number;
+  noAmountCount: number;
+  yearInvoiceItems: MoneyItem[];
+  yearInvoiceTND: number;
+  yearInvoiceCount: number;
+  plafondPct: number;
+  expenseItems: MoneyItem[];
+  expenseTND: number;
+  expenseCount: number;
+  recurringExpenseTND: number;
+  netTND: number;
+}
+
+/** Vue d'ensemble finance — porte le bloc KPI (Encaissé/Reste/Facturé/Plafond/Dépenses/Trésorerie) de RENDER.finance. */
+export function financeOverview(
+  finance: OsInvoice[] = [],
+  expenses: OsExpense[] = [],
+  now: Date = new Date(),
+  eurTnd?: number,
+  plafond = 75_000,
+): FinanceOverview {
+  const year = String(now.getFullYear());
+  const paid = finance.filter((f) => f.status === "paid");
+  const pending = finance.filter((f) => PENDING_STATUSES.has(f.status));
+
+  const cashInItems: MoneyItem[] = [
+    ...paid.map((f) => ({ amount: f.amount || 0, currency: f.currency })),
+    ...pending.filter((f) => f.advance).map((f) => ({ amount: f.advance as number, currency: f.currency })),
+  ];
+  const cashInTND = cashInItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
+
+  const pendingItems: MoneyItem[] = pending.map((f) => ({ amount: restOf(f), currency: f.currency }));
+  const pendingTND = pendingItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
+
+  const yearInvoices = finance.filter((f) => (f.issued || "").startsWith(year));
+  const yearInvoiceItems: MoneyItem[] = yearInvoices.map((f) => ({ amount: f.amount || 0, currency: f.currency }));
+  const yearInvoiceTND = yearInvoiceItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
+
+  const yearExpenses = expenses.filter((e) => (e.date || "").startsWith(year));
+  const expenseItems: MoneyItem[] = yearExpenses.map((e) => ({ amount: e.amount || 0, currency: e.currency }));
+  const expenseTND = expenseItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
+  const recurringExpenseTND = expenses.filter((e) => e.recurring).reduce((s, e) => s + toTND(e.amount || 0, e.currency, eurTnd), 0);
+
+  return {
+    cashInItems,
+    cashInTND,
+    pendingItems,
+    pendingTND,
+    pendingCount: pending.length,
+    noAmountCount: finance.filter((f) => f.amount == null).length,
+    yearInvoiceItems,
+    yearInvoiceTND,
+    yearInvoiceCount: yearInvoices.length,
+    plafondPct: (yearInvoiceTND / plafond) * 100,
+    expenseItems,
+    expenseTND,
+    expenseCount: yearExpenses.length,
+    recurringExpenseTND,
+    netTND: cashInTND - expenseTND,
+  };
+}
+
+// ═══════════ Bibliothèque créative / Knowledge (§Stack, porté de RENDER.stack) ═══════════
+
+export const LIBRARY_CATEGORIES = ["Assets", "AI", "Visual", "Code", "Knowledge"] as const;
+
+/** Items sans catégorie — inbox de triage affichée en haut du module. */
+export function libraryTriage(library: OsLibraryItem[] = []): OsLibraryItem[] {
+  return library.filter((i) => !i.category);
+}
+
+function libraryTextBlob(item: OsLibraryItem): string {
+  const content = item.content;
+  const contentText = typeof content === "string" ? content : content ? JSON.stringify(content) : "";
+  return `${item.title} ${(item.tags || []).join(" ")} ${item.subcategory || ""} ${contentText}`.toLowerCase();
+}
+
+/** Items classés correspondant à la recherche libre — porte libMatch() du monolithe. */
+export function libraryMatches(item: OsLibraryItem, query: string): boolean {
+  if (!query) return true;
+  return libraryTextBlob(item).includes(query.toLowerCase());
+}
+
+/** Items d'une catégorie donnée, filtrés par recherche, favoris en tête — porte byCat() de RENDER.stack. */
+export function libraryByCategory(library: OsLibraryItem[], category: string, query = ""): OsLibraryItem[] {
+  return library
+    .filter((i) => i.category === category && libraryMatches(i, query))
+    .slice()
+    .sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+}
+
+/** Nombre d'items classés par catégorie — porte le badge des chips de RENDER.stack. */
+export function libraryCategoryCounts(library: OsLibraryItem[] = []): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const cat of LIBRARY_CATEGORIES) counts[cat] = 0;
+  for (const item of library) {
+    if (item.category) counts[item.category] = (counts[item.category] || 0) + 1;
+  }
+  return counts;
+}
+
+// ═══════════ AI Hub (§AI Workforce, porté de RENDER.aihub) ═══════════
+
+/** Nombre total d'entités du graphe — porte `ALL.length` du monolithe (contexte du générateur de prompt). */
+export function graphEntityCount(
+  graph: Pick<OsGraph, "identities" | "projects" | "people" | "clients" | "finance" | "quotes" | "assets" | "tools" | "businesses" | "library">,
+): number {
+  return (
+    (graph.identities?.length || 0) +
+    (graph.projects?.length || 0) +
+    (graph.people?.length || 0) +
+    (graph.clients?.length || 0) +
+    (graph.finance?.length || 0) +
+    (graph.quotes?.length || 0) +
+    (graph.assets?.length || 0) +
+    (graph.tools?.length || 0) +
+    (graph.businesses?.length || 0) +
+    (graph.library?.length || 0)
+  );
 }

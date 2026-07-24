@@ -5,7 +5,10 @@ import {
   curQuarter, okrKrValue, okrKrProgress, okrObjectiveProgress, ganttItems,
   monthlySeries, cashProjection, identitySplit, clientSplit, funnelCounts, sumsByCurrency, buildAlerts,
   clientConcentration, runRateProjection, pipelineWinRate, monthlyAnomaly,
+  isOpportunityExpired, bdmSummary, financeOverview,
+  libraryTriage, libraryMatches, libraryByCategory, libraryCategoryCounts, graphEntityCount,
 } from "@/lib/os/compute";
+import type { OsLibraryItem } from "@/lib/os/types";
 
 const NOW = new Date("2026-07-22T12:00:00.000Z");
 
@@ -411,5 +414,113 @@ describe("monthlyAnomaly", () => {
       { key: "3", label: "current", paid: 0, billed: 1100 },
     ];
     expect(monthlyAnomaly(series, 40).isAnomaly).toBe(false);
+  });
+});
+
+describe("isOpportunityExpired / bdmSummary", () => {
+  it("is expired via manual status or a past deadline", () => {
+    expect(isOpportunityExpired({ status: "expired" }, NOW)).toBe(true);
+    expect(isOpportunityExpired({ status: "lead", deadline: "2026-07-01" }, NOW)).toBe(true);
+    expect(isOpportunityExpired({ status: "lead", deadline: "2026-08-01" }, NOW)).toBe(false);
+  });
+
+  it("counts active/proposal/closing/won, excluding won/lost/expired from active", () => {
+    const opps = [
+      { id: "o1", name: "A", type: "lead" as const, status: "lead" as const },
+      { id: "o2", name: "B", type: "lead" as const, status: "proposal" as const },
+      { id: "o3", name: "C", type: "lead" as const, status: "won" as const },
+      { id: "o4", name: "D", type: "lead" as const, status: "lost" as const },
+      { id: "o5", name: "E", type: "lead" as const, status: "expired" as const },
+      { id: "o6", name: "F", type: "lead" as const, status: "lead" as const, deadline: "2026-07-24" }, // urgent, closes in 2 days
+    ];
+    const s = bdmSummary(opps, NOW);
+    expect(s.activeCount).toBe(3); // o1, o2, o6 (not won/lost/expired)
+    expect(s.proposalCount).toBe(1);
+    expect(s.closingSoonCount).toBe(1);
+    expect(s.closingUrgentCount).toBe(1);
+    expect(s.wonCount).toBe(1);
+  });
+});
+
+describe("financeOverview", () => {
+  const finance = [
+    { id: "f1", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, issued: "2026-03-01" },
+    { id: "f2", type: "invoice" as const, amount: 500, currency: "TND" as const, advance: 200, status: "partial" as const, issued: "2026-07-01" },
+    { id: "f3", type: "invoice" as const, amount: 100, currency: "EUR" as const, status: "sent" as const, issued: "2025-01-01" },
+    { id: "f4", type: "invoice" as const, amount: null as unknown as number, currency: "TND" as const, status: "draft" as const },
+  ];
+  const expenses = [
+    { id: "e1", label: "SaaS", amount: 200, currency: "TND" as const, date: "2026-05-01", recurring: true },
+    { id: "e2", label: "Vieux", amount: 50, currency: "TND" as const, date: "2024-01-01", recurring: false },
+  ];
+
+  it("computes cash in (paid + advances), pending (remainder), and year invoices", () => {
+    const o = financeOverview(finance, expenses, NOW, 3.38, 75_000);
+    expect(o.cashInTND).toBeCloseTo(1000 + 200);
+    expect(o.pendingTND).toBeCloseTo(300 + 100 * 3.38);
+    expect(o.pendingCount).toBe(2); // f2 (partial), f3 (sent) — f4 is draft, not a pending status
+    expect(o.noAmountCount).toBe(1);
+    expect(o.yearInvoiceTND).toBeCloseTo(1000 + 500); // f1 + f2 issued in 2026, f3 issued 2025
+    expect(o.yearInvoiceCount).toBe(2);
+  });
+
+  it("computes the auto-entrepreneur ceiling percentage", () => {
+    const o = financeOverview(finance, [], NOW, 3.38, 1500);
+    expect(o.plafondPct).toBeCloseTo(((1000 + 500) / 1500) * 100);
+  });
+
+  it("computes this year's expenses and net treasury", () => {
+    const o = financeOverview(finance, expenses, NOW, 3.38, 75_000);
+    expect(o.expenseTND).toBe(200); // only e1 is in 2026
+    expect(o.recurringExpenseTND).toBe(200);
+    expect(o.netTND).toBeCloseTo(o.cashInTND - 200);
+  });
+});
+
+describe("libraryTriage / libraryMatches / libraryByCategory / libraryCategoryCounts", () => {
+  const library: OsLibraryItem[] = [
+    { id: "l1", title: "SEUIL · Couloir liminal", type: "prompt", category: "AI", tags: ["liminal", "vz"], favorite: true, content: { prompt: "empty hallway" } },
+    { id: "l2", title: "PEAK · Laser rain", type: "prompt", category: "AI", tags: ["peak"], favorite: false, content: { prompt: "laser beams" } },
+    { id: "l3", title: "Mood board", type: "asset", category: "Assets", tags: [], favorite: false, file_ref: "ASSETS/mood.pdf" },
+    { id: "l4", title: "Untriaged note", type: "doc" }, // pas de category → inbox de triage
+  ];
+
+  it("collects items without a category", () => {
+    expect(libraryTriage(library).map((i) => i.id)).toEqual(["l4"]);
+  });
+
+  it("matches on title, tags, subcategory and stringified content", () => {
+    expect(libraryMatches(library[0], "liminal")).toBe(true);
+    expect(libraryMatches(library[0], "hallway")).toBe(true);
+    expect(libraryMatches(library[0], "laser")).toBe(false);
+    expect(libraryMatches(library[0], "")).toBe(true);
+  });
+
+  it("filters by category, applies the search query, and sorts favorites first", () => {
+    const items = libraryByCategory(library, "AI");
+    expect(items.map((i) => i.id)).toEqual(["l1", "l2"]); // l1 favori → en tête
+
+    const filtered = libraryByCategory(library, "AI", "laser");
+    expect(filtered.map((i) => i.id)).toEqual(["l2"]);
+  });
+
+  it("counts classified items per category, zero-filled for empty categories", () => {
+    const counts = libraryCategoryCounts(library);
+    expect(counts.AI).toBe(2);
+    expect(counts.Assets).toBe(1);
+    expect(counts.Visual).toBe(0);
+    expect(counts.Code).toBe(0);
+    expect(counts.Knowledge).toBe(0);
+  });
+});
+
+describe("graphEntityCount", () => {
+  it("sums entities across all types, treating missing arrays as empty", () => {
+    const count = graphEntityCount({
+      identities: [{ id: "i1" } as never],
+      projects: [{ id: "p1" } as never, { id: "p2" } as never],
+      clients: [{ id: "c1" } as never],
+    } as never);
+    expect(count).toBe(1 + 2 + 1);
   });
 });

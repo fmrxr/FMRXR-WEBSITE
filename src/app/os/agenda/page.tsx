@@ -5,6 +5,7 @@ import { daysUntil, ganttItems } from "@/lib/os/compute";
 import { AgendaOverview } from "@/components/os/agenda/AgendaOverview";
 import { MiniGantt } from "@/components/os/agenda/MiniGantt";
 import { DeadlineTimeline } from "@/components/os/agenda/DeadlineTimeline";
+import { Section } from "@/components/os/Section";
 import { genId } from "@/lib/os/id";
 
 function slugify(s: string): string {
@@ -84,12 +85,11 @@ export default function AgendaPage() {
       />
 
       {criticalProject && (
-        <div>
-          <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">📅 Gantt — {criticalProject.name}</h2>
+        <Section id="agenda-gantt" title={`📅 Gantt — ${criticalProject.name}`}>
           <div className="fm-glass-card rounded-2xl p-5">
             <MiniGantt {...ganttItems(graph.deadlines, graph.tasks, criticalProject.id, now)} />
           </div>
-        </div>
+        </Section>
       )}
 
       <DeadlineTimeline

@@ -27,6 +27,7 @@ import { KpiGrid } from "@/components/os/dashboard/KpiGrid";
 import { AlertsList } from "@/components/os/dashboard/AlertsList";
 import { RecentActivity } from "@/components/os/dashboard/RecentActivity";
 import { ProjectsPreviewGrid } from "@/components/os/dashboard/ProjectsPreviewGrid";
+import { Section } from "@/components/os/Section";
 
 const PENDING_STATUSES = new Set(["sent", "partial", "late", "disputed"]);
 
@@ -82,8 +83,7 @@ export default function DashboardPage() {
         now={now}
       />
 
-      <div>
-        <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Analyses avancées</h2>
+      <Section id="dashboard-analytics" title="Analyses avancées">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
           <ConcentrationRiskCard concentration={concentration} graph={graph} />
           <RunRateProjectionCard projection={runRate} now={now} />
@@ -91,36 +91,37 @@ export default function DashboardPage() {
           <AnomalyCard anomaly={anomaly} />
           <FxRateCard />
         </div>
-      </div>
+      </Section>
 
       <BusinessAnalytics graph={graph} now={now} />
 
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">
-          KPIs
-          <span className="rounded-full border border-fmborder px-2 py-0.5 text-[10px] normal-case tracking-normal text-fmmuted">
-            {(graph.kpis || []).filter((k) => kpiOk(k, kpiValue(k, graph, now))).length}/{(graph.kpis || []).length} au vert
+      <Section
+        id="dashboard-kpis"
+        title={
+          <span className="flex items-center gap-2">
+            KPIs
+            <span className="rounded-full border border-fmborder px-2 py-0.5 text-[10px] normal-case tracking-normal text-fmmuted">
+              {(graph.kpis || []).filter((k) => kpiOk(k, kpiValue(k, graph, now))).length}/{(graph.kpis || []).length} au vert
+            </span>
           </span>
-        </h2>
+        }
+      >
         <KpiGrid kpis={graph.kpis || []} graph={graph} now={now} />
-      </div>
+      </Section>
 
-      <div>
-        <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Alertes & risques</h2>
+      <Section id="dashboard-alerts" title="Alertes & risques">
         <AlertsList alerts={alerts} />
-      </div>
+      </Section>
 
       {(graph.log || []).length > 0 && (
-        <div>
-          <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Activité récente</h2>
+        <Section id="dashboard-activity" title="Activité récente">
           <RecentActivity log={graph.log} />
-        </div>
+        </Section>
       )}
 
-      <div>
-        <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Projets en cours</h2>
+      <Section id="dashboard-projects" title="Projets en cours">
         <ProjectsPreviewGrid projects={activeProjects} graph={graph} now={now} />
-      </div>
+      </Section>
     </div>
   );
 }

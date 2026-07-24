@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "../Card";
+import { Section } from "../Section";
 import { daysUntil } from "@/lib/os/compute";
 import type { OsGraph, OsTask } from "@/lib/os/types";
 
@@ -64,16 +65,13 @@ export function TaskGroupList({ tasks, graph, now, onToggle, onDelete }: TaskGro
         const openCount = group.filter((t) => !t.done).length;
         const sorted = [...group].sort((a, b) => Number(a.done) - Number(b.done));
         return (
-          <div key={key}>
-            <h2 className="mb-2 font-grotesk text-xs uppercase tracking-[0.12em] text-fmmuted">
-              {entity?.name ?? "Général"} — {openCount} ouverte(s) / {group.length}
-            </h2>
+          <Section key={key} id={`taches-group-${key}`} title={`${entity?.name ?? "Général"} — ${openCount} ouverte(s) / ${group.length}`}>
             <Card>
               {sorted.map((t) => (
                 <TaskRow key={t.id} task={t} now={now} onToggle={onToggle} onDelete={onDelete} />
               ))}
             </Card>
-          </div>
+          </Section>
         );
       })}
     </div>

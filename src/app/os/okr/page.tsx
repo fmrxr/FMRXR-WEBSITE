@@ -6,6 +6,7 @@ import { curQuarter, okrObjectiveProgress } from "@/lib/os/compute";
 import { genId } from "@/lib/os/id";
 import { OkrSummaryCards } from "@/components/os/okr/OkrSummaryCards";
 import { OkrObjectiveCard } from "@/components/os/okr/OkrObjectiveCard";
+import { Section } from "@/components/os/Section";
 
 export default function OkrPage() {
   const { graph, loading, error, mutate, logChange } = useOs();
@@ -118,8 +119,7 @@ export default function OkrPage() {
         daysLeft={daysLeft}
       />
 
-      <div>
-        <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Objectifs — {q}</h2>
+      <Section id="okr-current" title={`Objectifs — ${q}`}>
         {current.length === 0 ? (
           <p className="font-grotesk text-sm text-fmmuted">Aucun objectif ce trimestre. Clique « + Objectif ».</p>
         ) : (
@@ -136,11 +136,10 @@ export default function OkrPage() {
             />
           ))
         )}
-      </div>
+      </Section>
 
       {past.length > 0 && (
-        <div>
-          <h2 className="mb-3 font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Trimestres précédents</h2>
+        <Section id="okr-past" title="Trimestres précédents">
           {past.map((o) => (
             <OkrObjectiveCard
               key={o.id}
@@ -153,7 +152,7 @@ export default function OkrPage() {
               onDelete={() => deleteObjective(o.id, o.objective)}
             />
           ))}
-        </div>
+        </Section>
       )}
     </div>
   );

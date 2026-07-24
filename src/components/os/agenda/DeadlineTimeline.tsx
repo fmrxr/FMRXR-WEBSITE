@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "../Card";
 import { Badge } from "../Badge";
+import { Section } from "../Section";
 import { daysUntil } from "@/lib/os/compute";
 import type { OsDeadline, OsGraph } from "@/lib/os/types";
 
@@ -70,8 +71,7 @@ export function DeadlineTimeline({ deadlines, graph, now, targets, onToggle, onD
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="font-grotesk text-xs uppercase tracking-[0.16em] text-fmmuted">Toutes les deadlines</h2>
+      <div className="flex items-center justify-end">
         <button type="button" className="fm-link font-grotesk text-sm text-fmaccent" onClick={() => setAdding((a) => !a)}>
           + Deadline
         </button>
@@ -125,18 +125,20 @@ export function DeadlineTimeline({ deadlines, graph, now, targets, onToggle, onD
         </Card>
       )}
 
-      <Card>
-        {deadlines.map((d) => (
-          <DeadlineRow
-            key={d.id}
-            deadline={d}
-            projectName={graph.projects.find((p) => p.id === d.project)?.name ?? graph.identities.find((i) => i.id === d.project)?.name}
-            now={now}
-            onToggle={onToggle}
-            onDelete={onDelete}
-          />
-        ))}
-      </Card>
+      <Section id="agenda-deadlines-all" title="Toutes les deadlines">
+        <Card>
+          {deadlines.map((d) => (
+            <DeadlineRow
+              key={d.id}
+              deadline={d}
+              projectName={graph.projects.find((p) => p.id === d.project)?.name ?? graph.identities.find((i) => i.id === d.project)?.name}
+              now={now}
+              onToggle={onToggle}
+              onDelete={onDelete}
+            />
+          ))}
+        </Card>
+      </Section>
     </div>
   );
 }

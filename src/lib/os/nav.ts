@@ -26,14 +26,14 @@ export const OS_MODULES: OsNavModule[] = [
   { id: "projets", label: "Projets", group: "Work", phase: "B", native: true, href: "/os/projets" },
   { id: "taches", label: "Tâches", group: "Work", phase: "B", native: true, href: "/os/taches" },
   { id: "agenda", label: "Agenda", group: "Work", phase: "B", native: true, href: "/os/agenda" },
-  { id: "crm", label: "Clients", group: "Business", phase: "C", native: false, href: "/os/clients" },
-  { id: "bdm", label: "Pipeline", group: "Business", phase: "C", native: false, href: "/os/pipeline" },
-  { id: "finance", label: "Finance", group: "Business", phase: "C", native: false, href: "/os/finance" },
+  { id: "crm", label: "Clients", group: "Business", phase: "C", native: true, href: "/os/clients" },
+  { id: "bdm", label: "Pipeline", group: "Business", phase: "C", native: true, href: "/os/pipeline" },
+  { id: "finance", label: "Finance", group: "Business", phase: "C", native: true, href: "/os/finance" },
   { id: "studio", label: "Studio & Assets", group: "Creation", phase: "D", native: false, href: "/os/studio" },
   { id: "content-factory", label: "Content Factory", group: "Creation", phase: "D", native: false, href: "/os/content-factory" },
   { id: "graph", label: "Brain", group: "Knowledge", phase: "D", native: false, href: "/os/brain" },
-  { id: "stack", label: "Knowledge", group: "Knowledge", phase: "D", native: false, href: "/os/knowledge" },
-  { id: "aihub", label: "AI Workforce", group: "AI Workforce", phase: "D", native: false, href: "/os/ai-workforce" },
+  { id: "stack", label: "Knowledge", group: "Knowledge", phase: "D", native: true, href: "/os/knowledge" },
+  { id: "aihub", label: "AI Workforce", group: "AI Workforce", phase: "D", native: true, href: "/os/ai-workforce" },
 ];
 
 export function modulesByGroup(): Array<{ group: OsNavGroup; modules: OsNavModule[] }> {
