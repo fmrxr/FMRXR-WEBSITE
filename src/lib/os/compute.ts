@@ -2,7 +2,7 @@
 // focusToday/kpiValue/toTND) pour préserver la logique métier validée par le monolithe (§0 du brief).
 // Toute fonction qui dépend de "maintenant" accepte `now` en paramètre pour rester testable.
 
-import type { Currency, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsTask } from "./types";
+import type { AssetKind, Currency, OsAsset, OsCfBatch, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsTask } from "./types";
 
 const DEFAULT_EUR_TND = 3.4;
 const PENDING_STATUSES = new Set(["sent", "partial", "late", "disputed"]);
@@ -741,4 +741,154 @@ export function graphEntityCount(
     (graph.businesses?.length || 0) +
     (graph.library?.length || 0)
   );
+}
+
+// ═══════════ Studio & Assets (§Creation, porté de RENDER.studio) ═══════════
+
+/** Ordre + libellés d'affichage par kind — porte le map LABELS de RENDER.studio. */
+export const ASSET_KIND_LABELS: [AssetKind, string][] = [
+  ["brand", "Brand"],
+  ["template", "Templates"],
+  ["marketing", "Marketing"],
+  ["brief", "Briefs"],
+  ["spec", "Specs"],
+  ["knowledge", "Mémoire système"],
+  ["technical", "Fiches techniques"],
+  ["communication", "Communication"],
+  ["concept", "Concepts"],
+  ["design", "Designs & affiches"],
+  ["figma", "Figma — design live"],
+];
+
+export function assetKindLabel(kind: AssetKind | undefined): string {
+  const k = kind || "autre";
+  const found = ASSET_KIND_LABELS.find(([id]) => id === k);
+  if (found) return found[1];
+  return typeof k === "string" ? k.charAt(0).toUpperCase() + k.slice(1) : "Autre";
+}
+
+function assetTextBlob(asset: OsAsset): string {
+  return `${asset.name} ${asset.file || ""} ${asset.url || ""} ${asset.notes || ""}`.toLowerCase();
+}
+
+export function assetMatches(asset: OsAsset, query: string): boolean {
+  if (!query) return true;
+  return assetTextBlob(asset).includes(query.toLowerCase());
+}
+
+export interface AssetKindGroup {
+  kind: AssetKind;
+  label: string;
+  items: OsAsset[];
+}
+
+/**
+ * Groupes par kind, dans l'ordre de ASSET_KIND_LABELS puis alphabétique pour les kinds inconnus —
+ * porte la boucle Object.entries(kinds) de RENDER.studio, filtrée par recherche.
+ */
+export function assetKindGroups(assets: OsAsset[] = [], query = ""): AssetKindGroup[] {
+  const filtered = assets.filter((a) => assetMatches(a, query));
+  const present = new Set(filtered.map((a) => a.kind || "autre"));
+  const known = ASSET_KIND_LABELS.filter(([id]) => present.has(id)).map(([id]) => id);
+  const unknown = Array.from(present)
+    .filter((k) => !known.includes(k))
+    .sort((a, b) => String(a).localeCompare(String(b)));
+  return [...known, ...unknown].map((kind) => ({
+    kind,
+    label: assetKindLabel(kind),
+    items: filtered.filter((a) => (a.kind || "autre") === kind),
+  }));
+}
+
+/** Compte les assets par kind (avant recherche) — pour les chips de filtre. */
+export function assetKindCounts(assets: OsAsset[] = []): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const a of assets) {
+    const k = String(a.kind || "autre");
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  return counts;
+}
+
+const FMRXR_ASSET_BUCKET = "FMRXR";
+
+/**
+ * Résout le "client" d'affichage d'un asset : projet → client réel s'il en a un, sinon identité
+ * liée (ex : EXPLAB), sinon FMRXR — bucket générique pour les fichiers internes/business (brand kit,
+ * templates…) et les projets sans client (ex : FMRXR Web Platform).
+ */
+export function assetClientLabel(asset: OsAsset, graph: Pick<OsGraph, "projects" | "clients" | "identities">): string {
+  if (asset.project) {
+    const project = graph.projects.find((p) => p.id === asset.project);
+    if (project) {
+      const client = project.client ? graph.clients?.find((c) => c.id === project.client) : undefined;
+      return client?.name || FMRXR_ASSET_BUCKET;
+    }
+  }
+  if (asset.identity) {
+    const identity = graph.identities.find((i) => i.id === asset.identity);
+    if (identity) return identity.name;
+  }
+  return FMRXR_ASSET_BUCKET;
+}
+
+export interface AssetClientGroup {
+  client: string;
+  items: OsAsset[];
+}
+
+/** Groupes par client — alphabétique, le bucket FMRXR (interne/générique) toujours en dernier. */
+export function assetClientGroups(
+  assets: OsAsset[] = [],
+  graph: Pick<OsGraph, "projects" | "clients" | "identities">,
+  query = "",
+): AssetClientGroup[] {
+  const filtered = assets.filter((a) => assetMatches(a, query));
+  const buckets = new Map<string, OsAsset[]>();
+  for (const a of filtered) {
+    const label = assetClientLabel(a, graph);
+    buckets.set(label, [...(buckets.get(label) || []), a]);
+  }
+  const names = Array.from(buckets.keys()).sort((a, b) => {
+    if (a === FMRXR_ASSET_BUCKET) return 1;
+    if (b === FMRXR_ASSET_BUCKET) return -1;
+    return a.localeCompare(b);
+  });
+  return names.map((client) => ({ client, items: buckets.get(client)! }));
+}
+
+// ═══════════ Content Factory (§Creation, porté de RENDER['content-factory']) ═══════════
+
+export const CF_STAGES: { key: OsCfBatch["stage"]; label: string; tone: "default" | "warn" | "accent" }[] = [
+  { key: "attente", label: "En attente de la source", tone: "default" },
+  { key: "ingere", label: "Ingéré / trié", tone: "warn" },
+  { key: "montage", label: "Montage maître (synchro son)", tone: "warn" },
+  { key: "decline", label: "Décliné 9:16 · 1:1 · 16:9", tone: "warn" },
+  { key: "livre", label: "Livré", tone: "accent" },
+];
+
+export function cfStageLabel(stage: OsCfBatch["stage"]): string {
+  return CF_STAGES.find((s) => s.key === stage)?.label ?? stage;
+}
+
+/** Index de l'étape suivante/précédente (borné), ou null si déjà à la borne — porte cfAdvance(). */
+export function cfAdjacentStage(stage: OsCfBatch["stage"], dir: 1 | -1): OsCfBatch["stage"] | null {
+  const i = CF_STAGES.findIndex((s) => s.key === stage);
+  if (i < 0) return null;
+  const n = Math.max(0, Math.min(CF_STAGES.length - 1, i + dir));
+  return n === i ? null : CF_STAGES[n].key;
+}
+
+export interface CfSummary {
+  total: number;
+  doneCount: number;
+  counts: Record<string, number>;
+}
+
+/** Compteurs par étape + total livré — porte le bandeau de RENDER['content-factory']. */
+export function cfSummary(batches: OsCfBatch[] = []): CfSummary {
+  const counts: Record<string, number> = {};
+  for (const s of CF_STAGES) counts[s.key] = 0;
+  for (const b of batches) counts[b.stage] = (counts[b.stage] || 0) + 1;
+  return { total: batches.length, doneCount: counts.livre || 0, counts };
 }

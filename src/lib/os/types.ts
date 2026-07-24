@@ -154,9 +154,26 @@ export interface OsDeadline {
   done?: boolean;
 }
 
+export type AssetKind =
+  | "brand" | "template" | "marketing" | "brief" | "spec" | "knowledge"
+  | "technical" | "communication" | "concept" | "design" | "figma" | (string & {});
+
 export interface OsAsset {
   id: string;
-  [k: string]: unknown;
+  name: string;
+  type: "asset";
+  kind?: AssetKind;
+  /** Chemin local (workspace Haïfa) — pas d'aperçu possible depuis l'app hébergée. */
+  file?: string;
+  /** Lien externe (Figma, Drive…). */
+  url?: string;
+  /** URL d'embed public (Figma) — utilisée pour l'aperçu live. */
+  embed?: string;
+  project?: string;
+  identity?: IdentityId;
+  status?: string;
+  notes?: string;
+  updated?: string;
 }
 
 export interface OsTool {

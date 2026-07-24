@@ -7,8 +7,10 @@ import {
   clientConcentration, runRateProjection, pipelineWinRate, monthlyAnomaly,
   isOpportunityExpired, bdmSummary, financeOverview,
   libraryTriage, libraryMatches, libraryByCategory, libraryCategoryCounts, graphEntityCount,
+  assetKindLabel, assetMatches, assetKindGroups, assetKindCounts, assetClientLabel, assetClientGroups,
+  cfStageLabel, cfAdjacentStage, cfSummary,
 } from "@/lib/os/compute";
-import type { OsLibraryItem } from "@/lib/os/types";
+import type { OsAsset, OsCfBatch, OsClient, OsIdentity, OsLibraryItem, OsProject } from "@/lib/os/types";
 
 const NOW = new Date("2026-07-22T12:00:00.000Z");
 
@@ -522,5 +524,119 @@ describe("graphEntityCount", () => {
       clients: [{ id: "c1" } as never],
     } as never);
     expect(count).toBe(1 + 2 + 1);
+  });
+});
+
+describe("assetKindLabel / assetMatches / assetKindGroups / assetKindCounts", () => {
+  const assets: OsAsset[] = [
+    { id: "a1", name: "FMRXR Brand Guidelines", type: "asset", kind: "brand", file: "FMRXR_Brand_Guidelines.html" },
+    { id: "a2", name: "Fiche Technique Scénographie", type: "asset", kind: "technical", file: "VZ_Fiche_Technique.md", project: "vz-calypso" },
+    { id: "a3", name: "Figma — VZ Calypso", type: "asset", kind: "figma", url: "https://figma.com/x", project: "vz-calypso" },
+    { id: "a4", name: "Mystery doc", type: "asset", kind: "zzz-custom" },
+  ];
+
+  it("labels known kinds via the display map, and title-cases unknown kinds", () => {
+    expect(assetKindLabel("technical")).toBe("Fiches techniques");
+    expect(assetKindLabel("figma")).toBe("Figma — design live");
+    expect(assetKindLabel("zzz-custom")).toBe("Zzz-custom");
+    expect(assetKindLabel(undefined)).toBe("Autre");
+  });
+
+  it("matches on name, file, url and notes", () => {
+    expect(assetMatches(assets[0], "brand")).toBe(true);
+    expect(assetMatches(assets[1], "scénographie")).toBe(true);
+    expect(assetMatches(assets[2], "figma.com")).toBe(true);
+    expect(assetMatches(assets[0], "nope")).toBe(false);
+  });
+
+  it("groups by kind in ASSET_KIND_LABELS order, unknown kinds appended alphabetically, filtered by query", () => {
+    const groups = assetKindGroups(assets);
+    expect(groups.map((g) => g.kind)).toEqual(["brand", "technical", "figma", "zzz-custom"]);
+    expect(groups.find((g) => g.kind === "technical")?.items).toHaveLength(1);
+
+    const filtered = assetKindGroups(assets, "brand");
+    expect(filtered.map((g) => g.kind)).toEqual(["brand"]);
+  });
+
+  it("counts assets per kind, unaffected by search", () => {
+    const counts = assetKindCounts(assets);
+    expect(counts.brand).toBe(1);
+    expect(counts.technical).toBe(1);
+    expect(counts.figma).toBe(1);
+    expect(counts["zzz-custom"]).toBe(1);
+  });
+});
+
+describe("cfStageLabel / cfAdjacentStage / cfSummary", () => {
+  const batches: OsCfBatch[] = [
+    { id: "b1", name: "Set 1", stage: "attente" },
+    { id: "b2", name: "Set 2", stage: "attente" },
+    { id: "b3", name: "Set 3", stage: "montage" },
+    { id: "b4", name: "Set 4", stage: "livre" },
+  ];
+
+  it("labels stages", () => {
+    expect(cfStageLabel("montage")).toBe("Montage maître (synchro son)");
+    expect(cfStageLabel("livre")).toBe("Livré");
+  });
+
+  it("computes the adjacent stage, bounded at both ends", () => {
+    expect(cfAdjacentStage("attente", 1)).toBe("ingere");
+    expect(cfAdjacentStage("attente", -1)).toBe(null); // déjà à la première étape
+    expect(cfAdjacentStage("livre", 1)).toBe(null); // déjà à la dernière étape
+    expect(cfAdjacentStage("montage", -1)).toBe("ingere");
+  });
+
+  it("summarizes counts per stage and total delivered", () => {
+    const s = cfSummary(batches);
+    expect(s.total).toBe(4);
+    expect(s.doneCount).toBe(1);
+    expect(s.counts.attente).toBe(2);
+    expect(s.counts.montage).toBe(1);
+    expect(s.counts.ingere).toBe(0);
+  });
+});
+
+describe("assetClientLabel / assetClientGroups", () => {
+  const projects: OsProject[] = [
+    { id: "vz-calypso", name: "VIGILANCE ZERO × CALYPSO", type: "project", status: "active", client: "morninglory-paris" },
+    { id: "fmrxr-platform", name: "FMRXR Web Platform", type: "project", status: "active" }, // pas de client → interne
+  ];
+  const clients: OsClient[] = [{ id: "morninglory-paris", name: "Morninglory Paris", type: "client" }];
+  const identities: OsIdentity[] = [{ id: "explab", name: "EXPLAB ⵣ", type: "identity" }];
+  const graph = { projects, clients, identities };
+
+  const assets: OsAsset[] = [
+    { id: "a1", name: "Fiche technique", type: "asset", kind: "technical", project: "vz-calypso" },
+    { id: "a2", name: "AGENTS", type: "asset", kind: "document", project: "fmrxr-platform" },
+    { id: "a3", name: "Brand Guidelines", type: "asset", kind: "brand" }, // ni projet ni identité
+    { id: "a4", name: "Figma explab", type: "asset", kind: "figma", identity: "explab" },
+    { id: "a5", name: "Ghost project ref", type: "asset", kind: "document", project: "fmrxr-studio" }, // "projet" en fait une identité, absent de graph.projects
+  ];
+
+  it("resolves the real client through project → client when one exists", () => {
+    expect(assetClientLabel(assets[0], graph)).toBe("Morninglory Paris");
+  });
+
+  it("falls back to the FMRXR bucket for internal projects (no client), generic assets, and dangling project refs", () => {
+    expect(assetClientLabel(assets[1], graph)).toBe("FMRXR");
+    expect(assetClientLabel(assets[2], graph)).toBe("FMRXR");
+    expect(assetClientLabel(assets[4], graph)).toBe("FMRXR");
+  });
+
+  it("resolves a linked identity (e.g. EXPLAB) as its own bucket when there's no project", () => {
+    expect(assetClientLabel(assets[3], graph)).toBe("EXPLAB ⵣ");
+  });
+
+  it("groups assets by client, alphabetical, FMRXR bucket always last", () => {
+    const groups = assetClientGroups(assets, graph);
+    expect(groups.map((g) => g.client)).toEqual(["EXPLAB ⵣ", "Morninglory Paris", "FMRXR"]);
+    expect(groups.find((g) => g.client === "FMRXR")?.items).toHaveLength(3); // a2, a3, a5
+    expect(groups.find((g) => g.client === "Morninglory Paris")?.items).toHaveLength(1);
+  });
+
+  it("applies the search query before grouping", () => {
+    const groups = assetClientGroups(assets, graph, "brand");
+    expect(groups).toEqual([{ client: "FMRXR", items: [assets[2]] }]);
   });
 });
