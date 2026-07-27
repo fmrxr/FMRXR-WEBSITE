@@ -1088,3 +1088,60 @@ export function graphNodeDegrees(edges: GraphEdge[]): Record<string, number> {
   }
   return deg;
 }
+
+/**
+ * Sérialise le graphe en texte compact pour le contexte d'un appel LLM (F3 — /api/os/brain/ask).
+ * Chaque ligne d'entité commence par son id entre crochets pour que le modèle puisse citer des
+ * ids réels dans sa réponse. `logLimit` borne l'historique inclus (le plus récent d'abord dans le
+ * log source, mais on le restitue chronologique croissant pour lire comme une timeline).
+ */
+export function serializeGraphForAsk(graph: OsGraph, logLimit = 60): string {
+  const lines: string[] = [];
+  const push = (s: string) => lines.push(s);
+
+  push("## Identités");
+  graph.identities.forEach((i) => push(`[${i.id}] ${i.name}${i.role ? ` — ${i.role}` : ""}`));
+
+  push("\n## Clients");
+  (graph.clients || []).forEach((c) => push(`[${c.id}] ${c.name}${c.segment ? ` — ${c.segment}` : ""}`));
+
+  push("\n## Personnes");
+  (graph.people || []).forEach((p) => push(`[${p.id}] ${p.name}${p.role ? ` — ${p.role}` : ""}${p.org ? ` (org: ${p.org})` : ""}`));
+
+  push("\n## Projets");
+  graph.projects.forEach((p) => {
+    const client = graph.clients?.find((c) => c.id === p.client)?.name;
+    const bits = [p.status, p.category, client ? `client: ${client}` : null, p.priority ? `priorité: ${p.priority}` : null, (p.tools || []).length ? `outils: ${(p.tools || []).join(", ")}` : null].filter(Boolean);
+    push(`[${p.id}] ${p.name}${bits.length ? ` — ${bits.join(" · ")}` : ""}`);
+  });
+
+  push("\n## Factures & devis");
+  graph.finance.forEach((f) => push(`[${f.id}] ${f.ref || f.id} — ${f.status}${f.amount != null ? ` — ${f.amount} ${f.currency}` : ""}`));
+  (graph.quotes || []).forEach((q) => push(`[${q.id}] ${q.ref || q.id} — ${q.status} — ${q.amount} ${q.currency}`));
+
+  const openTasks = (graph.tasks || []).filter((t) => !t.done);
+  if (openTasks.length) {
+    push("\n## Tâches ouvertes");
+    openTasks.forEach((t) => push(`[${t.id}] ${t.label}`));
+  }
+
+  const openDeadlines = (graph.deadlines || []).filter((d) => !d.done);
+  if (openDeadlines.length) {
+    push("\n## Échéances à venir");
+    openDeadlines.forEach((d) => push(`[${d.id}] ${d.label} — ${d.date}`));
+  }
+
+  if (graph.okrs?.length) {
+    push("\n## OKR");
+    graph.okrs.forEach((o) => push(`[${o.id}] ${o.quarter} — ${o.objective}`));
+  }
+
+  if (graph.log?.length) {
+    push(`\n## Historique récent (${Math.min(logLimit, graph.log.length)} derniers événements)`);
+    graph.log
+      .slice(-logLimit)
+      .forEach((e) => push(`${e.ts} — ${e.action} [${e.entity}] ${e.detail}`));
+  }
+
+  return lines.join("\n");
+}

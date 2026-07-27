@@ -10,8 +10,9 @@ import {
   assetKindLabel, assetMatches, assetKindGroups, assetKindCounts, assetClientLabel, assetClientGroups,
   cfStageLabel, cfAdjacentStage, cfSummary,
   graphEntities, graphEdges, graphNodeDegrees, loadHistoricalEntities, graphEntitiesWithHistory, loadHistoricalEdges,
+  serializeGraphForAsk,
 } from "@/lib/os/compute";
-import type { OsAsset, OsCfBatch, OsClient, OsIdentity, OsLibraryItem, OsLogEntry, OsProject } from "@/lib/os/types";
+import type { OsAsset, OsCfBatch, OsClient, OsGraph, OsIdentity, OsLibraryItem, OsLogEntry, OsProject } from "@/lib/os/types";
 
 const NOW = new Date("2026-07-22T12:00:00.000Z");
 
@@ -808,5 +809,46 @@ describe("loadHistoricalEntities / graphEntitiesWithHistory / loadHistoricalEdge
     const visible = new Set(["asset-old-poster", "old-proj"]); // sans vz-calypso ni morninglory-paris
     const edges = loadHistoricalEdges({ log }, visible);
     expect(edges).toHaveLength(0);
+  });
+});
+
+describe("serializeGraphForAsk", () => {
+  const graph: OsGraph = {
+    identities: [{ id: "fmrxr", name: "FMRXR Studio", type: "identity", role: "Studio commercial" }],
+    projects: [{ id: "proj-lik", name: "LIK", type: "project", status: "active", client: "rawdha", tools: ["TouchDesigner", "GLSL"] }],
+    clients: [{ id: "rawdha", name: "Rawdha Abdallah", type: "client" }],
+    finance: [{ id: "inv-1", ref: "F-2026-01", type: "invoice", status: "sent", amount: 1000, currency: "TND", issued: "2026-07-01" }],
+    tasks: [{ id: "t-1", label: "Livrer le rendu final", done: false }],
+    deadlines: [{ id: "d-1", label: "Livraison LIK", date: "2026-08-01" }],
+    log: [{ ts: "2026-07-20T10:00:00.000Z", action: "create", entity: "proj-lik", by: "Haïfa", synced: true, detail: "nouveau projet : LIK" }],
+    meta: {} as OsGraph["meta"],
+  };
+
+  it("includes real entity ids in brackets so the model can cite them", () => {
+    const text = serializeGraphForAsk(graph);
+    expect(text).toContain("[proj-lik] LIK");
+    expect(text).toContain("[rawdha] Rawdha Abdallah");
+    expect(text).toContain("[fmrxr] FMRXR Studio");
+  });
+
+  it("surfaces project tools in the serialized line", () => {
+    const text = serializeGraphForAsk(graph);
+    expect(text).toContain("outils: TouchDesigner, GLSL");
+  });
+
+  it("excludes done tasks and deadlines from the open lists", () => {
+    const done: OsGraph = { ...graph, tasks: [{ ...graph.tasks[0], done: true }] };
+    const text = serializeGraphForAsk(done);
+    expect(text).not.toContain("Tâches ouvertes");
+  });
+
+  it("caps the log history to logLimit, most recent entries only", () => {
+    const manyLog = Array.from({ length: 10 }, (_, i) => ({
+      ts: `2026-07-${String(i + 1).padStart(2, "0")}T00:00:00.000Z`, action: "create", entity: `e-${i}`, by: "Haïfa", synced: true, detail: `event ${i}`,
+    }));
+    const text = serializeGraphForAsk({ ...graph, log: manyLog }, 3);
+    expect(text).toContain("event 9");
+    expect(text).toContain("event 7");
+    expect(text).not.toContain("event 6");
   });
 });

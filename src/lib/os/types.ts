@@ -60,6 +60,8 @@ export interface OsProject {
   notes?: string;
   scope?: ProjectScope;
   fiche_tech?: string;
+  /** Outils/techs utilisés (TouchDesigner, GLSL, Webflow…) — permet au Brain de répondre à "quels projets utilisent X". */
+  tools?: string[];
   [k: string]: unknown;
 }
 

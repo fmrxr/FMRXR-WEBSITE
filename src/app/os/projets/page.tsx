@@ -16,6 +16,7 @@ export default function ProjetsPage() {
   const [category, setCategory] = useState("");
   const [client, setClient] = useState("");
   const [identity, setIdentity] = useState<string[]>([]);
+  const [tools, setTools] = useState("");
 
   if (loading) return <p className="fm-rise font-grotesk text-sm text-fmmuted">Chargement du graphe…</p>;
   if (error && !graph) return <p className="fm-rise font-grotesk text-sm text-[#ff4d5e]">{error}</p>;
@@ -46,6 +47,7 @@ export default function ProjetsPage() {
   function createProject() {
     if (!name.trim()) return;
     const id = genId("proj");
+    const toolList = tools.split(",").map((t) => t.trim()).filter(Boolean);
     const created = {
       id,
       name: name.trim(),
@@ -54,6 +56,7 @@ export default function ProjetsPage() {
       identity,
       category: category.trim() || undefined,
       client: client || undefined,
+      tools: toolList.length ? toolList : undefined,
     };
     mutate((draft) => {
       draft.projects.push(created);
@@ -63,6 +66,7 @@ export default function ProjetsPage() {
     setCategory("");
     setClient("");
     setIdentity([]);
+    setTools("");
     setCreating(false);
   }
 
@@ -104,6 +108,12 @@ export default function ProjetsPage() {
               </option>
             ))}
           </select>
+          <input
+            className="w-48 rounded border border-fmborder bg-fmmutedbg px-3 py-1.5 font-grotesk text-sm text-fmfg"
+            placeholder="Outils (séparés par virgule)"
+            value={tools}
+            onChange={(e) => setTools(e.target.value)}
+          />
           {graph.identities.map((i) => (
             <label key={i.id} className="flex items-center gap-1.5 font-grotesk text-xs text-fmmuted">
               <input

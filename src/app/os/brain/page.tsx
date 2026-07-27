@@ -6,6 +6,7 @@ import { GRAPH_TYPE_COLORS, GRAPH_TYPE_LABELS, graphEdges, graphEntities, graphE
 import type { GraphEntity, GraphEntityType } from "@/lib/os/compute";
 import { GraphCanvas } from "@/components/os/brain/GraphCanvas";
 import { EntityDrawer } from "@/components/os/brain/EntityDrawer";
+import { AskPanel } from "@/components/os/brain/AskPanel";
 
 const DEFAULT_TYPES: GraphEntityType[] = ["identity", "project", "person", "client", "invoice", "quote"];
 
@@ -20,6 +21,8 @@ export default function BrainPage() {
   const [reseedSignal, setReseedSignal] = useState(0);
   const [openEntity, setOpenEntity] = useState<GraphEntity | null>(null);
   const [stats, setStats] = useState({ nodes: 0, edges: 0, derived: 0 });
+  const [showAsk, setShowAsk] = useState(false);
+  const [askQuestion, setAskQuestion] = useState<string | null>(null);
 
   const entities = useMemo(() => {
     if (!graph) return [];
@@ -44,6 +47,13 @@ export default function BrainPage() {
   const onStats = useCallback((nodes: number, edgeCount: number, derived: number) => setStats({ nodes, edges: edgeCount, derived }), []);
 
   const handleOpenEntity = useCallback((id: string) => setOpenEntity(entities.find((e) => e.id === id) ?? null), [entities]);
+
+  const handleExplainEntity = useCallback((entity: GraphEntity) => {
+    setShowAsk(true);
+    setAskQuestion(
+      `Explique-moi ce que je devrais savoir sur "${entity.name}" (id ${entity.id}) : son état actuel, ses liens (client, projets, factures…), son historique récent, et tout point d'attention éventuel.`,
+    );
+  }, []);
 
   if (loading) return <p className="fm-rise font-grotesk text-sm text-fmmuted">Chargement du graphe…</p>;
   if (error && !graph) return <p className="fm-rise font-grotesk text-sm text-[#ff4d5e]">{error}</p>;
@@ -103,11 +113,26 @@ export default function BrainPage() {
         >
           ↺ Réorganiser
         </button>
+        <button
+          type="button"
+          onClick={() => setShowAsk((s) => !s)}
+          className={`rounded-full border px-3 py-1 font-grotesk text-xs ${showAsk ? "border-fmaccent text-fmaccent" : "border-fmborder text-fmmuted"}`}
+        >
+          ✦ Demander à l&apos;IA
+        </button>
         <span className="flex-1" />
         <span className="font-grotesk text-xs text-fmmuted">
           {stats.nodes} nœuds · {stats.edges} liens ({stats.derived} inférés){ghostCount > 0 ? ` · ${ghostCount} fantômes` : ""}
         </span>
       </div>
+
+      {showAsk && (
+        <AskPanel
+          onOpenEntity={handleOpenEntity}
+          externalQuestion={askQuestion}
+          onExternalQuestionHandled={() => setAskQuestion(null)}
+        />
+      )}
 
       <div className="fm-glass-card min-h-0 flex-1 overflow-hidden rounded-2xl">
         <GraphCanvas entities={entities} edges={edges} search={search} reseedSignal={reseedSignal} onOpenEntity={handleOpenEntity} onStats={onStats} />
@@ -117,7 +142,7 @@ export default function BrainPage() {
         Molette : zoom · glisser le fond : déplacer · glisser un nœud : réorganiser · survol : voisins en surbrillance · clic : ouvrir la fiche · double-clic : recentrer.
       </p>
 
-      <EntityDrawer graph={graph} entity={openEntity} onClose={() => setOpenEntity(null)} />
+      <EntityDrawer graph={graph} entity={openEntity} onClose={() => setOpenEntity(null)} onExplain={handleExplainEntity} />
     </div>
   );
 }

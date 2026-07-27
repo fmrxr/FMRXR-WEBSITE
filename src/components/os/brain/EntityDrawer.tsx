@@ -29,10 +29,12 @@ interface EntityDrawerProps {
   graph: OsGraph;
   entity: GraphEntity | null;
   onClose: () => void;
+  /** F3 — déclenche une question au Brain à propos de cette entité (ouvre le panneau Ask). */
+  onExplain?: (entity: GraphEntity) => void;
 }
 
 /** Panneau latéral ouvert au clic sur un nœud — porte openEnt() de RENDER.graph, en condensé. */
-export function EntityDrawer({ graph, entity, onClose }: EntityDrawerProps) {
+export function EntityDrawer({ graph, entity, onClose, onExplain }: EntityDrawerProps) {
   if (!entity) return null;
 
   const isGhost = entity.state === "ghost";
@@ -131,6 +133,16 @@ export function EntityDrawer({ graph, entity, onClose }: EntityDrawerProps) {
           </button>
         </div>
         <h2 className="font-display text-lg text-fmfg">{entity.name}</h2>
+
+        {onExplain && (
+          <button
+            type="button"
+            onClick={() => onExplain(entity)}
+            className="self-start rounded-full border border-fmborder px-3 py-1 font-grotesk text-xs text-fmmuted hover:border-fmaccent/40 hover:text-fmaccent"
+          >
+            ✦ Expliquer ce nœud
+          </button>
+        )}
 
         {isGhost && (
           <div className="rounded-lg border border-fmborder bg-fmmutedbg/60 px-3 py-2">

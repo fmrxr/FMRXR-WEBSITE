@@ -53,6 +53,15 @@ export function ProjectCard({ project: p, graph, now }: ProjectCardProps) {
           })}
         </div>
       )}
+      {(p.tools || []).length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {(p.tools || []).map((t) => (
+            <span key={t} className="rounded border border-fmborder px-1.5 py-0.5 font-mono text-[9.5px] text-fmmuted">
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
       {(nextDeadlineDays !== null || lateCount > 0 || paid > 0 || due > 0 || docsCount > 0) && (
         <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-fmmuted">
           {nextDeadlineDays !== null && <span className={nextDeadlineDays <= 7 ? "text-[#ff4d5e]" : ""}>◷ J-{nextDeadlineDays}</span>}
