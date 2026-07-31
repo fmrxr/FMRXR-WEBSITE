@@ -5,13 +5,14 @@ import { Card } from "../Card";
 import { restOf } from "@/lib/os/compute";
 import type { Currency, InvoiceStatus, OsInvoice } from "@/lib/os/types";
 
-const STATUS_LABELS: Record<InvoiceStatus, string> = {
+export const STATUS_LABELS: Record<InvoiceStatus, string> = {
   draft: "brouillon",
   sent: "envoyée",
   partial: "acompte reçu",
   paid: "payée",
   late: "en retard",
   disputed: "contestée",
+  cancelled: "annulée",
 };
 
 export interface InvoicePatch {
@@ -62,6 +63,7 @@ function InvoiceRow({ invoice: f, clientName, onStatusChange, onSave, onDelete }
           </div>
           <div className="mt-0.5 font-grotesk text-sm text-fmfg">{f.label}</div>
           <div className="mt-0.5 font-mono text-[10.5px] text-fmmuted">{f.issued}</div>
+          {f.replaced_by && <div className="mt-0.5 font-grotesk text-[10.5px] italic text-fmmuted">remplacée par {f.replaced_by}</div>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-right font-mono text-sm">
@@ -161,14 +163,37 @@ interface InvoiceTableProps {
   onDelete: (id: string) => void;
 }
 
-/** Liste factures — porte le tableau de RENDER.finance (sans le générateur de documents). */
+/** Liste factures — porte le tableau de RENDER.finance (sans le générateur de documents). Les
+ * factures annulées (remplacées) sont repliées par défaut pour ne pas noyer la liste active. */
 export function InvoiceTable({ invoices, clientName, onStatusChange, onSave, onDelete }: InvoiceTableProps) {
+  const [showCancelled, setShowCancelled] = useState(false);
+  const active = invoices.filter((f) => f.status !== "cancelled");
+  const cancelled = invoices.filter((f) => f.status === "cancelled");
+
   return (
     <Card>
-      {invoices.length === 0 && <p className="font-grotesk text-sm text-fmmuted">Aucune facture.</p>}
-      {invoices.map((f) => (
+      {active.length === 0 && cancelled.length === 0 && <p className="font-grotesk text-sm text-fmmuted">Aucune facture.</p>}
+      {active.map((f) => (
         <InvoiceRow key={f.id} invoice={f} clientName={clientName(f.client)} onStatusChange={onStatusChange} onSave={onSave} onDelete={onDelete} />
       ))}
+      {cancelled.length > 0 && (
+        <div className={active.length > 0 ? "mt-2 border-t border-fmborder pt-2" : ""}>
+          <button
+            type="button"
+            onClick={() => setShowCancelled((s) => !s)}
+            className="font-grotesk text-xs text-fmmuted hover:text-fmaccent"
+          >
+            {showCancelled ? "▾" : "▸"} Annulées — {cancelled.length}
+          </button>
+          {showCancelled && (
+            <div className="mt-1 opacity-60">
+              {cancelled.map((f) => (
+                <InvoiceRow key={f.id} invoice={f} clientName={clientName(f.client)} onStatusChange={onStatusChange} onSave={onSave} onDelete={onDelete} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

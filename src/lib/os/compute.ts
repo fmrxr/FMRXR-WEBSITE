@@ -2,7 +2,7 @@
 // focusToday/kpiValue/toTND) pour préserver la logique métier validée par le monolithe (§0 du brief).
 // Toute fonction qui dépend de "maintenant" accepte `now` en paramètre pour rester testable.
 
-import type { AssetKind, Currency, OsAsset, OsCfBatch, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsLogEntry, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsTask } from "./types";
+import type { AssetKind, Currency, OsAsset, OsCfBatch, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsLogEntry, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsQuote, OsTask } from "./types";
 
 const DEFAULT_EUR_TND = 3.4;
 const PENDING_STATUSES = new Set(["sent", "partial", "late", "disputed"]);
@@ -308,7 +308,7 @@ export function monthlySeries(finance: OsInvoice[] = [], now: Date = new Date(),
       .filter((f) => f.status === "paid" && (f.paid_date || f.issued || "").startsWith(key))
       .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
     const billed = finance
-      .filter((f) => (f.issued || "").startsWith(key))
+      .filter((f) => f.status !== "cancelled" && (f.issued || "").startsWith(key))
       .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
     out.push({ key, label: d.toLocaleDateString("fr-FR", { month: "short" }), paid, billed });
   }
@@ -321,14 +321,27 @@ export interface CashProjectionBuckets {
   d90: number;
 }
 
-/** Encaissements attendus ≤30j / 30-60j / 60-90j selon l'ancienneté et le statut. */
+/**
+ * Encaissements attendus ≤30j / 30-60j / 60-90j selon l'ancienneté et le statut. Gère aussi les
+ * factures déjà émises (statut "sent") mais datées dans le futur — ex. une série récurrente
+ * préparée à l'avance : sans ce cas, une facture de décembre se retrouvait comptée comme "≤30
+ * jours" (âge négatif toujours ≤21). Au-delà de 90 jours, hors fenêtre — cf. futureCommitments().
+ */
 export function cashProjection(finance: OsInvoice[] = [], now: Date = new Date(), eurTnd?: number): CashProjectionBuckets {
   const p: CashProjectionBuckets = { d30: 0, d60: 0, d90: 0 };
   finance
     .filter((f) => PENDING_STATUSES.has(f.status))
     .forEach((f) => {
       const rest = toTND(restOf(f), f.currency, eurTnd);
-      const age = f.issued ? -(daysUntil(f.issued, now) ?? 0) : 0;
+      const untilIssued = f.issued ? (daysUntil(f.issued, now) ?? 0) : 0; // >0 = émission future, ≤0 = déjà émise
+      if (untilIssued > 90) return;
+      if (untilIssued > 0) {
+        if (untilIssued <= 30) p.d30 += rest;
+        else if (untilIssued <= 60) p.d60 += rest;
+        else p.d90 += rest;
+        return;
+      }
+      const age = -untilIssued;
       if (f.status === "partial" || age <= 21) p.d30 += rest;
       else if (f.status === "sent") p.d60 += rest;
       else p.d90 += rest;
@@ -336,10 +349,38 @@ export function cashProjection(finance: OsInvoice[] = [], now: Date = new Date()
   return p;
 }
 
+export interface CommittedMonth {
+  key: string;
+  label: string;
+  amountTND: number;
+  count: number;
+}
+
+/**
+ * Facturation déjà engagée mois par mois, à partir du mois courant — pas une extrapolation
+ * statistique : ce sont des factures réelles déjà créées (non annulées) avec une date future,
+ * comme une série récurrente préparée à l'avance (ex. BXTR juillet→décembre).
+ */
+export function futureCommitments(finance: OsInvoice[] = [], now: Date = new Date(), monthsAhead = 5, eurTnd?: number): CommittedMonth[] {
+  const out: CommittedMonth[] = [];
+  for (let i = 0; i <= monthsAhead; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const items = finance.filter((f) => f.status !== "cancelled" && (f.issued || "").startsWith(key));
+    out.push({
+      key,
+      label: d.toLocaleDateString("fr-FR", { month: "short" }),
+      amountTND: items.reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0),
+      count: items.length,
+    });
+  }
+  return out;
+}
+
 /** CA (TND consolidés) réparti par identité, via l'identité du projet de chaque facture. */
 export function identitySplit(finance: OsInvoice[] = [], projects: OsProject[] = [], eurTnd?: number): [string, number][] {
   const m = new Map<string, number>();
-  finance.forEach((f) => {
+  finance.filter((f) => f.status !== "cancelled").forEach((f) => {
     const project = projects.find((p) => p.id === f.project);
     const ids = project?.identity?.length ? project.identity : ["fmrxr-studio"];
     const share = toTND(f.amount || 0, f.currency, eurTnd) / ids.length;
@@ -352,7 +393,7 @@ export function identitySplit(finance: OsInvoice[] = [], projects: OsProject[] =
 export function clientSplit(finance: OsInvoice[] = [], eurTnd?: number): [string, number][] {
   const m = new Map<string, number>();
   finance.forEach((f) => {
-    if (!f.client) return;
+    if (!f.client || f.status === "cancelled") return;
     m.set(f.client, (m.get(f.client) || 0) + toTND(f.amount || 0, f.currency, eurTnd));
   });
   return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
@@ -537,7 +578,7 @@ export interface RunRateProjection {
 export function runRateProjection(finance: OsInvoice[] = [], now: Date = new Date(), eurTnd?: number): RunRateProjection {
   const year = now.getFullYear();
   const ytdBilled = finance
-    .filter((f) => (f.issued || "").startsWith(String(year)))
+    .filter((f) => f.status !== "cancelled" && (f.issued || "").startsWith(String(year)))
     .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
   const monthsElapsed = now.getMonth() + 1;
   const avgMonthly = monthsElapsed > 0 ? ytdBilled / monthsElapsed : 0;
@@ -656,7 +697,7 @@ export function financeOverview(
   const pendingItems: MoneyItem[] = pending.map((f) => ({ amount: restOf(f), currency: f.currency }));
   const pendingTND = pendingItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
 
-  const yearInvoices = finance.filter((f) => (f.issued || "").startsWith(year));
+  const yearInvoices = finance.filter((f) => f.status !== "cancelled" && (f.issued || "").startsWith(year));
   const yearInvoiceItems: MoneyItem[] = yearInvoices.map((f) => ({ amount: f.amount || 0, currency: f.currency }));
   const yearInvoiceTND = yearInvoiceItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
 
@@ -682,6 +723,35 @@ export function financeOverview(
     recurringExpenseTND,
     netTND: cashInTND - expenseTND,
   };
+}
+
+export interface ClientOverview {
+  /** Total facturé (TND consolidés), factures annulées exclues. */
+  factureTND: number;
+  /** Encaissé : factures payées + avances reçues sur factures en attente (TND consolidés). */
+  encaisseTND: number;
+  /** Reste dû sur les factures en attente (TND consolidés). */
+  enAttenteTND: number;
+  invoiceCount: number;
+  quoteCount: number;
+}
+
+/**
+ * Vue "Client 360" — porte le bloc client de openEnt() dans le monolithe (factures/devis liés,
+ * facturé/encaissé/en attente). Les factures annulées (remplacées) n'entrent dans aucun total,
+ * comme partout ailleurs dans le graphe (cf. financeOverview).
+ */
+export function clientOverview(clientId: string, finance: OsInvoice[] = [], quotes: OsQuote[] = [], eurTnd?: number): ClientOverview {
+  const inv = finance.filter((f) => f.client === clientId && f.status !== "cancelled");
+  const quo = quotes.filter((q) => q.client === clientId);
+
+  const factureTND = inv.reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
+  const encaisseTND =
+    inv.filter((f) => f.status === "paid").reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0) +
+    inv.filter((f) => PENDING_STATUSES.has(f.status) && f.advance).reduce((s, f) => s + toTND(f.advance || 0, f.currency, eurTnd), 0);
+  const enAttenteTND = inv.filter((f) => PENDING_STATUSES.has(f.status)).reduce((s, f) => s + toTND(restOf(f), f.currency, eurTnd), 0);
+
+  return { factureTND, encaisseTND, enAttenteTND, invoiceCount: inv.length, quoteCount: quo.length };
 }
 
 // ═══════════ Bibliothèque créative / Knowledge (§Stack, porté de RENDER.stack) ═══════════
@@ -935,6 +1005,8 @@ export interface GraphEdge {
   b: string;
   w: number;
   derived: boolean;
+  /** Étiquette courte de la relation (F4 — "client", "facturé à", "identité"…) — pour que l'UI explique un lien, pas juste qu'il existe. */
+  kind?: string;
 }
 
 type GraphSourceGraph = Pick<
@@ -1013,15 +1085,15 @@ export function loadHistoricalEdges(graph: Pick<OsGraph, "log">, visibleIds: Set
   const seen = new Set<string>();
   for (const entry of graph.log || []) {
     if (entry.action !== "delete" || !entry.entityType || !GRAPH_VOCABULARY.has(entry.entityType) || entry.snapshot === undefined) continue;
-    const push = (b: string | undefined) => {
+    const push = (b: string | undefined, kind: string) => {
       if (!b || !visibleIds.has(entry.entity) || !visibleIds.has(b) || entry.entity === b) return;
       const key = entry.entity < b ? `${entry.entity}|${b}` : `${b}|${entry.entity}`;
       if (seen.has(key)) return;
       seen.add(key);
-      edges.push({ a: entry.entity, b, w: 0.7, derived: false });
+      edges.push({ a: entry.entity, b, w: 0.7, derived: false, kind });
     };
-    push(snapshotStr(entry.snapshot, "client"));
-    push(snapshotStr(entry.snapshot, "project"));
+    push(snapshotStr(entry.snapshot, "client"), "client");
+    push(snapshotStr(entry.snapshot, "project"), "projet");
   }
   return edges;
 }
@@ -1035,45 +1107,45 @@ export function graphEdges(graph: GraphSourceGraph, entities: GraphEntity[]): Gr
   const ids = new Set(entities.map((e) => e.id));
   const edges: GraphEdge[] = [];
   const seen = new Set<string>();
-  const push = (a: string | undefined, b: string | undefined, w: number, derived = false) => {
+  const push = (a: string | undefined, b: string | undefined, w: number, kind: string, derived = false) => {
     if (!a || !b || a === b || !ids.has(a) || !ids.has(b)) return;
     const key = a < b ? `${a}|${b}` : `${b}|${a}`;
     if (seen.has(key)) return;
     seen.add(key);
-    edges.push({ a, b, w, derived });
+    edges.push({ a, b, w, derived, kind });
   };
 
   graph.projects.forEach((p) => {
-    (p.identity || []).forEach((id) => push(p.id, id, 1));
-    if (p.client) push(p.id, p.client, 1.2);
+    (p.identity || []).forEach((id) => push(p.id, id, 1, "identité"));
+    if (p.client) push(p.id, p.client, 1.2, "client");
   });
   graph.finance.forEach((f) => {
-    push(f.id, f.client, 1);
-    if (f.project) push(f.id, f.project, 0.8);
+    push(f.id, f.client, 1, "facturé à");
+    if (f.project) push(f.id, f.project, 0.8, "projet");
   });
   (graph.quotes || []).forEach((q) => {
-    push(q.id, q.client, 1);
-    if (q.project) push(q.id, q.project, 0.8);
+    push(q.id, q.client, 1, "devis pour");
+    if (q.project) push(q.id, q.project, 0.8, "projet");
   });
   (graph.people || []).forEach((p) => {
-    if (p.org) push(p.id, p.org, 0.8);
+    if (p.org) push(p.id, p.org, 0.8, "membre de");
   });
   (graph.assets || []).forEach((a) => {
-    if (a.project) push(a.id, a.project, 0.6);
-    if (a.identity) push(a.id, a.identity, 0.6);
+    if (a.project) push(a.id, a.project, 0.6, "asset de");
+    if (a.identity) push(a.id, a.identity, 0.6, "asset de");
   });
-  (graph.relations || []).forEach((r) => push(r.from, r.to, 1));
+  (graph.relations || []).forEach((r) => push(r.from, r.to, 1, r.rel || "lié à"));
 
   // Liens dérivés (inférés) : identité ↔ client via projets partagés — fait émerger les
   // constellations par casquette, comme dans le monolithe.
   graph.projects.forEach((p) => {
-    if (p.client) (p.identity || []).forEach((idn) => push(p.client, idn, 0.35, true));
+    if (p.client) (p.identity || []).forEach((idn) => push(p.client, idn, 0.35, "casquette partagée", true));
   });
   // Client ↔ personne du même projet, via une relation projet → personne.
   const entityById = new Map(entities.map((e) => [e.id, e]));
   (graph.relations || []).forEach((r) => {
     const project = graph.projects.find((p) => p.id === r.from);
-    if (project?.client && entityById.get(r.to)?.type === "person") push(project.client, r.to, 0.3, true);
+    if (project?.client && entityById.get(r.to)?.type === "person") push(project.client, r.to, 0.3, "lié via projet", true);
   });
 
   return edges;
@@ -1087,6 +1159,41 @@ export function graphNodeDegrees(edges: GraphEdge[]): Record<string, number> {
     deg[e.b] = (deg[e.b] || 0) + 1;
   }
   return deg;
+}
+
+export interface GraphAnalytics {
+  /** Entités actives (non-fantômes) sans aucun lien — signal d'hygiène de données. */
+  isolatedCount: number;
+  /** Entité active la plus connectée, ou null si le graphe est vide. */
+  busiest: { id: string; name: string; degree: number } | null;
+  /** Projets actifs sans facture ni devis lié — travail non facturé ou facturation en retard. */
+  projectsWithoutInvoice: number;
+}
+
+/**
+ * F4 — quelques stats concrètes et actionnables dérivées du graphe (pas une exploration libre :
+ * trois questions qu'on se pose vraiment en pilotant le business). N'inclut que les entités
+ * actives — un fantôme isolé est normal, ce n'est pas un signal.
+ */
+export function graphAnalytics(graph: Pick<OsGraph, "projects" | "finance" | "quotes">, entities: GraphEntity[], edges: GraphEdge[]): GraphAnalytics {
+  const degrees = graphNodeDegrees(edges);
+  const active = entities.filter((e) => e.state !== "ghost");
+
+  const isolatedCount = active.filter((e) => !degrees[e.id]).length;
+
+  let busiest: GraphAnalytics["busiest"] = null;
+  for (const e of active) {
+    const degree = degrees[e.id] || 0;
+    if (degree > 0 && (!busiest || degree > busiest.degree)) busiest = { id: e.id, name: e.name, degree };
+  }
+
+  const invoicedProjectIds = new Set([
+    ...graph.finance.map((f) => f.project).filter((x): x is string => !!x),
+    ...(graph.quotes || []).map((q) => q.project).filter((x): x is string => !!x),
+  ]);
+  const projectsWithoutInvoice = graph.projects.filter((p) => p.status === "active" && !invoicedProjectIds.has(p.id)).length;
+
+  return { isolatedCount, busiest, projectsWithoutInvoice };
 }
 
 /**

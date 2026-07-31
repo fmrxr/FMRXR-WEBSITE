@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useOs } from "@/lib/os/store";
 import { ClientSegmentList } from "@/components/os/clients/ClientSegmentList";
 import { PeopleGrid } from "@/components/os/clients/PeopleGrid";
+import { ClientDrawer } from "@/components/os/clients/ClientDrawer";
 import { Section } from "@/components/os/Section";
 
 function slugify(s: string): string {
@@ -21,6 +22,7 @@ export default function ClientsPage() {
   const [segment, setSegment] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [openClientId, setOpenClientId] = useState<string | null>(null);
 
   if (loading) return <p className="fm-rise font-grotesk text-sm text-fmmuted">Chargement du graphe…</p>;
   if (error && !graph) return <p className="fm-rise font-grotesk text-sm text-[#ff4d5e]">{error}</p>;
@@ -110,11 +112,13 @@ export default function ClientsPage() {
         </div>
       )}
 
-      <ClientSegmentList clients={clients} />
+      <ClientSegmentList clients={clients} onOpenClient={setOpenClientId} />
 
       <Section id="clients-people" title={`Personnes clés — ${people.length}`}>
         <PeopleGrid people={people} />
       </Section>
+
+      <ClientDrawer client={clients.find((c) => c.id === openClientId) ?? null} graph={graph} onClose={() => setOpenClientId(null)} />
     </div>
   );
 }

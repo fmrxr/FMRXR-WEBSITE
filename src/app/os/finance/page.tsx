@@ -6,7 +6,10 @@ import { financeOverview } from "@/lib/os/compute";
 import { parseRefSeq } from "@/lib/os/document";
 import type { GeneratedDocument } from "@/components/os/finance/DocumentGeneratorForm";
 import { DocumentGeneratorForm } from "@/components/os/finance/DocumentGeneratorForm";
+import { RecurringInvoiceForm } from "@/components/os/finance/RecurringInvoiceForm";
+import type { RecurringBatchInvoice } from "@/components/os/finance/RecurringInvoiceForm";
 import { FinanceOverviewCards } from "@/components/os/finance/FinanceOverviewCards";
+import { FinanceForecast } from "@/components/os/finance/FinanceForecast";
 import { InvoiceTable } from "@/components/os/finance/InvoiceTable";
 import type { InvoicePatch } from "@/components/os/finance/InvoiceTable";
 import { QuoteTable } from "@/components/os/finance/QuoteTable";
@@ -29,6 +32,9 @@ type GeneratorState = { kind: "invoice" | "quote"; presetClientId?: string; pres
 export default function FinancePage() {
   const { graph, loading, error, mutate, logChange } = useOs();
   const [generator, setGenerator] = useState<GeneratorState>(null);
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [clientFilter, setClientFilter] = useState("");
+  const [query, setQuery] = useState("");
 
   if (loading) return <p className="fm-rise font-grotesk text-sm text-fmmuted">Chargement du graphe…</p>;
   if (error && !graph) return <p className="fm-rise font-grotesk text-sm text-[#ff4d5e]">{error}</p>;
@@ -42,6 +48,14 @@ export default function FinancePage() {
   const invoicesSorted = [...graph.finance].sort((a, b) => (b.issued || "").localeCompare(a.issued || ""));
   const quotesSorted = [...(graph.quotes || [])].sort((a, b) => (b.issued || "").localeCompare(a.issued || ""));
   const expensesSorted = [...(graph.expenses || [])].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+  // Filtre client + recherche libre, partagés par les 3 tableaux — les dépenses n'ayant pas de
+  // champ client, seul le texte s'y applique.
+  const q = query.trim().toLowerCase();
+  const hits = (...vals: (string | undefined)[]) => !q || vals.some((v) => (v || "").toLowerCase().includes(q));
+  const invoicesFiltered = invoicesSorted.filter((f) => (!clientFilter || f.client === clientFilter) && hits(f.ref, f.label, f.notes));
+  const quotesFiltered = quotesSorted.filter((f) => (!clientFilter || f.client === clientFilter) && hits(f.ref, f.label));
+  const expensesFiltered = expensesSorted.filter((e) => hits(e.label, e.vendor, e.notes, e.category));
 
   function setInvoiceStatus(id: string, status: InvoiceStatus) {
     const before = graph!.finance.find((x) => x.id === id);
@@ -168,6 +182,28 @@ export default function FinancePage() {
     logChange("delete", id, `dépense supprimée (→ corbeille) : ${e.label}`, { entityType: "expense", snapshot: e });
   }
 
+  function handleGenerateRecurring(invoices: RecurringBatchInvoice[]) {
+    if (invoices.length === 0) return;
+    mutate((draft) => {
+      invoices.forEach((inv) => {
+        draft.finance.push(inv);
+        const seq = parseRefSeq(inv.ref);
+        if (seq) {
+          draft.meta = draft.meta || {};
+          draft.meta.seq = draft.meta.seq || {};
+          draft.meta.seq[seq.key] = Math.max(draft.meta.seq[seq.key] || 0, seq.value);
+        }
+      });
+    });
+    invoices.forEach((inv) => {
+      logChange("create", inv.id, `facture générée (série) : ${inv.ref} · ${inv.label} · ${inv.amount.toLocaleString("fr-FR")} ${inv.currency}`, {
+        entityType: "invoice",
+        snapshot: inv,
+      });
+    });
+    setShowRecurring(false);
+  }
+
   function handleGenerated(doc: GeneratedDocument) {
     try {
       const url = URL.createObjectURL(new Blob([doc.html], { type: "text/html" }));
@@ -249,6 +285,8 @@ export default function FinancePage() {
           onGenerated={handleGenerated}
           onCancel={() => setGenerator(null)}
         />
+      ) : showRecurring ? (
+        <RecurringInvoiceForm graph={graph} onGenerate={handleGenerateRecurring} onCancel={() => setShowRecurring(false)} />
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -265,21 +303,65 @@ export default function FinancePage() {
           >
             + Générer un devis
           </button>
+          <button
+            type="button"
+            onClick={() => setShowRecurring(true)}
+            className="rounded-lg border border-fmborder px-3 py-1.5 font-grotesk text-sm text-fmmuted hover:border-fmaccent/40"
+          >
+            + Factures récurrentes
+          </button>
         </div>
       )}
 
       <FinanceOverviewCards overview={overview} now={now} />
 
-      <Section id="finance-invoices" title={`Factures — ${invoicesSorted.length}`}>
-        <InvoiceTable invoices={invoicesSorted} clientName={clientName} onStatusChange={setInvoiceStatus} onSave={saveInvoice} onDelete={deleteInvoice} />
+      <Section id="finance-forecast" title="Prévisions">
+        <FinanceForecast graph={graph} now={now} />
       </Section>
 
-      <Section id="finance-quotes" title={`Devis — ${quotesSorted.length}`}>
-        <QuoteTable quotes={quotesSorted} clientName={clientName} onStatusChange={setQuoteStatus} onConvert={convertQuoteToInvoice} onDelete={deleteQuote} />
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          className="min-w-[200px] flex-1 rounded border border-fmborder bg-fmmutedbg px-3 py-1.5 font-grotesk text-sm text-fmfg"
+          placeholder="Rechercher — réf., libellé, notes, fournisseur…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <select
+          className="rounded border border-fmborder bg-fmmutedbg px-3 py-1.5 font-grotesk text-sm text-fmfg"
+          value={clientFilter}
+          onChange={(e) => setClientFilter(e.target.value)}
+        >
+          <option value="">— tous les clients —</option>
+          {(graph.clients || []).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        {(query || clientFilter) && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setClientFilter("");
+            }}
+            className="fm-link font-grotesk text-xs text-fmmuted"
+          >
+            Réinitialiser
+          </button>
+        )}
+      </div>
+
+      <Section id="finance-invoices" title={`Factures — ${invoicesFiltered.length}${invoicesFiltered.length !== invoicesSorted.length ? ` / ${invoicesSorted.length}` : ""}`}>
+        <InvoiceTable invoices={invoicesFiltered} clientName={clientName} onStatusChange={setInvoiceStatus} onSave={saveInvoice} onDelete={deleteInvoice} />
       </Section>
 
-      <Section id="finance-expenses" title={`Dépenses — ${expensesSorted.length}`}>
-        <ExpenseTable expenses={expensesSorted} projects={graph.projects} onAdd={addExpense} onSave={saveExpense} onDelete={deleteExpense} />
+      <Section id="finance-quotes" title={`Devis — ${quotesFiltered.length}${quotesFiltered.length !== quotesSorted.length ? ` / ${quotesSorted.length}` : ""}`}>
+        <QuoteTable quotes={quotesFiltered} clientName={clientName} onStatusChange={setQuoteStatus} onConvert={convertQuoteToInvoice} onDelete={deleteQuote} />
+      </Section>
+
+      <Section id="finance-expenses" title={`Dépenses — ${expensesFiltered.length}${expensesFiltered.length !== expensesSorted.length ? ` / ${expensesSorted.length}` : ""}`}>
+        <ExpenseTable expenses={expensesFiltered} projects={graph.projects} onAdd={addExpense} onSave={saveExpense} onDelete={deleteExpense} />
       </Section>
     </div>
   );

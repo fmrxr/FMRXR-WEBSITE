@@ -1,8 +1,12 @@
-import Link from "next/link";
 import type { OsClient } from "@/lib/os/types";
 
+interface ClientSegmentListProps {
+  clients: OsClient[];
+  onOpenClient: (id: string) => void;
+}
+
 /** Clients groupés par segment (chips) — porte la boucle segments de RENDER.crm. */
-export function ClientSegmentList({ clients }: { clients: OsClient[] }) {
+export function ClientSegmentList({ clients, onOpenClient }: ClientSegmentListProps) {
   const segments = Array.from(new Set(clients.map((c) => c.segment || "Autre")));
 
   return (
@@ -14,13 +18,14 @@ export function ClientSegmentList({ clients }: { clients: OsClient[] }) {
             {clients
               .filter((c) => (c.segment || "Autre") === seg)
               .map((c) => (
-                <Link
+                <button
                   key={c.id}
-                  href="/os/legacy#crm"
+                  type="button"
+                  onClick={() => onOpenClient(c.id)}
                   className="rounded-full border border-fmborder px-3 py-1 font-grotesk text-xs text-fmfg hover:border-fmaccent/40"
                 >
                   {c.name}
-                </Link>
+                </button>
               ))}
           </div>
         </div>

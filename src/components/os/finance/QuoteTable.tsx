@@ -1,7 +1,7 @@
 import { Card } from "../Card";
 import type { OsQuote, QuoteStatus } from "@/lib/os/types";
 
-const STATUS_LABELS: Record<QuoteStatus, string> = {
+export const STATUS_LABELS: Record<QuoteStatus, string> = {
   draft: "brouillon",
   sent: "envoyé",
   accepted: "accepté",

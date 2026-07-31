@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useOs } from "@/lib/os/store";
-import { GRAPH_TYPE_COLORS, GRAPH_TYPE_LABELS, graphEdges, graphEntities, graphEntitiesWithHistory, loadHistoricalEdges } from "@/lib/os/compute";
+import { GRAPH_TYPE_COLORS, GRAPH_TYPE_LABELS, graphAnalytics, graphEdges, graphEntities, graphEntitiesWithHistory, loadHistoricalEdges } from "@/lib/os/compute";
 import type { GraphEntity, GraphEntityType } from "@/lib/os/compute";
 import { GraphCanvas } from "@/components/os/brain/GraphCanvas";
 import { EntityDrawer } from "@/components/os/brain/EntityDrawer";
@@ -43,6 +43,9 @@ export default function BrainPage() {
   }, [graph, entities, showHistory]);
 
   const ghostCount = useMemo(() => entities.filter((e) => e.state === "ghost").length, [entities]);
+
+  // F4 — quelques stats actionnables dérivées du graphe visible actuel (dépend donc des filtres actifs).
+  const analytics = useMemo(() => (graph ? graphAnalytics(graph, entities, edges) : null), [graph, entities, edges]);
 
   const onStats = useCallback((nodes: number, edgeCount: number, derived: number) => setStats({ nodes, edges: edgeCount, derived }), []);
 
@@ -126,6 +129,28 @@ export default function BrainPage() {
         </span>
       </div>
 
+      {analytics && (analytics.isolatedCount > 0 || analytics.busiest || analytics.projectsWithoutInvoice > 0) && (
+        <p className="font-grotesk text-[11px] text-fmmuted">
+          {analytics.isolatedCount > 0 && <>{analytics.isolatedCount} nœud{analytics.isolatedCount > 1 ? "s" : ""} isolé{analytics.isolatedCount > 1 ? "s" : ""}</>}
+          {analytics.busiest && (
+            <>
+              {analytics.isolatedCount > 0 ? " · " : ""}
+              plus connecté :{" "}
+              <button type="button" onClick={() => handleOpenEntity(analytics.busiest!.id)} className="fm-link text-fmaccent">
+                {analytics.busiest.name}
+              </button>{" "}
+              ({analytics.busiest.degree})
+            </>
+          )}
+          {analytics.projectsWithoutInvoice > 0 && (
+            <>
+              {analytics.isolatedCount > 0 || analytics.busiest ? " · " : ""}
+              {analytics.projectsWithoutInvoice} projet{analytics.projectsWithoutInvoice > 1 ? "s" : ""} actif{analytics.projectsWithoutInvoice > 1 ? "s" : ""} sans facture/devis lié
+            </>
+          )}
+        </p>
+      )}
+
       {showAsk && (
         <AskPanel
           onOpenEntity={handleOpenEntity}
@@ -142,7 +167,7 @@ export default function BrainPage() {
         Molette : zoom · glisser le fond : déplacer · glisser un nœud : réorganiser · survol : voisins en surbrillance · clic : ouvrir la fiche · double-clic : recentrer.
       </p>
 
-      <EntityDrawer graph={graph} entity={openEntity} onClose={() => setOpenEntity(null)} onExplain={handleExplainEntity} />
+      <EntityDrawer graph={graph} entity={openEntity} entities={entities} edges={edges} onOpenEntity={handleOpenEntity} onClose={() => setOpenEntity(null)} onExplain={handleExplainEntity} />
     </div>
   );
 }

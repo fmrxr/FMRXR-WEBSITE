@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { GRAPH_TYPE_LABELS } from "@/lib/os/compute";
-import type { GraphEntity, GraphEntityType } from "@/lib/os/compute";
+import type { GraphEdge, GraphEntity, GraphEntityType } from "@/lib/os/compute";
 import type { OsGraph } from "@/lib/os/types";
 
 const MODULE_LINK: Partial<Record<GraphEntityType, { href: string; label: string }>> = {
@@ -31,15 +31,27 @@ interface EntityDrawerProps {
   onClose: () => void;
   /** F3 — déclenche une question au Brain à propos de cette entité (ouvre le panneau Ask). */
   onExplain?: (entity: GraphEntity) => void;
+  /** F4 — roster + liens visibles, pour lister "Liens" avec leur type de relation. */
+  entities?: GraphEntity[];
+  edges?: GraphEdge[];
+  onOpenEntity?: (id: string) => void;
 }
 
 /** Panneau latéral ouvert au clic sur un nœud — porte openEnt() de RENDER.graph, en condensé. */
-export function EntityDrawer({ graph, entity, onClose, onExplain }: EntityDrawerProps) {
+export function EntityDrawer({ graph, entity, onClose, onExplain, entities, edges, onOpenEntity }: EntityDrawerProps) {
   if (!entity) return null;
 
   const isGhost = entity.state === "ghost";
   const typeLabel = GRAPH_TYPE_LABELS.find(([t]) => t === entity.type)?.[1] || entity.type;
   const link = MODULE_LINK[entity.type];
+  const entityById = new Map((entities || []).map((e) => [e.id, e]));
+  const links = (edges || [])
+    .filter((e) => e.a === entity.id || e.b === entity.id)
+    .map((e) => {
+      const otherId = e.a === entity.id ? e.b : e.a;
+      return { id: otherId, name: entityById.get(otherId)?.name ?? otherId, kind: e.kind, derived: e.derived };
+    })
+    .filter((l) => entityById.has(l.id));
   // Historique complet de l'entité — F1.2 : chaque logChange (création, modifications, suppression)
   // tapé sur son id, dans l'ordre où c'est arrivé. Aucune nouvelle donnée : `log` porte déjà tout ça.
   const history = (graph.log || [])
@@ -158,6 +170,26 @@ export function EntityDrawer({ graph, entity, onClose, onExplain }: EntityDrawer
           <Link href={link.href} className="fm-link mt-2 font-grotesk text-sm text-fmaccent">
             {link.label} →
           </Link>
+        )}
+
+        {links.length > 0 && (
+          <div>
+            <h3 className="mb-2 font-grotesk text-[10px] uppercase tracking-[0.1em] text-fmmuted">Liens — {links.length}</h3>
+            <div className="flex flex-col gap-1.5">
+              {links.map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => onOpenEntity?.(l.id)}
+                  disabled={!onOpenEntity}
+                  className="flex items-baseline justify-between gap-2 text-left font-grotesk text-xs text-fmfg hover:text-fmaccent disabled:hover:text-fmfg"
+                >
+                  <span className="truncate">{l.name}</span>
+                  <span className={`shrink-0 text-[10px] ${l.derived ? "italic text-fmmuted/70" : "text-fmmuted"}`}>{l.kind}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {history.length > 0 && (

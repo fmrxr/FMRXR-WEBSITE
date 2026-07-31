@@ -10,8 +10,9 @@ import {
   assetKindLabel, assetMatches, assetKindGroups, assetKindCounts, assetClientLabel, assetClientGroups,
   cfStageLabel, cfAdjacentStage, cfSummary,
   graphEntities, graphEdges, graphNodeDegrees, loadHistoricalEntities, graphEntitiesWithHistory, loadHistoricalEdges,
-  serializeGraphForAsk,
+  serializeGraphForAsk, graphAnalytics, clientOverview, futureCommitments,
 } from "@/lib/os/compute";
+import type { GraphEntity } from "@/lib/os/compute";
 import type { OsAsset, OsCfBatch, OsClient, OsGraph, OsIdentity, OsLibraryItem, OsLogEntry, OsProject } from "@/lib/os/types";
 
 const NOW = new Date("2026-07-22T12:00:00.000Z");
@@ -264,6 +265,57 @@ describe("monthlySeries / cashProjection", () => {
     expect(p.d60).toBeCloseTo(100 * 3.38);
     expect(p.d90).toBe(0);
   });
+
+  it("excludes cancelled invoices from the billed series (replaced-invoice case)", () => {
+    const withCancelled = [
+      ...finance,
+      { id: "f4", type: "invoice" as const, amount: 1600, currency: "TND" as const, status: "cancelled" as const, issued: "2026-07-18", replaced_by: "f2" },
+    ];
+    const series = monthlySeries(withCancelled, NOW, 3.38);
+    // le montant annulé (1600) ne doit pas s'ajouter au billed de juillet
+    expect(series[11].billed).toBe(1500);
+  });
+
+  it("buckets a future-issued invoice by proximity of its issued date, not as always-imminent (recurring-series case)", () => {
+    // NOW = 2026-07-22. Une facture "sent" émise dans 40 jours (proche de d60) ne doit pas
+    // atterrir dans d30 juste parce que son âge (négatif) était historiquement toujours ≤21.
+    const future = [
+      { id: "near", type: "invoice" as const, amount: 100, currency: "TND" as const, status: "sent" as const, issued: "2026-08-05" }, // dans 14j -> d30
+      { id: "mid", type: "invoice" as const, amount: 200, currency: "TND" as const, status: "sent" as const, issued: "2026-08-31" }, // dans 40j -> d60
+      { id: "far", type: "invoice" as const, amount: 300, currency: "TND" as const, status: "sent" as const, issued: "2026-12-27" }, // dans ~150j -> hors fenêtre 90j
+    ];
+    const p = cashProjection(future, NOW);
+    expect(p.d30).toBe(100);
+    expect(p.d60).toBe(200);
+    expect(p.d90).toBe(0);
+  });
+});
+
+describe("futureCommitments", () => {
+  const NOW2 = new Date("2026-07-22T12:00:00.000Z");
+
+  it("groups already-created, non-cancelled future invoices by month, current month through monthsAhead", () => {
+    const finance = [
+      { id: "f1", type: "invoice" as const, amount: 1600, currency: "EUR" as const, status: "sent" as const, issued: "2026-07-27" },
+      { id: "f2", type: "invoice" as const, amount: 1000, currency: "EUR" as const, status: "sent" as const, issued: "2026-08-27" },
+      { id: "f3", type: "invoice" as const, amount: 900, currency: "EUR" as const, status: "cancelled" as const, issued: "2026-08-15" },
+      { id: "f4", type: "invoice" as const, amount: 5000, currency: "EUR" as const, status: "sent" as const, issued: "2027-06-01" }, // hors fenêtre
+    ];
+    const months = futureCommitments(finance, NOW2, 3, 3.38);
+    expect(months).toHaveLength(4); // juillet (mois courant) -> octobre inclus
+    expect(months[0].key).toBe("2026-07");
+    expect(months[0].amountTND).toBeCloseTo(1600 * 3.38);
+    expect(months[1].key).toBe("2026-08");
+    expect(months[1].amountTND).toBeCloseTo(1000 * 3.38); // f3 annulée exclue
+    expect(months[1].count).toBe(1);
+    expect(months.every((m) => m.key !== "2027-06")).toBe(true);
+  });
+
+  it("returns zero-amount months when nothing is committed", () => {
+    const months = futureCommitments([], NOW2, 2);
+    expect(months).toHaveLength(3);
+    expect(months.every((m) => m.amountTND === 0 && m.count === 0)).toBe(true);
+  });
 });
 
 describe("identitySplit / clientSplit / funnelCounts / sumsByCurrency", () => {
@@ -287,6 +339,16 @@ describe("identitySplit / clientSplit / funnelCounts / sumsByCurrency", () => {
       { id: "f2", type: "invoice" as const, amount: 900, currency: "TND" as const, status: "paid" as const, client: "c2" },
     ];
     expect(clientSplit(finance)).toEqual([["c2", 900], ["c1", 100]]);
+  });
+
+  it("excludes cancelled invoices from identitySplit and clientSplit (replaced-invoice case)", () => {
+    const finance = [
+      { id: "f1", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, client: "c1", project: "p1" },
+      { id: "f2", type: "invoice" as const, amount: 1600, currency: "TND" as const, status: "cancelled" as const, client: "c1", project: "p1", replaced_by: "f1" },
+    ];
+    const projects = [{ id: "p1", name: "P1", type: "project" as const, status: "active" as const, identity: ["fmrxr-studio"] }];
+    expect(Object.fromEntries(identitySplit(finance, projects))["fmrxr-studio"]).toBe(1000);
+    expect(clientSplit(finance)).toEqual([["c1", 1000]]);
   });
 
   it("counts opportunities per funnel stage", () => {
@@ -366,6 +428,14 @@ describe("runRateProjection", () => {
     expect(r.monthsRemaining).toBe(5);
     expect(r.avgMonthly).toBeCloseTo(1000);
     expect(r.projectedYearEnd).toBeCloseTo(7000 + 1000 * 5);
+  });
+
+  it("excludes cancelled invoices from ytdBilled (replaced-invoice case)", () => {
+    const finance = [
+      { id: "f1", type: "invoice" as const, amount: 7000, currency: "TND" as const, status: "paid" as const, issued: "2026-03-01" },
+      { id: "f2", type: "invoice" as const, amount: 1600, currency: "TND" as const, status: "cancelled" as const, issued: "2026-07-18", replaced_by: "f1" },
+    ];
+    expect(runRateProjection(finance, NOW).ytdBilled).toBe(7000);
   });
 
   it("ignores invoices from other years", () => {
@@ -468,6 +538,16 @@ describe("financeOverview", () => {
     expect(o.yearInvoiceCount).toBe(2);
   });
 
+  it("excludes cancelled invoices from yearInvoiceTND/Count (replaced-invoice case)", () => {
+    const withCancelled = [
+      ...finance,
+      { id: "f5", type: "invoice" as const, amount: 1600, currency: "TND" as const, status: "cancelled" as const, issued: "2026-07-18", replaced_by: "f2" },
+    ];
+    const o = financeOverview(withCancelled, expenses, NOW, 3.38, 75_000);
+    expect(o.yearInvoiceTND).toBeCloseTo(1000 + 500); // f5 annulée n'est pas comptée malgré son montant
+    expect(o.yearInvoiceCount).toBe(2);
+  });
+
   it("computes the auto-entrepreneur ceiling percentage", () => {
     const o = financeOverview(finance, [], NOW, 3.38, 1500);
     expect(o.plafondPct).toBeCloseTo(((1000 + 500) / 1500) * 100);
@@ -478,6 +558,33 @@ describe("financeOverview", () => {
     expect(o.expenseTND).toBe(200); // only e1 is in 2026
     expect(o.recurringExpenseTND).toBe(200);
     expect(o.netTND).toBeCloseTo(o.cashInTND - 200);
+  });
+});
+
+describe("clientOverview", () => {
+  const finance = [
+    { id: "f1", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, client: "c1" },
+    { id: "f2", type: "invoice" as const, amount: 500, currency: "TND" as const, advance: 200, status: "partial" as const, client: "c1" },
+    { id: "f3", type: "invoice" as const, amount: 900, currency: "TND" as const, status: "cancelled" as const, client: "c1", replaced_by: "f1" },
+    { id: "f4", type: "invoice" as const, amount: 100, currency: "TND" as const, status: "paid" as const, client: "other" },
+  ];
+  const quotes = [
+    { id: "q1", type: "quote" as const, amount: 300, currency: "TND" as const, status: "sent" as const, client: "c1" },
+    { id: "q2", type: "quote" as const, amount: 50, currency: "TND" as const, status: "sent" as const, client: "other" },
+  ];
+
+  it("sums facturé/encaissé/en attente for one client, excluding other clients and cancelled invoices", () => {
+    const o = clientOverview("c1", finance, quotes);
+    expect(o.factureTND).toBe(1500); // f1 + f2, f3 annulée exclue, f4 autre client exclue
+    expect(o.encaisseTND).toBe(1000 + 200); // f1 payée + avance de f2
+    expect(o.enAttenteTND).toBe(300); // reste de f2 (500-200)
+    expect(o.invoiceCount).toBe(2);
+    expect(o.quoteCount).toBe(1);
+  });
+
+  it("returns zeroes for a client with no finance data", () => {
+    const o = clientOverview("nobody", finance, quotes);
+    expect(o).toEqual({ factureTND: 0, encaisseTND: 0, enAttenteTND: 0, invoiceCount: 0, quoteCount: 0 });
   });
 });
 
@@ -729,6 +836,66 @@ describe("graphEntities / graphEdges / graphNodeDegrees", () => {
     // morninglory-paris : vz-calypso, f1, q1, momo (direct) + sofien, fmrxr-studio (dérivé) = 6
     expect(deg["morninglory-paris"]).toBe(6);
     expect(deg["t1"]).toBeUndefined(); // aucun lien vers l'outil isolé
+  });
+
+  it("tags each edge with a human-readable relation kind (F4)", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const kindOf = (a: string, b: string) => edges.find((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a))?.kind;
+    expect(kindOf("vz-calypso", "morninglory-paris")).toBe("client");
+    expect(kindOf("f1", "morninglory-paris")).toBe("facturé à");
+    expect(kindOf("q1", "morninglory-paris")).toBe("devis pour");
+    expect(kindOf("momo", "morninglory-paris")).toBe("membre de");
+    // relation issue du graphe porte son propre libellé (`rel`), pas un générique.
+    expect(kindOf("vz-calypso", "momo")).toBe("collaborator");
+  });
+});
+
+describe("graphAnalytics", () => {
+  const source = {
+    identities: [{ id: "fmrxr-studio", name: "FMRXR Studio", type: "identity" as const }],
+    projects: [
+      { id: "vz-calypso", name: "VZ × Calypso", type: "project" as const, status: "active" as const, identity: ["fmrxr-studio"], client: "morninglory-paris" },
+      { id: "no-invoice-proj", name: "Projet sans facture", type: "project" as const, status: "active" as const, client: "morninglory-paris" },
+      { id: "archived-proj", name: "Vieux projet archivé", type: "project" as const, status: "archived" as const },
+    ],
+    people: [] as never[],
+    clients: [{ id: "morninglory-paris", name: "Morninglory Paris", type: "client" as const }],
+    finance: [{ id: "f1", ref: "INV-1", type: "invoice" as const, client: "morninglory-paris", project: "vz-calypso", amount: 100, currency: "EUR" as const, status: "sent" as const }],
+    quotes: [] as never[],
+    assets: [] as never[],
+    tools: [{ id: "t1", name: "Tool 1 — isolé" }],
+    relations: [] as never[],
+  };
+
+  it("counts active entities with no edge at all", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const stats = graphAnalytics(source, entities, edges);
+    // isolé : t1 (aucun lien) — no-invoice-proj et archived-proj ont un lien client/identité ou aucun ? archived-proj n'a ni client ni identity → isolé aussi.
+    expect(stats.isolatedCount).toBe(2); // t1, archived-proj
+  });
+
+  it("finds the entity with the highest degree", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const stats = graphAnalytics(source, entities, edges);
+    expect(stats.busiest?.id).toBe("morninglory-paris");
+  });
+
+  it("counts active projects with no linked invoice or quote", () => {
+    const entities = graphEntities(source);
+    const edges = graphEdges(source, entities);
+    const stats = graphAnalytics(source, entities, edges);
+    // vz-calypso a une facture ; no-invoice-proj n'en a pas ; archived-proj est archivé, ignoré.
+    expect(stats.projectsWithoutInvoice).toBe(1);
+  });
+
+  it("excludes ghost entities from isolation/busiest stats", () => {
+    const entities: GraphEntity[] = [...graphEntities(source), { id: "ghost-1", name: "Fantôme isolé", type: "asset", state: "ghost" }];
+    const edges = graphEdges(source, entities);
+    const stats = graphAnalytics(source, entities, edges);
+    expect(stats.isolatedCount).toBe(2); // ghost-1 n'est pas compté malgré son absence de lien
   });
 });
 

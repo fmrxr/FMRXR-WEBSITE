@@ -88,7 +88,7 @@ export interface OsClient {
   notes?: string;
 }
 
-export type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "late" | "disputed";
+export type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "late" | "disputed" | "cancelled";
 
 export interface OsInvoice {
   id: string;
@@ -106,6 +106,8 @@ export interface OsInvoice {
   issued?: string;
   paid_date?: string;
   notes?: string;
+  /** id de la facture qui la remplace (status "cancelled") — exclue automatiquement de tous les calculs. */
+  replaced_by?: string;
 }
 
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
