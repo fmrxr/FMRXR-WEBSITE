@@ -67,14 +67,28 @@ La liste gauche trie par pulse (hot → warm → cold), puis par proximité de d
 
 Recherche sur [docs.plane.so](https://docs.plane.so/core-concepts/cycles) pour identifier d'autres mécaniques Plane transposables :
 
-- **Cycles → Sprint actuel.** Plane time-boxe le travail en cycles (dates début/fin, % complétion, jours restants, burndown). Haïfa a déjà cet objet dans son graphe (`graph.sprints`, tracking Scrum Master S28→S32) mais **aucune page native ne l'affiche** — jusqu'ici seul le fichier JSON le porte. Ajout : une **bande "Sprint actuel"** en haut de `/os/work` (sous le bandeau timeline) montrant le sprint dont `status === "active"` (ou le plus récent non clôturé) : objectif (`goal`), vélocité (`velocity`, ex. "4/9"), jours restants (`daysUntil(sprint.end)`), lien vers les tâches du sprint (`sprint.tasks`). Pas de burndown chart (complexité disproportionnée pour un seul utilisateur) — juste une barre de progression + le texte de `notes`/`notes_cloture` en tooltip.
+- **Cycles → Sprint actuel.** Plane time-boxe le travail en cycles (dates début/fin, % complétion, jours restants, burndown). Haïfa a déjà cet objet dans son graphe (`graph.sprints`, tracking Scrum Master S28→S32) mais **aucune page native ne l'affiche** — jusqu'ici seul le fichier JSON le porte. Ajout : une **bande "Sprint actuel"** en haut de `/os/work` (sous le bandeau timeline) montrant le sprint dont `status === "active"` (ou le plus récent non clôturé) : objectif (`goal`), vélocité (`velocity`, ex. "4/9"), jours restants (`daysUntil(sprint.end)`), lien vers les tâches du sprint (`sprint.tasks`), **+ burndown** (voir ci-dessous).
 - **Raccourci clavier de création rapide.** Plane ouvre un formulaire de création en appuyant sur `Q` n'importe où dans un projet. Ajout léger : `n` (ou `t`) ouvre `NewTaskForm` en focus depuis n'importe où sur `/os/work`, sans clic — cohérent avec le geste "je note vite une tâche pendant que je bosse sur autre chose".
 - **Priorité visible en badge.** Le champ `priority` (déjà dans `OsProject`, actuellement seulement lu pour choisir LE projet "critical" du Gantt) devient un badge coloré sur chaque ligne/carte (critical=rouge, high=orange, medium/low=neutre) — cohérent avec le scoring pulse qui l'utilise déjà en entrée.
 
 **Explicitement laissé de côté** (over-engineering pour un usage solo) :
-- **Modules** (sous-découpage d'un projet en chunks) — pas de besoin identifié, ses projets ne sont pas assez volumineux pour ça.
+- **Modules** (sous-découpage d'un projet en chunks) — remplacé par le concept Epic ci-dessous, plus léger.
 - **Vues sauvegardées / Spreadsheet / Board multiples** — un seul layout (celui de ce spec) suffit à l'usage réel.
-- **Burndown/build-up charts**, **Epics**, **Intake**, **Dashboards workspace**, **fonctionnalités IA de Plane** — pensés pour des équipes multi-personnes, hors du périmètre solo-operator de Haïfa.
+- **Build-up chart**, **Intake**, **Dashboards workspace**, **fonctionnalités IA de Plane** — pensés pour des équipes multi-personnes, hors du périmètre solo-operator de Haïfa.
+
+#### Burndown réel (décidé : historique à partir de maintenant, pas de reconstruction rétroactive)
+
+`OsTask` gagne un champ optionnel `completedAt?: string` (ISO). `toggleTask` (dans la nouvelle page `/os/work`, remplace la version actuelle de `app/os/taches/page.tsx`) fixe `completedAt = new Date().toISOString()` quand une tâche passe à `done`, l'efface si elle est réouverte. Aucune reconstruction pour les tâches déjà cochées avant ce déploiement — leur `completedAt` reste `undefined`, elles comptent dans le "restant à faire" du jour 0 du burndown mais n'apparaissent pas comme un point de progression daté.
+
+Nouvelle fonction `burndownSeries(sprint, tasks, now)` dans `compute.ts` : pour chaque jour entre `sprint.start` et `min(now, sprint.end)`, calcule `remaining = tasksInSprint.filter(t => !t.completedAt || t.completedAt > jour).length`. Ligne idéale = décroissance linéaire de `sprint.tasks.length` à 0 entre `start` et `end`. Rendu en petit SVG polyline (2 `<polyline>`, pas de librairie de charts — cohérent avec `MiniGantt` qui est déjà 100 % divs/CSS sans dépendance) dans `SprintBanner.tsx`. Sous le seuil d'un seul jour de données (sprint qui vient de démarrer), afficher juste le point du jour au lieu d'une ligne.
+
+#### Epics (sous-thème à l'intérieur d'un projet)
+
+Version légère, pas d'entité formelle séparée avec CRUD dédié : `OsTask` (et `OsDeadline`) gagnent un champ optionnel **`epic?: string`** — un libellé libre, pas un id référencé (ex. `"Phase Socle"`, `"4 phases visuelles"`). Champ ajouté au formulaire `NewTaskForm` existant (input texte avec autocomplete sur les valeurs déjà utilisées dans le projet courant, pour éviter les doublons "Phase socle" vs "phase Socle").
+
+Dans une carte épinglée (`PinnedProjectCard.tsx`), si des tâches du projet ont un `epic` renseigné, les tâches sont groupées par epic (sous-en-têtes repliables) au lieu d'une liste plate ; les tâches sans epic restent dans une section "Général". Dans le bandeau timeline multi-projets, les jalons avec `epic` affichent le nom de l'epic en sous-texte au survol.
+
+Pas de progression/dates propres à l'epic dans cette itération (pas de `OsEpic` avec son propre `start`/`end`) — si le besoin apparaît (ex. vouloir une deadline "Phase Socle" indépendante des tâches qui la composent), upgrade vers une entité formelle en itération suivante.
 
 ### Hors scope (explicitement exclu de cette itération)
 
