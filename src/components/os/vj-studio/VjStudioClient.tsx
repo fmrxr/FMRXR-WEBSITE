@@ -55,10 +55,26 @@ interface VjProjectSummary {
   render_count: number;
 }
 
+interface VjActiveJob {
+  job_id: string;
+  project_id: string | null;
+  project_name: string | null;
+  prompt_id: string | null;
+  prompt_cat: string | null;
+  prompt_num: number | null;
+  frames_done: number | null;
+  frames_total: number;
+  percent: number;
+  eta_seconds: number | null;
+  fps: number;
+}
+
 interface VjStatus {
   online: boolean;
   project_count: number;
   jobs_running: number;
+  jobs_queued: number;
+  active: VjActiveJob | null;
 }
 
 async function fetchJson<T>(url: string, opts?: RequestInit): Promise<T | null> {
@@ -90,23 +106,36 @@ function formatEta(seconds: number): string {
   return `${h}h${String(m % 60).padStart(2, "0")}`;
 }
 
-// ─── Live progress bar for a render actively GENERATING — frame count comes
-// from Deforum's own phase_progress (0-1 fraction of max_frames), server-side
-// computed into frames_done/frames_total/eta_seconds in render-status.
-function RenderProgress({ r }: { r: VjRender }) {
-  if (r.status !== "ACCEPTED" || r.phase !== "GENERATING" || !r.frames_total) return null;
-  const pct = Math.round((r.phase_progress ?? 0) * 100);
+// ─── Live progress bar — frame count comes straight from Deforum's own
+// phase_progress (0-1 fraction of max_frames). Shared by the per-prompt
+// render list and the always-visible status card (see VjLocalInterfaceCard).
+function ProgressBar({
+  framesDone,
+  framesTotal,
+  percent,
+  etaSeconds,
+}: {
+  framesDone: number | null;
+  framesTotal: number;
+  percent: number;
+  etaSeconds: number | null;
+}) {
   return (
     <div className="mt-1.5 flex items-center gap-2">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-fmmutedbg">
-        <div className="h-full rounded-full bg-fmaccent transition-[width] duration-500" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-fmaccent transition-[width] duration-500" style={{ width: `${Math.round(percent)}%` }} />
       </div>
       <span className="whitespace-nowrap font-grotesk text-[10px] text-fmmuted">
-        {r.frames_done ?? 0}/{r.frames_total} frames · {pct}%
-        {typeof r.eta_seconds === "number" && r.eta_seconds > 0 ? ` · reste ~${formatEta(r.eta_seconds)}` : ""}
+        {framesDone ?? 0}/{framesTotal} frames · {Math.round(percent)}%
+        {typeof etaSeconds === "number" && etaSeconds > 0 ? ` · reste ~${formatEta(etaSeconds)}` : ""}
       </span>
     </div>
   );
+}
+
+function RenderProgress({ r }: { r: VjRender }) {
+  if (r.status !== "ACCEPTED" || r.phase !== "GENERATING" || !r.frames_total) return null;
+  return <ProgressBar framesDone={r.frames_done ?? null} framesTotal={r.frames_total} percent={(r.phase_progress ?? 0) * 100} etaSeconds={r.eta_seconds ?? null} />;
 }
 
 // ─── Local interface status/launch card — same pattern as CfLocalInterfaceCard,
@@ -115,8 +144,18 @@ function VjLocalInterfaceCard({ onOnline }: { onOnline: (online: boolean) => voi
   const [status, setStatus] = useState<VjStatus | null | "loading">("loading");
   const [launchState, setLaunchState] = useState<"idle" | "launching" | "launched" | string>("idle");
 
+  // Manual refresh (button) - shows the "loading" flash so the click feels responsive.
   const refresh = useCallback(() => {
     setStatus("loading");
+    fetchJson<VjStatus>(`${VJ_URL}/api/vj/status`).then((s) => {
+      setStatus(s);
+      onOnline(!!s?.online);
+    });
+  }, [onOnline]);
+
+  // Silent background poll (mount + every 5s while online) - same request, no
+  // "loading" flash, so the live frame/ETA numbers just update in place.
+  const poll = useCallback(() => {
     fetchJson<VjStatus>(`${VJ_URL}/api/vj/status`).then((s) => {
       setStatus(s);
       onOnline(!!s?.online);
@@ -130,10 +169,12 @@ function VjLocalInterfaceCard({ onOnline }: { onOnline: (online: boolean) => voi
       setStatus(s);
       onOnline(!!s?.online);
     });
+    const interval = setInterval(poll, 5000);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only fetch, `refresh` (used by the button) intentionally not a dep here
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only setup; `poll` is stable enough (only depends on onOnline)
   }, []);
 
   async function launch() {
@@ -182,9 +223,33 @@ function VjLocalInterfaceCard({ onOnline }: { onOnline: (online: boolean) => voi
         ) : (
           <span className="text-fmaccent">
             ● En ligne — {status.project_count} projet(s) archivé(s), {status.jobs_running} rendu(s) en cours
+            {status.jobs_queued > 0 ? `, ${status.jobs_queued} en attente` : ""}
           </span>
         )}
       </div>
+
+      {online && status.active && (
+        <div className="mt-3 rounded-lg border border-fmborder p-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <span className="font-grotesk text-[11px] text-fmfg">
+              ⟳ {status.active.project_name || "projet inconnu"}
+              {status.active.prompt_cat && (
+                <span className="text-fmmuted">
+                  {" "}
+                  — #{String(status.active.prompt_num).padStart(2, "0")} {status.active.prompt_cat}
+                </span>
+              )}
+            </span>
+          </div>
+          <ProgressBar
+            framesDone={status.active.frames_done}
+            framesTotal={status.active.frames_total}
+            percent={status.active.percent}
+            etaSeconds={status.active.eta_seconds}
+          />
+        </div>
+      )}
+
       <p className="mt-2 font-grotesk text-[10.5px] text-fmmuted">
         Génère des boucles VJ (Stable Diffusion + Deforum) synchronisées au BPM — accessible uniquement depuis ce poste (GPU local).
       </p>
