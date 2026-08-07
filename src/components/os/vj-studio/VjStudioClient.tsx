@@ -75,11 +75,13 @@ interface VjStatus {
   jobs_running: number;
   jobs_queued: number;
   active: VjActiveJob | null;
+  remote?: boolean;
+  updated_at?: string;
 }
 
-async function fetchJson<T>(url: string, opts?: RequestInit): Promise<T | null> {
+async function fetchJson<T>(url: string, opts?: RequestInit, timeoutMs = 8000): Promise<T | null> {
   try {
-    const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8000), ...opts });
+    const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(timeoutMs), ...opts });
     if (!r.ok) return null;
     return (await r.json()) as T;
   } catch {
@@ -138,38 +140,55 @@ function RenderProgress({ r }: { r: VjRender }) {
   return <ProgressBar framesDone={r.frames_done ?? null} framesTotal={r.frames_total} percent={(r.phase_progress ?? 0) * 100} etaSeconds={r.eta_seconds ?? null} />;
 }
 
+function timeAgo(iso: string): string {
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `${s}s`;
+  return `${Math.round(s / 60)}min`;
+}
+
 // ─── Local interface status/launch card — same pattern as CfLocalInterfaceCard,
 // same local server (port 5099) and launch route, just VJ-specific status shape.
+//
+// Two independent signals here, don't conflate them:
+// - `online` (drives onOnline -> archive/new-project UI): true ONLY when the
+//   LOCAL engine answered directly. Those features call 127.0.0.1:5099
+//   endpoints straight from the browser, so they only work from that machine
+//   regardless of what a remote snapshot says.
+// - `remoteStatus`: a read-only fallback snapshot from Supabase (pushed by
+//   the local server every 10-60s) for when the browser isn't on the render
+//   machine - shows what's running, but nothing here is actionable.
 function VjLocalInterfaceCard({ onOnline }: { onOnline: (online: boolean) => void }) {
-  const [status, setStatus] = useState<VjStatus | null | "loading">("loading");
+  const [localStatus, setLocalStatus] = useState<VjStatus | null | "loading">("loading");
+  const [remoteStatus, setRemoteStatus] = useState<VjStatus | null>(null);
   const [launchState, setLaunchState] = useState<"idle" | "launching" | "launched" | string>("idle");
 
-  // Manual refresh (button) - shows the "loading" flash so the click feels responsive.
-  const refresh = useCallback(() => {
-    setStatus("loading");
-    fetchJson<VjStatus>(`${VJ_URL}/api/vj/status`).then((s) => {
-      setStatus(s);
-      onOnline(!!s?.online);
-    });
-  }, [onOnline]);
-
-  // Silent background poll (mount + every 5s while online) - same request, no
-  // "loading" flash, so the live frame/ETA numbers just update in place.
-  const poll = useCallback(() => {
-    fetchJson<VjStatus>(`${VJ_URL}/api/vj/status`).then((s) => {
-      setStatus(s);
-      onOnline(!!s?.online);
-    });
-  }, [onOnline]);
+  const poll = useCallback(
+    async (showLoading: boolean) => {
+      if (showLoading) setLocalStatus("loading");
+      const local = await fetchJson<VjStatus>(`${VJ_URL}/api/vj/status`, undefined, 1500);
+      setLocalStatus(local);
+      onOnline(!!local);
+      if (!local) {
+        const remote = await fetchJson<VjStatus>("/api/os/vj/status");
+        setRemoteStatus(remote);
+      }
+    },
+    [onOnline],
+  );
 
   useEffect(() => {
     let cancelled = false;
-    fetchJson<VjStatus>(`${VJ_URL}/api/vj/status`).then((s) => {
+    (async () => {
+      const local = await fetchJson<VjStatus>(`${VJ_URL}/api/vj/status`, undefined, 1500);
       if (cancelled) return;
-      setStatus(s);
-      onOnline(!!s?.online);
-    });
-    const interval = setInterval(poll, 5000);
+      setLocalStatus(local);
+      onOnline(!!local);
+      if (!local) {
+        const remote = await fetchJson<VjStatus>("/api/os/vj/status");
+        if (!cancelled) setRemoteStatus(remote);
+      }
+    })();
+    const interval = setInterval(() => poll(false), 5000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -187,13 +206,14 @@ function VjLocalInterfaceCard({ onOnline }: { onOnline: (online: boolean) => voi
         return;
       }
       setLaunchState("launched");
-      setTimeout(refresh, 4000);
+      setTimeout(() => poll(true), 4000);
     } catch (e) {
       setLaunchState((e as Error).message);
     }
   }
 
-  const online = status !== "loading" && status !== null;
+  const online = localStatus !== "loading" && localStatus !== null;
+  const displayed = online ? (localStatus as VjStatus) : remoteStatus;
 
   return (
     <div className="fm-glass-card rounded-2xl p-4">
@@ -210,42 +230,46 @@ function VjLocalInterfaceCard({ onOnline }: { onOnline: (online: boolean) => voi
               {launchState === "launching" ? "Lancement…" : "▶ Lancer (Content Factory)"}
             </button>
           )}
-          <button type="button" onClick={refresh} className="rounded-lg border border-fmborder px-3 py-1.5 font-grotesk text-xs text-fmmuted hover:border-fmaccent/40">
+          <button type="button" onClick={() => poll(true)} className="rounded-lg border border-fmborder px-3 py-1.5 font-grotesk text-xs text-fmmuted hover:border-fmaccent/40">
             ↺ Rafraîchir
           </button>
         </div>
       </div>
       <div className="mt-2.5 font-grotesk text-xs">
-        {status === "loading" ? (
+        {localStatus === "loading" && !remoteStatus ? (
           <span className="text-fmmuted">Vérification…</span>
-        ) : !online ? (
-          <span className="text-[#ff4d5e]">⚫ Hors ligne — lance CONTENT_FACTORY/launch.bat sur ce poste (même serveur que Content Factory)</span>
-        ) : (
+        ) : online ? (
           <span className="text-fmaccent">
-            ● En ligne — {status.project_count} projet(s) archivé(s), {status.jobs_running} rendu(s) en cours
-            {status.jobs_queued > 0 ? `, ${status.jobs_queued} en attente` : ""}
+            ● En ligne — {displayed!.project_count} projet(s) archivé(s), {displayed!.jobs_running} rendu(s) en cours
+            {displayed!.jobs_queued > 0 ? `, ${displayed!.jobs_queued} en attente` : ""}
           </span>
+        ) : remoteStatus ? (
+          <span className="text-[#d9a441]">
+            ◐ À distance — pas sur le poste GPU, aperçu Supabase{remoteStatus.updated_at ? ` (mis à jour il y a ${timeAgo(remoteStatus.updated_at)})` : ""}. Archive et nouveau projet indisponibles d’ici.
+          </span>
+        ) : (
+          <span className="text-[#ff4d5e]">⚫ Hors ligne — lance CONTENT_FACTORY/launch.bat sur ce poste (même serveur que Content Factory)</span>
         )}
       </div>
 
-      {online && status.active && (
+      {displayed?.active && (
         <div className="mt-3 rounded-lg border border-fmborder p-2.5">
           <div className="flex flex-wrap items-center justify-between gap-1.5">
             <span className="font-grotesk text-[11px] text-fmfg">
-              ⟳ {status.active.project_name || "projet inconnu"}
-              {status.active.prompt_cat && (
+              ⟳ {displayed.active.project_name || "projet inconnu"}
+              {displayed.active.prompt_cat && (
                 <span className="text-fmmuted">
                   {" "}
-                  — #{String(status.active.prompt_num).padStart(2, "0")} {status.active.prompt_cat}
+                  — #{String(displayed.active.prompt_num).padStart(2, "0")} {displayed.active.prompt_cat}
                 </span>
               )}
             </span>
           </div>
           <ProgressBar
-            framesDone={status.active.frames_done}
-            framesTotal={status.active.frames_total}
-            percent={status.active.percent}
-            etaSeconds={status.active.eta_seconds}
+            framesDone={displayed.active.frames_done}
+            framesTotal={displayed.active.frames_total}
+            percent={displayed.active.percent}
+            etaSeconds={displayed.active.eta_seconds}
           />
         </div>
       )}
