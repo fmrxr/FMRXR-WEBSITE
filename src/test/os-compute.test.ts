@@ -7,6 +7,7 @@ import {
   clientConcentration, runRateProjection, pipelineWinRate, monthlyAnomaly,
   isOpportunityExpired, bdmSummary, financeOverview,
   libraryTriage, libraryMatches, libraryByCategory, libraryCategoryCounts, graphEntityCount,
+  countableInvoices, revenueInvoices, monthElapsedFraction,
   assetKindLabel, assetMatches, assetKindGroups, assetKindCounts, assetClientLabel, assetClientGroups,
   cfStageLabel, cfAdjacentStage, cfSummary,
   graphEntities, graphEdges, graphNodeDegrees, loadHistoricalEntities, graphEntitiesWithHistory, loadHistoricalEdges,
@@ -159,16 +160,33 @@ describe("curQuarter / okrKrValue / okrKrProgress / okrObjectiveProgress", () =>
     expect(okrKrValue(kr, { finance: [] }, NOW)).toBe(3);
   });
 
-  it("sums current-quarter invoices in TND when kr.auto is ca_quarter", () => {
+  it("sums current-quarter invoices already issued, at the graph rate", () => {
     const graph = {
+      meta: { eur_tnd: 3.38 },
       finance: [
-        { id: "f1", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, issued: "2026-08-01" },
-        { id: "f2", type: "invoice" as const, amount: 100, currency: "EUR" as const, status: "paid" as const, issued: "2026-09-15" },
+        { id: "f1", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, issued: "2026-07-01" },
+        { id: "f2", type: "invoice" as const, amount: 100, currency: "EUR" as const, status: "sent" as const, issued: "2026-07-10" },
         { id: "f3", type: "invoice" as const, amount: 5000, currency: "TND" as const, status: "paid" as const, issued: "2026-04-01" },
       ],
     };
     const kr = { id: "k1", label: "CA", target: 1000, value: 0, unit: "TND", auto: "ca_quarter" };
-    expect(okrKrValue(kr, graph, NOW)).toBeCloseTo(1000 + 100 * 3.4);
+    // Taux du graphe (3,38) et non le taux par défaut de compute.ts.
+    expect(okrKrValue(kr, graph, NOW)).toBeCloseTo(1000 + 100 * 3.38);
+  });
+
+  it("excludes drafts, cancelled, replaced and not-yet-issued invoices from ca_quarter", () => {
+    const graph = {
+      finance: [
+        { id: "ok", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, issued: "2026-07-01" },
+        { id: "draft", type: "invoice" as const, amount: 9000, currency: "TND" as const, status: "draft" as const, issued: "2026-07-02" },
+        { id: "cancelled", type: "invoice" as const, amount: 9000, currency: "TND" as const, status: "cancelled" as const, issued: "2026-07-03" },
+        { id: "replaced", type: "invoice" as const, amount: 9000, currency: "TND" as const, status: "sent" as const, issued: "2026-07-04", replaced_by: "ok" },
+        // Série préparée à l'avance : émise en septembre, donc pas du CA au 22 juillet.
+        { id: "future", type: "invoice" as const, amount: 9000, currency: "TND" as const, status: "sent" as const, issued: "2026-09-15" },
+      ],
+    };
+    const kr = { id: "k1", label: "CA", target: 1000, value: 0, unit: "TND", auto: "ca_quarter" };
+    expect(okrKrValue(kr, graph, NOW)).toBe(1000);
   });
 
   it("caps progress at 100%", () => {
@@ -420,14 +438,34 @@ describe("clientConcentration", () => {
 });
 
 describe("runRateProjection", () => {
-  it("projects year-end from YTD run-rate", () => {
-    // NOW = 2026-07-22 -> 7 months elapsed, 5 remaining
+  it("counts the running month for its elapsed share only", () => {
+    // NOW = 2026-07-22 : 6 mois pleins + 21/31 de juillet, soit 6,677 mois écoulés.
     const finance = [{ id: "f1", type: "invoice" as const, amount: 7000, currency: "TND" as const, status: "paid" as const, issued: "2026-03-01" }];
     const r = runRateProjection(finance, NOW);
     expect(r.ytdBilled).toBe(7000);
-    expect(r.monthsRemaining).toBe(5);
-    expect(r.avgMonthly).toBeCloseTo(1000);
-    expect(r.projectedYearEnd).toBeCloseTo(7000 + 1000 * 5);
+    // Entre 6,5 et 7 mois écoulés selon l'heure locale, jamais 7 pleins.
+    expect(r.monthsRemaining).toBeGreaterThan(5);
+    expect(r.monthsRemaining).toBeLessThan(5.5);
+    // Compter juillet comme un mois plein sous-estimait la moyenne mensuelle.
+    expect(r.avgMonthly).toBeGreaterThan(7000 / 7);
+    expect(r.avgMonthly).toBeLessThan(7000 / 6.5);
+    expect(r.projectedYearEnd).toBeCloseTo(r.ytdBilled + r.avgMonthly * r.monthsRemaining, 6);
+  });
+
+  it("excludes invoices dated in the future from ytdBilled", () => {
+    const finance = [
+      { id: "f1", type: "invoice" as const, amount: 7000, currency: "TND" as const, status: "paid" as const, issued: "2026-03-01" },
+      { id: "f2", type: "invoice" as const, amount: 2000, currency: "TND" as const, status: "sent" as const, issued: "2026-12-27" },
+    ];
+    expect(runRateProjection(finance, NOW).ytdBilled).toBe(7000);
+  });
+
+  it("excludes drafts from ytdBilled", () => {
+    const finance = [
+      { id: "f1", type: "invoice" as const, amount: 7000, currency: "TND" as const, status: "paid" as const, issued: "2026-03-01" },
+      { id: "f2", type: "invoice" as const, amount: 5000, currency: "TND" as const, status: "draft" as const, issued: "2026-03-02" },
+    ];
+    expect(runRateProjection(finance, NOW).ytdBilled).toBe(7000);
   });
 
   it("excludes cancelled invoices from ytdBilled (replaced-invoice case)", () => {
@@ -475,10 +513,24 @@ describe("monthlyAnomaly", () => {
       { key: "3", label: "c", paid: 0, billed: 1000 },
       { key: "4", label: "current", paid: 0, billed: 3000 },
     ];
-    const a = monthlyAnomaly(series, 40);
+    // Mois complet (31 juillet) : aucune normalisation, on compare 3000 à 1000.
+    const a = monthlyAnomaly(series, 40, new Date(2026, 6, 31, 23));
     expect(a.isAnomaly).toBe(true);
     expect(a.direction).toBe("above");
-    expect(a.deviationPct).toBeCloseTo(200);
+    expect(a.deviationPct).toBeCloseTo(200, 0);
+  });
+
+  it("normalises a partial month before comparing it to full months", () => {
+    const series = [
+      { key: "1", label: "a", paid: 0, billed: 1000 },
+      { key: "2", label: "b", paid: 0, billed: 1000 },
+      { key: "3", label: "current", paid: 0, billed: 300 },
+    ];
+    // Au 4 juillet, 300 TND en trois jours correspond au rythme d'un mois à 3 100 TND :
+    // c'est une anomalie vers le haut, pas le « −70 % » que donnait la comparaison brute.
+    const a = monthlyAnomaly(series, 40, new Date(2026, 6, 4, 12));
+    expect(a.direction).toBe("above");
+    expect(a.isAnomaly).toBe(true);
   });
 
   it("does not flag a month within the threshold", () => {
@@ -487,7 +539,7 @@ describe("monthlyAnomaly", () => {
       { key: "2", label: "b", paid: 0, billed: 1000 },
       { key: "3", label: "current", paid: 0, billed: 1100 },
     ];
-    expect(monthlyAnomaly(series, 40).isAnomaly).toBe(false);
+    expect(monthlyAnomaly(series, 40, new Date(2026, 6, 31, 23)).isAnomaly).toBe(false);
   });
 });
 
@@ -1017,5 +1069,115 @@ describe("serializeGraphForAsk", () => {
     expect(text).toContain("event 9");
     expect(text).toContain("event 7");
     expect(text).not.toContain("event 6");
+  });
+});
+
+describe("factures comptables", () => {
+  const finance = [
+    { id: "ok", type: "invoice" as const, amount: 100, currency: "TND" as const, status: "sent" as const, issued: "2026-07-01", client: "c1" },
+    { id: "draft", type: "invoice" as const, amount: 100, currency: "TND" as const, status: "draft" as const, issued: "2026-07-01", client: "c1" },
+    { id: "cancelled", type: "invoice" as const, amount: 100, currency: "TND" as const, status: "cancelled" as const, issued: "2026-07-01", client: "c1" },
+    { id: "replaced", type: "invoice" as const, amount: 100, currency: "TND" as const, status: "sent" as const, issued: "2026-07-01", client: "c1", replaced_by: "ok" },
+  ];
+
+  it("countableInvoices écarte les annulées et les remplacées, garde les brouillons", () => {
+    expect(countableInvoices(finance).map((f) => f.id)).toEqual(["ok", "draft"]);
+  });
+
+  it("revenueInvoices écarte en plus les brouillons", () => {
+    expect(revenueInvoices(finance).map((f) => f.id)).toEqual(["ok"]);
+  });
+
+  it("clientSplit ne compte pas deux fois une facture remplacée", () => {
+    expect(clientSplit(finance)).toEqual([["c1", 100]]);
+  });
+
+  it("monthlySeries ne facture ni les brouillons ni les remplacées", () => {
+    const july = monthlySeries(finance, NOW).find((m) => m.key === "2026-07");
+    expect(july?.billed).toBe(100);
+  });
+});
+
+describe("kpiValue, corrections de calcul", () => {
+  const graph = {
+    meta: { eur_tnd: 3.38 },
+    finance: [
+      { id: "f1", type: "invoice" as const, amount: 100, currency: "EUR" as const, status: "sent" as const, issued: "2026-07-01" },
+      { id: "f2", type: "invoice" as const, amount: 500, currency: "TND" as const, status: "draft" as const, issued: "2026-07-02" },
+      { id: "f3", type: "invoice" as const, amount: 900, currency: "TND" as const, status: "sent" as const, issued: "2026-12-01" },
+    ],
+    deadlines: [],
+    tasks: [],
+  };
+
+  it("convertit au taux du graphe et non au taux par défaut", () => {
+    const k = { id: "kpi", name: "En attente", dir: "min" as const, auto: "pendingTND" };
+    expect(kpiValue(k, graph, NOW)).toBe(Math.round(100 * 3.38 + 900));
+  });
+
+  it("exclut brouillons et factures non encore émises du CA annuel", () => {
+    const k = { id: "kpi", name: "CA", dir: "max" as const, auto: "caTND" };
+    expect(kpiValue(k, graph, NOW)).toBe(Math.round(100 * 3.38));
+  });
+});
+
+describe("clientConcentration, fenêtre et seuil", () => {
+  it("ignore un client facturé hors de la fenêtre glissante", () => {
+    const finance = [
+      { id: "vieux", type: "invoice" as const, amount: 100000, currency: "TND" as const, status: "paid" as const, issued: "2023-01-01", client: "ancien" },
+      { id: "recent1", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, issued: "2026-06-01", client: "a" },
+      { id: "recent2", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, issued: "2026-07-01", client: "b" },
+    ];
+    const c = clientConcentration(finance, undefined, NOW);
+    expect(c.topClientId).not.toBe("ancien");
+    expect(c.total).toBe(2000);
+  });
+
+  it("ne crie pas au risque pour une répartition saine entre six clients", () => {
+    const finance = Array.from({ length: 6 }, (_, i) => ({
+      id: `f${i}`, type: "invoice" as const, amount: 1000, currency: "TND" as const,
+      status: "paid" as const, issued: "2026-07-01", client: `c${i}`,
+    }));
+    // Chaque client pèse 16,7 % : l'ancien seuil de 20 % ne se déclenchait pas non plus ici,
+    // mais top5 = 83 % déclenchait à tort avec l'ancien seuil de 50 %.
+    expect(clientConcentration(finance, undefined, NOW).risk).toBe("ok");
+  });
+
+  it("signale une vraie dépendance à un client", () => {
+    const finance = [
+      { id: "f1", type: "invoice" as const, amount: 8000, currency: "TND" as const, status: "paid" as const, issued: "2026-07-01", client: "gros" },
+      { id: "f2", type: "invoice" as const, amount: 1000, currency: "TND" as const, status: "paid" as const, issued: "2026-07-01", client: "petit" },
+    ];
+    expect(clientConcentration(finance, undefined, NOW).risk).toBe("high");
+  });
+});
+
+describe("pipelineWinRate, opportunités expirées", () => {
+  it("compte une deadline dépassée comme une occasion perdue", () => {
+    const opps = [
+      { id: "o1", name: "Gagnée", type: "grant" as const, status: "won" as const },
+      { id: "o2", name: "Périmée", type: "grant" as const, status: "lead" as const, deadline: "2026-01-01" },
+    ];
+    // Sans cette correction, le taux affichait 100 % : une seule opportunité « clôturée ».
+    expect(pipelineWinRate(opps, NOW).winRatePct).toBe(50);
+  });
+
+  it("ne compte pas deux fois une opportunité perdue et périmée", () => {
+    const opps = [
+      { id: "o1", name: "Gagnée", type: "grant" as const, status: "won" as const },
+      { id: "o2", name: "Perdue et périmée", type: "grant" as const, status: "lost" as const, deadline: "2026-01-01" },
+    ];
+    expect(pipelineWinRate(opps, NOW).lost).toBe(1);
+  });
+});
+
+describe("monthElapsedFraction", () => {
+  it("vaut 1 le dernier jour du mois et une petite fraction le premier", () => {
+    expect(monthElapsedFraction(new Date(2026, 6, 31, 23))).toBeCloseTo(1, 1);
+    expect(monthElapsedFraction(new Date(2026, 6, 1, 0))).toBeCloseTo(1 / 31, 3);
+  });
+
+  it("ne renvoie jamais 0, pour ne pas diviser par zéro le 1er du mois", () => {
+    expect(monthElapsedFraction(new Date(2026, 0, 1, 0))).toBeGreaterThan(0);
   });
 });

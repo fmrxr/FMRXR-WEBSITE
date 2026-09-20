@@ -6,6 +6,34 @@ import type { AssetKind, Currency, OsAsset, OsCfBatch, OsDeadline, OsExpense, Os
 
 const DEFAULT_EUR_TND = 3.4;
 const PENDING_STATUSES = new Set(["sent", "partial", "late", "disputed"]);
+/** Statuts qui ne représentent aucun chiffre d'affaires : un brouillon n'est pas facturé. */
+const NON_REVENUE_STATUSES = new Set(["draft", "cancelled"]);
+
+/**
+ * Factures qui comptent dans un total. Le type documente `replaced_by` comme « exclue
+ * automatiquement de tous les calculs » : cette fonction est l'endroit unique qui le garantit,
+ * sans quoi une facture remplacée est comptée deux fois avec celle qui la remplace.
+ */
+export function countableInvoices(finance: OsInvoice[] = []): OsInvoice[] {
+  return finance.filter((f) => !f.replaced_by && f.status !== "cancelled");
+}
+
+/** Factures qui constituent du chiffre d'affaires : ni annulées, ni remplacées, ni en brouillon. */
+export function revenueInvoices(finance: OsInvoice[] = []): OsInvoice[] {
+  return finance.filter((f) => !f.replaced_by && !NON_REVENUE_STATUSES.has(f.status));
+}
+
+/** Part du mois déjà écoulée, dans ]0,1]. Sert à comparer un mois en cours à des mois complets. */
+export function monthElapsedFraction(now: Date = new Date()): number {
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const elapsed = (now.getDate() - 1 + now.getHours() / 24) / daysInMonth;
+  return Math.min(1, Math.max(1 / daysInMonth, elapsed));
+}
+
+/** Mois écoulés depuis le 1er janvier, en valeur fractionnaire (20 septembre ≈ 8,63). */
+export function monthsElapsedInYear(now: Date = new Date()): number {
+  return now.getMonth() + monthElapsedFraction(now);
+}
 
 /** Jours jusqu'à `dateStr` (négatif si passé), arrondi comme le monolithe : Math.ceil((date-now)/jour). */
 export function daysUntil(dateStr: string | undefined | null, now: Date = new Date()): number | null {
@@ -150,10 +178,16 @@ export function kpiOk(k: Pick<OsKpi, "dir" | "target">, value: number): boolean 
 }
 
 /** Valeur courante d'un KPI — calculée si `k.auto`, sinon la valeur saisie manuellement. */
-export function kpiValue(k: OsKpi, graph: Pick<OsGraph, "finance" | "deadlines" | "tasks" | "bdm">, now: Date = new Date()): number {
+export function kpiValue(
+  k: OsKpi,
+  graph: Pick<OsGraph, "finance" | "deadlines" | "tasks" | "bdm"> & Partial<Pick<OsGraph, "meta">>,
+  now: Date = new Date(),
+): number {
   if (!k.auto) return k.value || 0;
   const year = String(now.getFullYear());
   const finance = graph.finance || [];
+  // Le taux du graphe fait foi : sans lui, tout montant en euros était converti au taux par défaut.
+  const eurTnd = graph.meta?.eur_tnd;
 
   switch (k.auto) {
     case "payDelay": {
@@ -167,11 +201,16 @@ export function kpiValue(k: OsKpi, graph: Pick<OsGraph, "finance" | "deadlines" 
     }
     case "pendingTND":
       return Math.round(
-        finance.filter((f) => PENDING_STATUSES.has(f.status)).reduce((s, f) => s + toTND(restOf(f), f.currency), 0),
+        countableInvoices(finance)
+          .filter((f) => PENDING_STATUSES.has(f.status))
+          .reduce((s, f) => s + toTND(restOf(f), f.currency, eurTnd), 0),
       );
     case "caTND":
       return Math.round(
-        finance.filter((f) => (f.issued || "").startsWith(year)).reduce((s, f) => s + toTND(f.amount || 0, f.currency), 0),
+        revenueInvoices(finance)
+          // Une facture datée dans le futur (série préparée à l'avance) n'est pas du CA réalisé.
+          .filter((f) => (f.issued || "").startsWith(year) && (daysUntil(f.issued, now) ?? 0) <= 0)
+          .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0),
       );
     case "pipelineProp": {
       const opps = (graph.bdm?.opportunities || []).filter((o) => o.status !== "won" && o.status !== "lost");
@@ -210,18 +249,29 @@ export function curQuarter(now: Date = new Date()): string {
  * monolithe : même pour un OKR d'un trimestre passé, l'auto-calcul reste sur le trimestre actuel).
  * Sinon la valeur saisie manuellement.
  */
-export function okrKrValue(kr: OsOkrKeyResult, graph: Pick<OsGraph, "finance">, now: Date = new Date()): number {
+export function okrKrValue(
+  kr: OsOkrKeyResult,
+  graph: Pick<OsGraph, "finance"> & Partial<Pick<OsGraph, "meta">>,
+  now: Date = new Date(),
+): number {
   if (kr.auto !== "ca_quarter") return kr.value || 0;
   const q = curQuarter(now);
   const year = Number(q.slice(0, 4));
   const quarterIndex = Number(q.slice(-1)) - 1;
-  return (graph.finance || [])
+  const eurTnd = graph.meta?.eur_tnd;
+  return revenueInvoices(graph.finance || [])
     .filter((f) => {
       if (!f.issued) return false;
       const d = new Date(f.issued);
-      return d.getFullYear() === year && Math.floor(d.getMonth() / 3) === quarterIndex;
+      if (Number.isNaN(d.getTime())) return false;
+      // Émise dans le trimestre ET déjà émise : une facture de décembre n'est pas du CA de septembre.
+      return (
+        d.getFullYear() === year &&
+        Math.floor(d.getMonth() / 3) === quarterIndex &&
+        (daysUntil(f.issued, now) ?? 0) <= 0
+      );
     })
-    .reduce((s, f) => s + toTND(f.amount || 0, f.currency), 0);
+    .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
 }
 
 export function okrKrProgress(kr: OsOkrKeyResult, graph: Pick<OsGraph, "finance">, now: Date = new Date()): number {
@@ -304,11 +354,11 @@ export function monthlySeries(finance: OsInvoice[] = [], now: Date = new Date(),
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const paid = finance
+    const paid = countableInvoices(finance)
       .filter((f) => f.status === "paid" && (f.paid_date || f.issued || "").startsWith(key))
       .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
-    const billed = finance
-      .filter((f) => f.status !== "cancelled" && (f.issued || "").startsWith(key))
+    const billed = revenueInvoices(finance)
+      .filter((f) => (f.issued || "").startsWith(key))
       .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
     out.push({ key, label: d.toLocaleDateString("fr-FR", { month: "short" }), paid, billed });
   }
@@ -329,7 +379,7 @@ export interface CashProjectionBuckets {
  */
 export function cashProjection(finance: OsInvoice[] = [], now: Date = new Date(), eurTnd?: number): CashProjectionBuckets {
   const p: CashProjectionBuckets = { d30: 0, d60: 0, d90: 0 };
-  finance
+  countableInvoices(finance)
     .filter((f) => PENDING_STATUSES.has(f.status))
     .forEach((f) => {
       const rest = toTND(restOf(f), f.currency, eurTnd);
@@ -366,7 +416,7 @@ export function futureCommitments(finance: OsInvoice[] = [], now: Date = new Dat
   for (let i = 0; i <= monthsAhead; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const items = finance.filter((f) => f.status !== "cancelled" && (f.issued || "").startsWith(key));
+    const items = countableInvoices(finance).filter((f) => (f.issued || "").startsWith(key));
     out.push({
       key,
       label: d.toLocaleDateString("fr-FR", { month: "short" }),
@@ -380,7 +430,7 @@ export function futureCommitments(finance: OsInvoice[] = [], now: Date = new Dat
 /** CA (TND consolidés) réparti par identité, via l'identité du projet de chaque facture. */
 export function identitySplit(finance: OsInvoice[] = [], projects: OsProject[] = [], eurTnd?: number): [string, number][] {
   const m = new Map<string, number>();
-  finance.filter((f) => f.status !== "cancelled").forEach((f) => {
+  revenueInvoices(finance).forEach((f) => {
     const project = projects.find((p) => p.id === f.project);
     const ids = project?.identity?.length ? project.identity : ["fmrxr-studio"];
     const share = toTND(f.amount || 0, f.currency, eurTnd) / ids.length;
@@ -392,8 +442,8 @@ export function identitySplit(finance: OsInvoice[] = [], projects: OsProject[] =
 /** CA (TND consolidés) par client — pour la concentration. */
 export function clientSplit(finance: OsInvoice[] = [], eurTnd?: number): [string, number][] {
   const m = new Map<string, number>();
-  finance.forEach((f) => {
-    if (!f.client || f.status === "cancelled") return;
+  revenueInvoices(finance).forEach((f) => {
+    if (!f.client) return;
     m.set(f.client, (m.get(f.client) || 0) + toTND(f.amount || 0, f.currency, eurTnd));
   });
   return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
@@ -557,13 +607,39 @@ export interface ClientConcentration {
  * structurel : son départ crée une crise plutôt qu'un simple à-coup. Instantané sur les
  * factures actuelles (pas de tendance 3 mois glissants faute d'historique mensuel par client).
  */
-export function clientConcentration(finance: OsInvoice[] = [], eurTnd?: number): ClientConcentration {
-  const split = clientSplit(finance, eurTnd);
+export function clientConcentration(
+  finance: OsInvoice[] = [],
+  eurTnd?: number,
+  now: Date = new Date(),
+  windowMonths = 12,
+): ClientConcentration {
+  // Fenêtre glissante : un client facturé une fois il y a trois ans ne dit rien de la dépendance
+  // d'aujourd'hui. Sans fenêtre, la concentration se fige sur l'historique complet.
+  const since = new Date(now.getFullYear(), now.getMonth() - windowMonths + 1, 1).getTime();
+  const windowed = finance.filter((f) => {
+    const t = Date.parse(f.issued || "");
+    return Number.isNaN(t) ? false : t >= since;
+  });
+  const split = clientSplit(windowed.length ? windowed : finance, eurTnd);
   const total = split.reduce((s, [, v]) => s + v, 0);
   if (!total || !split.length) return { topClientId: null, topClientPct: 0, top5Pct: 0, total: 0, risk: "ok" };
   const topClientPct = (split[0][1] / total) * 100;
   const top5Pct = (split.slice(0, 5).reduce((s, [, v]) => s + v, 0) / total) * 100;
-  const risk: ClientConcentration["risk"] = topClientPct > 20 || top5Pct > 50 ? "high" : "ok";
+  /*
+   * Deux seuils, tous deux relatifs à la réalité du portefeuille.
+   *
+   * Le premier est absolu : au-delà du tiers du chiffre d'affaires chez un seul client, la
+   * dépendance est réelle. 20 % était intenable, puisque avec six clients la part moyenne est
+   * déjà de 16,7 %.
+   *
+   * Le second se compare à la répartition parfaitement égale. Avec six clients, le top 5 pèse
+   * mécaniquement 83 % même quand tout est équilibré : un seuil fixe de 50 % ou de 80 % criait
+   * au risque sur la distribution la plus saine possible. On ne signale donc que l'écart à cette
+   * ligne de base.
+   */
+  const evenTop5Pct = (Math.min(5, split.length) / split.length) * 100;
+  const risk: ClientConcentration["risk"] =
+    topClientPct > 35 || top5Pct > evenTop5Pct + 15 ? "high" : "ok";
   return { topClientId: split[0][0], topClientPct, top5Pct, total, risk };
 }
 
@@ -574,15 +650,22 @@ export interface RunRateProjection {
   projectedYearEnd: number;
 }
 
-/** Projection fin d'année = CA facturé YTD + (moyenne mensuelle YTD × mois restants). */
+/**
+ * Projection fin d'année = CA facturé YTD + (moyenne mensuelle YTD × mois restants).
+ *
+ * Deux pièges évités ici. Le mois en cours ne compte que pour la part écoulée : au 20 septembre
+ * il s'est écoulé 8,63 mois, pas 9, sinon la moyenne mensuelle est sous-estimée. Et les factures
+ * datées dans le futur (séries préparées à l'avance, voir futureCommitments) sont exclues du YTD,
+ * sinon décembre gonfle à la fois le réalisé et la moyenne qui sert à projeter le reste de l'année.
+ */
 export function runRateProjection(finance: OsInvoice[] = [], now: Date = new Date(), eurTnd?: number): RunRateProjection {
   const year = now.getFullYear();
-  const ytdBilled = finance
-    .filter((f) => f.status !== "cancelled" && (f.issued || "").startsWith(String(year)))
+  const ytdBilled = revenueInvoices(finance)
+    .filter((f) => (f.issued || "").startsWith(String(year)) && (daysUntil(f.issued, now) ?? 0) <= 0)
     .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
-  const monthsElapsed = now.getMonth() + 1;
+  const monthsElapsed = monthsElapsedInYear(now);
   const avgMonthly = monthsElapsed > 0 ? ytdBilled / monthsElapsed : 0;
-  const monthsRemaining = 12 - monthsElapsed;
+  const monthsRemaining = Math.max(0, 12 - monthsElapsed);
   return { ytdBilled, avgMonthly, monthsRemaining, projectedYearEnd: ytdBilled + avgMonthly * monthsRemaining };
 }
 
@@ -593,10 +676,16 @@ export interface PipelineWinRate {
   winRatePct: number | null;
 }
 
-/** Taux de conversion du pipeline BDM (gagné / (gagné+perdu)). */
-export function pipelineWinRate(opportunities: OsOpportunity[] = []): PipelineWinRate {
+/**
+ * Taux de conversion du pipeline BDM : gagné / (gagné + perdu), les opportunités expirées comptant
+ * comme perdues. Une candidature dont la date est passée sans réponse est une occasion manquée ;
+ * l'ignorer faisait monter artificiellement le taux.
+ */
+export function pipelineWinRate(opportunities: OsOpportunity[] = [], now: Date = new Date()): PipelineWinRate {
   const won = opportunities.filter((o) => o.status === "won").length;
-  const lost = opportunities.filter((o) => o.status === "lost").length;
+  const lost = opportunities.filter(
+    (o) => o.status !== "won" && (o.status === "lost" || isOpportunityExpired(o, now)),
+  ).length;
   const closed = won + lost;
   return { won, lost, winRatePct: closed ? (won / closed) * 100 : null };
 }
@@ -612,10 +701,15 @@ export interface MonthlyAnomaly {
 /**
  * Signal statistique simple (pas de ML) : le mois courant dévie-t-il de ±`thresholdPct` de la
  * moyenne des jusqu'à 6 mois précédents ?
+ *
+ * Le mois courant est incomplet, donc on le compare à des mois complets après l'avoir ramené à son
+ * rythme mensuel (divisé par la part de mois écoulée). Sans cela, tout début de mois déclenchait
+ * une anomalie « en dessous » purement mécanique.
  */
-export function monthlyAnomaly(series: MonthlyPoint[], thresholdPct = 40): MonthlyAnomaly {
+export function monthlyAnomaly(series: MonthlyPoint[], thresholdPct = 40, now: Date = new Date()): MonthlyAnomaly {
   if (series.length < 2) return { isAnomaly: false, deviationPct: 0, direction: "none", current: 0, average: 0 };
-  const current = series[series.length - 1].billed;
+  const raw = series[series.length - 1].billed;
+  const current = raw / monthElapsedFraction(now);
   const history = series.slice(0, -1).slice(-6);
   const average = history.length ? history.reduce((s, p) => s + p.billed, 0) / history.length : 0;
   if (average === 0) return { isAnomaly: false, deviationPct: 0, direction: "none", current, average };
