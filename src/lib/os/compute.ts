@@ -324,6 +324,8 @@ export function okrKrValue(kr: OsOkrKeyResult, graph: KrGraph, now: Date = new D
       return (graph.deadlines || []).filter((d) => d.done && (!spec.project || d.project === spec.project)).length;
     case "committed_months":
       return futureCommitments(finance, now, 12, eurTnd).filter((m) => m.amountTND > 0).length;
+    case "top_client_share":
+      return clientConcentration(finance, eurTnd, now).topClientPct;
     default:
       return kr.value || 0;
   }
@@ -368,14 +370,27 @@ export function krAutoLabel(kr: Pick<OsOkrKeyResult, "auto">): string | null {
     case "projects_delivered": return "projets livrés";
     case "deadlines_done": return "jalons faits";
     case "committed_months": return "mois de revenu engagés";
+    case "top_client_share": return "part du premier client";
     default: return "calculé depuis le graphe";
   }
 }
 
-/** Avancement d'un KR en %, plafonné à 100, cible déduite du graphe quand la source le permet. */
+/**
+ * Avancement d'un KR en %, plafonné à 100, cible déduite du graphe quand la source le permet.
+ *
+ * Un KR en `dir: "min"` se mesure à l'envers : faire passer une part de chiffre d'affaires de 40 %
+ * à 30 % progresse quand la valeur baisse. Sans ce sens, la division brute affichait 133 %, donc
+ * un objectif de réduction paraissait atteint alors qu'il empirait.
+ */
 export function okrKrProgress(kr: OsOkrKeyResult, graph: KrGraph, now: Date = new Date()): number {
   const value = okrKrValue(kr, graph, now);
   const target = okrKrTarget(kr, graph);
+
+  if (kr.dir === "min") {
+    if (value <= target) return 100;
+    return target > 0 ? Math.max(0, Math.min(100, (target / value) * 100)) : 0;
+  }
+
   if (!target) return value > 0 ? 100 : 0;
   return Math.min(100, (value / target) * 100);
 }

@@ -1322,3 +1322,33 @@ describe("charges récurrentes et seuil de rentabilité", () => {
     expect(breakEven([], [], NOW).runwayMonths).toBeNull();
   });
 });
+
+describe("résultats clés à sens inversé", () => {
+  const finance = [
+    { id: "gros", type: "invoice" as const, amount: 8000, currency: "TND" as const, status: "paid" as const, issued: "2026-07-01", client: "baxter" },
+    { id: "petit", type: "invoice" as const, amount: 2000, currency: "TND" as const, status: "paid" as const, issued: "2026-07-02", client: "autre" },
+  ];
+  const graph = { finance, meta: { eur_tnd: 3.38 } };
+
+  it("lit la part du premier client depuis le graphe", () => {
+    const kr = { id: "k", label: "Part du premier client", target: 30, value: 0, unit: "%", dir: "min" as const, auto: { kind: "top_client_share" } };
+    expect(okrKrValue(kr, graph, NOW)).toBeCloseTo(80);
+  });
+
+  it("progresse quand la valeur baisse, au lieu d'afficher un faux succès", () => {
+    const kr = { id: "k", label: "Part du premier client", target: 30, value: 0, unit: "%", dir: "min" as const, auto: { kind: "top_client_share" } };
+    // 80 % pour une cible de 30 % : loin du compte. Sans le sens inversé, la division brute
+    // donnait 267 %, plafonnés à 100, donc un objectif de réduction paraissait atteint.
+    expect(okrKrProgress(kr, graph, NOW)).toBeCloseTo(37.5);
+  });
+
+  it("vaut 100 % dès que la valeur passe sous la cible", () => {
+    const kr = { id: "k", label: "Délai d'encaissement", target: 30, value: 21, unit: "j", dir: "min" as const };
+    expect(okrKrProgress(kr, { finance: [] }, NOW)).toBe(100);
+  });
+
+  it("garde le sens normal quand dir n'est pas précisé", () => {
+    const kr = { id: "k", label: "CA", target: 100, value: 40, unit: "TND" };
+    expect(okrKrProgress(kr, { finance: [] }, NOW)).toBe(40);
+  });
+});

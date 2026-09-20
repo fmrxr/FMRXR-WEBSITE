@@ -291,6 +291,7 @@ export interface OsKpi {
  * - `projects_delivered` : projets livrés ou archivés depuis `since`, cible manuelle.
  * - `deadlines_done` : jalons faits sur la période, cible = nombre de jalons du projet.
  * - `committed_months` : mois de revenu déjà engagés devant soi, cible manuelle.
+ * - `top_client_share` : part du premier client dans le CA des 12 derniers mois, en pourcentage.
  */
 export interface OsKrAuto {
   kind:
@@ -301,6 +302,7 @@ export interface OsKrAuto {
     | "projects_delivered"
     | "deadlines_done"
     | "committed_months"
+    | "top_client_share"
     | (string & {});
   invoice?: string;
   client?: string;
@@ -319,6 +321,11 @@ export interface OsOkrKeyResult {
   unit?: string;
   /** Chaîne = ancienne forme (`"ca_quarter"`), objet = source paramétrée. */
   auto?: "ca_quarter" | (string & {}) | OsKrAuto;
+  /**
+   * Sens de la cible. `max` par défaut : atteindre au moins la cible. `min` pour un résultat qu'il
+   * faut faire baisser, comme une part de chiffre d'affaires ou un délai d'encaissement.
+   */
+  dir?: "min" | "max";
   /** Confiance de tenir la cible : 1 faible, 2 moyenne, 3 haute. Saisie au point hebdomadaire. */
   confidence?: 1 | 2 | 3;
   /** Note finale du trimestre, de 0 à 1, posée à la clôture. */
