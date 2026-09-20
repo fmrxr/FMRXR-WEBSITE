@@ -148,6 +148,25 @@ export interface OsTask {
   owner?: string;
   due?: string;
   done: boolean;
+  /** Date de clôture (ISO court) — sert à savoir ce qui a bougé aujourd'hui sur la page Today. */
+  done_date?: string;
+  /** Statut libre posé depuis l'OS (ex : "waiting" quand la balle est chez le client). */
+  status?: string;
+}
+
+export type BlockerSeverity = "critical" | "high" | "medium" | "low" | (string & {});
+
+export interface OsBlocker {
+  id: string;
+  label: string;
+  project?: string;
+  owner?: string;
+  severity?: BlockerSeverity;
+  detected?: string;
+  resolved?: boolean;
+  resolved_at?: string;
+  /** Tâche qui lève le blocage, quand elle existe. */
+  task?: string;
 }
 
 export interface OsDeadline {
@@ -385,6 +404,7 @@ export interface OsGraph {
   expenses?: OsExpense[];
   tasks: OsTask[];
   deadlines: OsDeadline[];
+  blockers?: OsBlocker[];
   assets?: OsAsset[];
   tools?: OsTool[];
   relations?: OsRelation[];

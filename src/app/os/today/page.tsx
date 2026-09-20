@@ -1,21 +1,18 @@
 "use client";
 
 import { useOs } from "@/lib/os/store";
-import { closingSoon, daysUntil, focusToday, healthScore, imminentDeadlines, relances } from "@/lib/os/compute";
-import { Badge } from "@/components/os/Badge";
-import { PriorityHero } from "@/components/os/today/PriorityHero";
-import { TasksCard } from "@/components/os/today/TasksCard";
-import { DeadlinesCard } from "@/components/os/today/DeadlinesCard";
-import { RelancesCard } from "@/components/os/today/RelancesCard";
-import { PipelineCard } from "@/components/os/today/PipelineCard";
-import { AgentSuggestion } from "@/components/os/today/AgentSuggestion";
+import { briefing, columns, debt, healthBreakdown, nextAction } from "@/lib/os/today";
+import { TODAY_COPY } from "@/lib/os/today-copy";
+import { Briefing } from "@/components/os/today/Briefing";
+import { ColumnCard } from "@/components/os/today/ColumnCard";
+import { DebtSection } from "@/components/os/today/DebtSection";
+import { HealthChips } from "@/components/os/today/HealthChips";
 
-function healthTone(score: number): "accent" | "warn" | "danger" {
-  if (score >= 70) return "accent";
-  if (score >= 45) return "warn";
-  return "danger";
-}
-
+/**
+ * Command Center, page Today. Pyramide inversée : briefing, colonnes métier, dette repliée.
+ * La page n'assemble que des vues déjà calculées : toute la logique vit dans lib/os/today.ts,
+ * et tous les textes dans lib/os/today-copy.ts.
+ */
 export default function TodayPage() {
   const { graph, loading, error } = useOs();
 
@@ -24,43 +21,38 @@ export default function TodayPage() {
   if (!graph) return null;
 
   const now = new Date();
-  const hs = healthScore(graph, now);
-  const focus = focusToday(graph, now);
-  const deadlines = imminentDeadlines(graph.deadlines, now, 7);
-  const rel = relances(graph, now);
-  const opps = closingSoon(graph.bdm?.opportunities ?? [], now);
-  const openTasks = (graph.tasks || [])
-    .filter((t) => !t.done)
-    .sort((a, b) => (daysUntil(a.due, now) ?? 99_999) - (daysUntil(b.due, now) ?? 99_999))
-    .slice(0, 5);
+  const lines = briefing(graph, now);
+  const action = nextAction(graph, now);
+  const cols = columns(graph, now);
+  const { items: debtItems, fossilCount } = debt(graph, now);
+  const facets = healthBreakdown(graph, now);
 
-  const hour = now.getHours();
-  const greeting = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
   const dateLabel = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  const savedAt = graph.meta?.updated ? new Date(graph.meta.updated) : null;
+  const freshness =
+    savedAt && !Number.isNaN(savedAt.getTime())
+      ? TODAY_COPY.freshness(dateLabel, savedAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))
+      : TODAY_COPY.freshnessUnknown(dateLabel);
 
   return (
-    <div className="fm-rise flex flex-col gap-6">
-      <header className="flex items-end justify-between gap-4">
+    <div className="fm-rise flex flex-col gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl text-fmfg md:text-3xl">{greeting}, Haïfa</h1>
-          <p className="mt-1 font-grotesk text-sm capitalize text-fmmuted">{dateLabel}</p>
+          <h1 className="font-display text-2xl text-fmfg md:text-3xl">{TODAY_COPY.greeting(now.getHours())}, Haïfa</h1>
+          <p className="mt-1 font-grotesk text-sm capitalize text-fmmuted">{freshness}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="font-grotesk text-xs text-fmmuted">Business Health</span>
-          <Badge tone={healthTone(hs)}>{hs}/100</Badge>
-        </div>
+        <HealthChips facets={facets} />
       </header>
 
-      <PriorityHero focus={focus} graph={graph} />
+      <Briefing lines={lines} action={action} />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <TasksCard tasks={openTasks} graph={graph} />
-        <DeadlinesCard deadlines={deadlines} />
-        <RelancesCard items={rel} graph={graph} />
-        <PipelineCard opportunities={opps} />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {cols.map((col) => (
+          <ColumnCard key={col.id} col={col} />
+        ))}
       </div>
 
-      <AgentSuggestion relancesCount={rel.length} closingCount={opps.length} tasksCount={openTasks.length} />
+      <DebtSection items={debtItems} fossilCount={fossilCount} />
     </div>
   );
 }
