@@ -101,6 +101,9 @@ export function OsProvider({ children }: { children: ReactNode }) {
       const json: { updated_at: string | null } = await res.json();
       updatedAtRef.current = json.updated_at;
       setLastSavedAt(json.updated_at);
+      // Miroir local : après chaque sauvegarde Supabase, rafraîchir knowledge-graph.json (fire-and-forget)
+      // pour que la commande « sync os » (Cowork, qui ne lit que le fichier) voie toujours l'état Supabase.
+      void fetch("/api/os/export", { method: "POST" }).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur réseau");
     } finally {

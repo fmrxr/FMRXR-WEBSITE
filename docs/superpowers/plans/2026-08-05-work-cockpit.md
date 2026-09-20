@@ -919,11 +919,18 @@ interface SprintBannerProps {
 const CHART_W = 320;
 const CHART_H = 48;
 
-function toPolyline(points: { date: string; value: number }[], maxValue: number): string {
+// `ideal` always spans the sprint's full day range; `actual` is truncated to `min(now, sprint.end)`
+// so it can have fewer points mid-sprint. Positioning x by array index/length (index/(length-1))
+// would put both lines on INDEPENDENT scales — e.g. 3 days into a 5-day sprint, a 3-point `actual`
+// would stretch across the full chart width just like the 5-point `ideal`, visually implying the
+// sprint is further along than it is. Positioning by the point's own `.date` against a SHARED
+// `rangeStart`/`rangeEnd` (the sprint's start/end) keeps both lines on the same day-scale instead.
+function toPolyline(points: { date: string; value: number }[], maxValue: number, rangeStart: number, rangeEnd: number): string {
   if (points.length < 2) return "";
+  const span = Math.max(1, rangeEnd - rangeStart);
   return points
-    .map((p, i) => {
-      const x = (i / (points.length - 1)) * CHART_W;
+    .map((p) => {
+      const x = ((Date.parse(p.date) - rangeStart) / span) * CHART_W;
       const y = CHART_H - (maxValue ? (p.value / maxValue) * CHART_H : 0);
       return `${x},${y}`;
     })
@@ -935,6 +942,8 @@ export function SprintBanner({ sprint, tasks, now }: SprintBannerProps) {
   const days = daysUntil(sprint.end, now);
   const series = burndownSeries(sprint, tasks, now);
   const maxValue = Math.max(1, series.ideal[0]?.value ?? 0);
+  const rangeStart = Date.parse(sprint.start);
+  const rangeEnd = Date.parse(sprint.end);
 
   return (
     <div className="fm-glass-card flex flex-wrap items-center gap-4 rounded-2xl p-4">
@@ -948,8 +957,8 @@ export function SprintBanner({ sprint, tasks, now }: SprintBannerProps) {
       </div>
       {series.actual.length >= 2 && (
         <svg width={CHART_W} height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="shrink-0">
-          <polyline points={toPolyline(series.ideal, maxValue)} fill="none" stroke="var(--color-fmborder)" strokeWidth={1.5} />
-          <polyline points={toPolyline(series.actual, maxValue)} fill="none" stroke="var(--color-fmaccent)" strokeWidth={2} />
+          <polyline points={toPolyline(series.ideal, maxValue, rangeStart, rangeEnd)} fill="none" stroke="var(--color-fmborder)" strokeWidth={1.5} />
+          <polyline points={toPolyline(series.actual, maxValue, rangeStart, rangeEnd)} fill="none" stroke="var(--color-fmaccent)" strokeWidth={2} />
         </svg>
       )}
     </div>

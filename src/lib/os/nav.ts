@@ -35,6 +35,7 @@ export const OS_MODULES: OsNavModule[] = [
   { id: "graph", label: "Brain", group: "Knowledge", phase: "D", native: true, href: "/os/brain" },
   { id: "stack", label: "Knowledge", group: "Knowledge", phase: "D", native: true, href: "/os/knowledge" },
   { id: "aihub", label: "AI Workforce", group: "AI Workforce", phase: "D", native: true, href: "/os/ai-workforce" },
+  { id: "khoj", label: "Khoj", group: "AI Workforce", phase: "D", native: true, href: "/os/khoj" },
 ];
 
 export function modulesByGroup(): Array<{ group: OsNavGroup; modules: OsNavModule[] }> {
