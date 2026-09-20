@@ -2,7 +2,7 @@
 // focusToday/kpiValue/toTND) pour préserver la logique métier validée par le monolithe (§0 du brief).
 // Toute fonction qui dépend de "maintenant" accepte `now` en paramètre pour rester testable.
 
-import type { AssetKind, Currency, OsAsset, OsCfBatch, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsLogEntry, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsQuote, OsTask } from "./types";
+import type { AssetKind, Currency, OsAsset, OsKrAuto, OsCfBatch, OsDeadline, OsExpense, OsGraph, OsInvoice, OsKpi, OsLibraryItem, OsLogEntry, OsOkr, OsOkrKeyResult, OsOpportunity, OsProject, OsQuote, OsTask } from "./types";
 
 const DEFAULT_EUR_TND = 3.4;
 const PENDING_STATUSES = new Set(["sent", "partial", "late", "disputed"]);
@@ -249,38 +249,139 @@ export function curQuarter(now: Date = new Date()): string {
  * monolithe : même pour un OKR d'un trimestre passé, l'auto-calcul reste sur le trimestre actuel).
  * Sinon la valeur saisie manuellement.
  */
-export function okrKrValue(
-  kr: OsOkrKeyResult,
-  graph: Pick<OsGraph, "finance"> & Partial<Pick<OsGraph, "meta">>,
-  now: Date = new Date(),
-): number {
-  if (kr.auto !== "ca_quarter") return kr.value || 0;
-  const q = curQuarter(now);
-  const year = Number(q.slice(0, 4));
-  const quarterIndex = Number(q.slice(-1)) - 1;
-  const eurTnd = graph.meta?.eur_tnd;
-  return revenueInvoices(graph.finance || [])
-    .filter((f) => {
-      if (!f.issued) return false;
-      const d = new Date(f.issued);
-      if (Number.isNaN(d.getTime())) return false;
-      // Émise dans le trimestre ET déjà émise : une facture de décembre n'est pas du CA de septembre.
-      return (
-        d.getFullYear() === year &&
-        Math.floor(d.getMonth() / 3) === quarterIndex &&
-        (daysUntil(f.issued, now) ?? 0) <= 0
-      );
-    })
-    .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
+/** Normalise les deux formes de `auto` : la chaîne historique et l'objet paramétré. */
+export function krAutoSpec(kr: Pick<OsOkrKeyResult, "auto">): OsKrAuto | null {
+  if (!kr.auto) return null;
+  return typeof kr.auto === "string" ? { kind: kr.auto } : kr.auto;
 }
 
-export function okrKrProgress(kr: OsOkrKeyResult, graph: Pick<OsGraph, "finance">, now: Date = new Date()): number {
+function quarterBounds(now: Date): { start: Date; end: Date } {
+  const qi = Math.floor(now.getMonth() / 3);
+  return { start: new Date(now.getFullYear(), qi * 3, 1), end: new Date(now.getFullYear(), qi * 3 + 3, 0, 23, 59, 59) };
+}
+
+function sinceDate(spec: OsKrAuto, now: Date): Date {
+  const t = Date.parse(spec.since || "");
+  return Number.isNaN(t) ? quarterBounds(now).start : new Date(t);
+}
+
+/** Montant déjà encaissé sur une facture : la totalité si elle est soldée, sinon l'avance. */
+function collectedOf(f: OsInvoice): number {
+  if (f.status === "paid") return f.amount || 0;
+  return f.advance || 0;
+}
+
+type KrGraph = Pick<OsGraph, "finance"> &
+  Partial<Pick<OsGraph, "meta" | "quotes" | "projects" | "deadlines">>;
+
+/**
+ * Valeur courante d'un résultat clé. Calculée dès que `auto` est renseigné, sinon la valeur saisie.
+ *
+ * Tout KR branché ici se corrige tout seul quand la donnée source change : une facture ramenée de
+ * 5 500 à 2 000 TND met à jour la valeur ET la cible, au lieu de figer un chiffre devenu faux.
+ */
+export function okrKrValue(kr: OsOkrKeyResult, graph: KrGraph, now: Date = new Date()): number {
+  const spec = krAutoSpec(kr);
+  if (!spec) return kr.value || 0;
+  const eurTnd = graph.meta?.eur_tnd;
+  const finance = graph.finance || [];
+
+  switch (spec.kind) {
+    case "ca_quarter": {
+      const { start, end } = quarterBounds(now);
+      return revenueInvoices(finance)
+        .filter((f) => {
+          const d = Date.parse(f.issued || "");
+          return !Number.isNaN(d) && d >= start.getTime() && d <= end.getTime() && d <= now.getTime();
+        })
+        .reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0);
+    }
+    case "invoice_collected": {
+      const f = countableInvoices(finance).find((x) => x.id === spec.invoice);
+      return f ? toTND(collectedOf(f), f.currency, eurTnd) : 0;
+    }
+    case "client_collected":
+      return countableInvoices(finance)
+        .filter((f) => f.client === spec.client)
+        .reduce((s, f) => s + toTND(collectedOf(f), f.currency, eurTnd), 0);
+    case "quotes_accepted": {
+      const since = sinceDate(spec, now);
+      return (graph.quotes || []).filter((q) => {
+        if (q.status !== "accepted") return false;
+        const d = Date.parse(q.issued || "");
+        return Number.isNaN(d) ? true : d >= since.getTime();
+      }).length;
+    }
+    case "projects_delivered": {
+      const since = sinceDate(spec, now);
+      return (graph.projects || []).filter((p) => {
+        if (p.status !== "delivered" && p.status !== "archived") return false;
+        const closed = Date.parse(String((p as { closed_at?: string }).closed_at || ""));
+        return Number.isNaN(closed) ? false : closed >= since.getTime();
+      }).length;
+    }
+    case "deadlines_done":
+      return (graph.deadlines || []).filter((d) => d.done && (!spec.project || d.project === spec.project)).length;
+    case "committed_months":
+      return futureCommitments(finance, now, 12, eurTnd).filter((m) => m.amountTND > 0).length;
+    default:
+      return kr.value || 0;
+  }
+}
+
+/**
+ * Cible d'un résultat clé. Certaines sources savent déduire leur propre cible, ce qui évite de
+ * figer un montant : la cible d'un encaissement, c'est le montant courant de la facture.
+ */
+export function okrKrTarget(kr: OsOkrKeyResult, graph: KrGraph): number {
+  const spec = krAutoSpec(kr);
+  const eurTnd = graph.meta?.eur_tnd;
+  if (!spec) return kr.target || 0;
+
+  switch (spec.kind) {
+    case "invoice_collected": {
+      const f = countableInvoices(graph.finance || []).find((x) => x.id === spec.invoice);
+      return f ? toTND(f.amount || 0, f.currency, eurTnd) : kr.target || 0;
+    }
+    case "client_collected": {
+      const items = countableInvoices(graph.finance || []).filter((f) => f.client === spec.client);
+      return items.length ? items.reduce((s, f) => s + toTND(f.amount || 0, f.currency, eurTnd), 0) : kr.target || 0;
+    }
+    case "deadlines_done": {
+      const items = (graph.deadlines || []).filter((d) => !spec.project || d.project === spec.project);
+      return items.length || kr.target || 0;
+    }
+    default:
+      return kr.target || 0;
+  }
+}
+
+/** Libellé de la source, pour dire d'où vient un chiffre au lieu de le présenter comme acquis. */
+export function krAutoLabel(kr: Pick<OsOkrKeyResult, "auto">): string | null {
+  const spec = krAutoSpec(kr);
+  if (!spec) return null;
+  switch (spec.kind) {
+    case "ca_quarter": return "factures du trimestre";
+    case "invoice_collected": return "encaissé sur la facture";
+    case "client_collected": return "encaissé chez le client";
+    case "quotes_accepted": return "devis acceptés";
+    case "projects_delivered": return "projets livrés";
+    case "deadlines_done": return "jalons faits";
+    case "committed_months": return "mois de revenu engagés";
+    default: return "calculé depuis le graphe";
+  }
+}
+
+/** Avancement d'un KR en %, plafonné à 100, cible déduite du graphe quand la source le permet. */
+export function okrKrProgress(kr: OsOkrKeyResult, graph: KrGraph, now: Date = new Date()): number {
   const value = okrKrValue(kr, graph, now);
-  return Math.min(100, (value / (kr.target || 1)) * 100);
+  const target = okrKrTarget(kr, graph);
+  if (!target) return value > 0 ? 100 : 0;
+  return Math.min(100, (value / target) * 100);
 }
 
 /** Moyenne de progression des résultats clés d'un objectif (0 si aucun KR). */
-export function okrObjectiveProgress(okr: Pick<OsOkr, "krs">, graph: Pick<OsGraph, "finance">, now: Date = new Date()): number {
+export function okrObjectiveProgress(okr: Pick<OsOkr, "krs">, graph: KrGraph, now: Date = new Date()): number {
   const krs = okr.krs || [];
   if (!krs.length) return 0;
   return krs.reduce((s, k) => s + okrKrProgress(k, graph, now), 0) / krs.length;
@@ -672,22 +773,68 @@ export function runRateProjection(finance: OsInvoice[] = [], now: Date = new Dat
 export interface PipelineWinRate {
   won: number;
   lost: number;
-  /** null si aucune opportunité clôturée pour l'instant. */
+  /** null si aucune opportunité tranchée pour l'instant. */
   winRatePct: number | null;
+  /** Opportunités dont la date est passée sans décision : de la donnée périmée, pas des défaites. */
+  pendingDecision: number;
 }
 
 /**
- * Taux de conversion du pipeline BDM : gagné / (gagné + perdu), les opportunités expirées comptant
- * comme perdues. Une candidature dont la date est passée sans réponse est une occasion manquée ;
- * l'ignorer faisait monter artificiellement le taux.
+ * Taux de conversion du pipeline BDM : gagné / (gagné + perdu), sur les seules opportunités
+ * réellement tranchées.
+ *
+ * Les candidatures dont la date est passée sans décision ne sont pas comptées comme des défaites :
+ * ce serait punir un oubli de saisie. Elles sont renvoyées à part dans `pendingDecision`, pour
+ * être triées, ce qui est l'action utile. Les ignorer complètement flattait le taux ; les compter
+ * comme perdues le noircissait autant.
  */
 export function pipelineWinRate(opportunities: OsOpportunity[] = [], now: Date = new Date()): PipelineWinRate {
   const won = opportunities.filter((o) => o.status === "won").length;
-  const lost = opportunities.filter(
-    (o) => o.status !== "won" && (o.status === "lost" || isOpportunityExpired(o, now)),
+  const lost = opportunities.filter((o) => o.status === "lost").length;
+  const pendingDecision = opportunities.filter(
+    (o) => o.status !== "won" && o.status !== "lost" && isOpportunityExpired(o, now),
   ).length;
-  const closed = won + lost;
-  return { won, lost, winRatePct: closed ? (won / closed) * 100 : null };
+  const decided = won + lost;
+  return { won, lost, pendingDecision, winRatePct: decided ? (won / decided) * 100 : null };
+}
+
+export interface RevenueHorizon {
+  /** Dernier mois où une facture est déjà engagée, format YYYY-MM. */
+  lastCommittedMonth: string | null;
+  /** Montant TND engagé à partir d'aujourd'hui. */
+  committedTND: number;
+  /** Part du CA des 12 derniers mois portée par le client le plus engageant, en pourcentage. */
+  topClientPct: number;
+  topClientId: string | null;
+  /** Mois complets encore couverts par des engagements, à partir du mois courant. */
+  monthsCovered: number;
+}
+
+/**
+ * Jusqu'où le revenu est déjà engagé, et par qui.
+ *
+ * Une dépendance à un client ne se juge pas seulement à sa part du chiffre d'affaires : un client
+ * récurrent sous contrat jusqu'à une date connue est une base stable, et le vrai risque est la
+ * falaise au bout. Cette fonction nomme la date de la falaise plutôt qu'un pourcentage seul.
+ */
+export function revenueHorizon(
+  finance: OsInvoice[] = [],
+  now: Date = new Date(),
+  eurTnd?: number,
+  monthsAhead = 12,
+): RevenueHorizon {
+  const committed = futureCommitments(finance, now, monthsAhead, eurTnd).filter((m) => m.amountTND > 0);
+  const lastCommittedMonth = committed.length ? committed[committed.length - 1].key : null;
+  const committedTND = committed.reduce((s, m) => s + m.amountTND, 0);
+  const concentration = clientConcentration(finance, eurTnd, now);
+  const monthsCovered = committed.length;
+  return {
+    lastCommittedMonth,
+    committedTND,
+    monthsCovered,
+    topClientPct: concentration.topClientPct,
+    topClientId: concentration.topClientId,
+  };
 }
 
 export interface MonthlyAnomaly {

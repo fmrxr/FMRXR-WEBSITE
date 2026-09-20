@@ -39,6 +39,8 @@ export function KhojLocalCard() {
   }
 
   useEffect(() => {
+    // Sonde d'état au montage : le serveur Khoj est local, il peut ne pas tourner.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
   }, []);
 

@@ -3,13 +3,45 @@
 import { useState } from "react";
 import { Card } from "../Card";
 import { Badge } from "../Badge";
-import { okrKrProgress, okrKrValue, okrObjectiveProgress } from "@/lib/os/compute";
+import { krAutoLabel, okrKrProgress, okrKrTarget, okrKrValue, okrObjectiveProgress } from "@/lib/os/compute";
+import { quarterProgress } from "@/lib/os/today";
 import type { OsGraph, OsOkr } from "@/lib/os/types";
 
-function progressTone(pct: number): "accent" | "warn" | "danger" {
-  if (pct >= 70) return "accent";
-  if (pct >= 40) return "warn";
+/**
+ * Le ton se juge par rapport au temps écoulé du trimestre, pas dans l'absolu.
+ *
+ * En doctrine OKR, atteindre 70 à 80 % d'un résultat clé ambitieux est le succès attendu : peindre
+ * 60 % en rouge apprend à se fixer des cibles molles au trimestre suivant. Un objectif n'est donc
+ * en alerte que s'il décroche nettement du rythme, et le rouge est réservé à ce décrochage.
+ */
+function paceTone(pct: number, elapsedPct: number): "accent" | "warn" | "danger" {
+  const pace = pct - elapsedPct;
+  if (pace >= 0 || pct >= 70) return "accent";
+  if (pace > -20) return "warn";
   return "danger";
+}
+
+const TONE_COLOR: Record<"accent" | "warn" | "danger", string> = {
+  accent: "var(--color-fmaccent)",
+  warn: "#d9a441",
+  danger: "#ff4d5e",
+};
+
+const TONE_TEXT: Record<"accent" | "warn" | "danger", string> = {
+  accent: "text-fmaccent",
+  warn: "text-[#d9a441]",
+  danger: "text-[#ff4d5e]",
+};
+
+/** Trait vertical du temps écoulé : une barre qui le dépasse est en avance. */
+function PaceMarker({ elapsedPct }: { elapsedPct: number }) {
+  return (
+    <span
+      title="Position du trimestre écoulé"
+      className="absolute -top-1 bottom-[-4px] w-px bg-fmmuted/70"
+      style={{ left: `${elapsedPct}%` }}
+    />
+  );
 }
 
 function KrRow({
@@ -20,15 +52,17 @@ function KrRow({
   auto,
   value,
   progress,
+  elapsedPct,
   onSetValue,
 }: {
   krId: string;
   label: string;
   target: number;
   unit?: string;
-  auto?: string;
+  auto?: string | null;
   value: number;
   progress: number;
+  elapsedPct: number;
   onSetValue: (krId: string, value: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -76,13 +110,22 @@ function KrRow({
       }}
     >
       <span className="flex-1 font-grotesk text-[11.5px] text-fmfg">
-        {label} {auto ? <Badge tone="primary">auto</Badge> : <span className="text-fmmuted">✎</span>}
+        {label}{" "}
+        {auto ? (
+          <Badge tone="primary" className="ml-1" >{auto}</Badge>
+        ) : (
+          <span className="text-fmmuted" title="Valeur saisie à la main, à tenir à jour">✎</span>
+        )}
       </span>
-      <div className="h-1.5 w-28 rounded-full bg-fmmutedbg">
+      <div className="relative h-1.5 w-28 rounded-full bg-fmmutedbg">
         <div
           className="h-full rounded-full"
-          style={{ width: `${progress}%`, background: progress >= 100 ? "var(--color-fmaccent)" : "var(--color-fmprimary)" }}
+          style={{
+            width: `${Math.min(100, progress)}%`,
+            background: TONE_COLOR[paceTone(progress, elapsedPct)],
+          }}
         />
+        <PaceMarker elapsedPct={elapsedPct} />
       </div>
       <span className="w-32 text-right font-mono text-[10.5px] text-fmmuted">
         {Math.round(value).toLocaleString("fr-FR")} / {target.toLocaleString("fr-FR")} {unit || ""}
@@ -108,6 +151,8 @@ export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSet
   const [unit, setUnit] = useState("");
 
   const pct = okrObjectiveProgress(okr, graph, now);
+  const { elapsedPct } = quarterProgress(now);
+  const tone = paceTone(pct, elapsedPct);
 
   function submitKr() {
     const t = parseFloat(target);
@@ -129,16 +174,18 @@ export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSet
           </div>
           <div className="font-grotesk text-[14.5px] font-semibold text-fmfg">{okr.objective}</div>
         </div>
-        <div className={`font-display text-lg md:text-xl ${progressTone(pct) === "accent" ? "text-fmaccent" : progressTone(pct) === "warn" ? "text-[#d9a441]" : "text-[#ff4d5e]"}`}>
+        <div className={`font-display text-lg md:text-xl ${TONE_TEXT[tone]}`}>
           {Math.round(pct)} %
+          <span className="ml-2 font-grotesk text-[11px] text-fmmuted">
+            {pct - elapsedPct >= 0 ? "+" : ""}
+            {Math.round(pct - elapsedPct)} pts
+          </span>
         </div>
       </div>
 
-      <div className="my-3 h-1.5 rounded-full bg-fmmutedbg">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${pct}%`, background: pct >= 70 ? "var(--color-fmaccent)" : "#ff4d5e" }}
-        />
+      <div className="relative my-3 h-1.5 rounded-full bg-fmmutedbg">
+        <div className="h-full rounded-full" style={{ width: `${Math.min(100, pct)}%`, background: TONE_COLOR[tone] }} />
+        <PaceMarker elapsedPct={elapsedPct} />
       </div>
 
       {(okr.krs || []).map((kr) => (
@@ -146,11 +193,12 @@ export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSet
           key={kr.id}
           krId={kr.id}
           label={kr.label}
-          target={kr.target}
           unit={kr.unit}
-          auto={kr.auto}
+          auto={krAutoLabel(kr)}
           value={okrKrValue(kr, graph, now)}
+          target={okrKrTarget(kr, graph)}
           progress={okrKrProgress(kr, graph, now)}
+          elapsedPct={elapsedPct}
           onSetValue={onSetKrValue}
         />
       ))}

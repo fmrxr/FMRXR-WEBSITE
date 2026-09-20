@@ -272,13 +272,45 @@ export interface OsKpi {
   value?: number;
 }
 
+/**
+ * Source de calcul d'un résultat clé. Un KR branché sur le graphe ne peut pas devenir faux quand
+ * la réalité change : sa valeur comme sa cible se relisent à chaque affichage.
+ *
+ * - `ca_quarter` : chiffre d'affaires facturé du trimestre courant.
+ * - `invoice_collected` : encaissé sur une facture (`invoice`), cible = son montant courant.
+ * - `client_collected` : encaissé chez un client (`client`), cible = total facturé chez lui.
+ * - `quotes_accepted` : devis acceptés depuis `since`, cible manuelle.
+ * - `projects_delivered` : projets livrés ou archivés depuis `since`, cible manuelle.
+ * - `deadlines_done` : jalons faits sur la période, cible = nombre de jalons du projet.
+ * - `committed_months` : mois de revenu déjà engagés devant soi, cible manuelle.
+ */
+export interface OsKrAuto {
+  kind:
+    | "ca_quarter"
+    | "invoice_collected"
+    | "client_collected"
+    | "quotes_accepted"
+    | "projects_delivered"
+    | "deadlines_done"
+    | "committed_months"
+    | (string & {});
+  invoice?: string;
+  client?: string;
+  project?: string;
+  /** Date ISO de début de fenêtre, par défaut le début du trimestre courant. */
+  since?: string;
+}
+
 export interface OsOkrKeyResult {
   id: string;
   label: string;
+  /** Cible saisie. Ignorée quand la source `auto` sait déduire sa propre cible. */
   target: number;
+  /** Valeur saisie. Ignorée dès que `auto` est renseigné. */
   value: number;
   unit?: string;
-  auto?: "ca_quarter" | (string & {});
+  /** Chaîne = ancienne forme (`"ca_quarter"`), objet = source paramétrée. */
+  auto?: "ca_quarter" | (string & {}) | OsKrAuto;
 }
 
 export interface OsOkr {

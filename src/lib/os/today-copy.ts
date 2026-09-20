@@ -25,6 +25,14 @@ export const TODAY_LIMITS = {
   aliveDays: 14,
   /** Fenêtre des livraisons comptées dans la colonne Clients, en jours. */
   deliveryWindowDays: 7,
+  /** Écart au rythme du trimestre, en points, au-delà duquel un objectif passe en alerte. */
+  okrPaceTense: 20,
+  /** Jours avant la fin du trimestre à partir desquels la planification du suivant est attendue. */
+  planningWindowDays: 21,
+  /** En dessous de ce nombre de mois de revenu engagé, le briefing annonce la falaise. */
+  horizonWarnMonths: 4,
+  /** Écritures de journal affichées dans le repli. */
+  journalEntries: 12,
   /** Longueur maximale d'un libellé cité dans l'énumération des avancées du jour. */
   labelChars: 60,
   /** Longueur maximale d'un libellé qui forme à lui seul une phrase du briefing. */
@@ -75,6 +83,16 @@ export const TODAY_COPY = {
       `${MONEY_SLOT} restent à encaisser, dont la plus vieille facture chez ${oldestLabel} depuis ${nf(oldestDays)} jours.`,
   },
 
+  horizon: {
+    cliff: (monthLabel: string, months: number) =>
+      `Ton revenu déjà engagé s'arrête à ${monthLabel}, soit ${months} ${months > 1 ? "mois couverts" : "mois couvert"}. Au-delà, rien n'est signé.`,
+  },
+
+  pipeline: {
+    stale: (count: number) =>
+      `${count} ${count > 1 ? "opportunités ont dépassé leur date" : "opportunité a dépassé sa date"} sans décision, à trancher pour que le pipeline dise la vérité.`,
+  },
+
   blocker: {
     line: (label: string, owner?: string) => (owner ? `${label} (${owner}).` : `${label}.`),
   },
@@ -110,6 +128,35 @@ export const TODAY_COPY = {
       total === 0
         ? "Aucun projet actif."
         : `${alive} ${plural(alive, "projet actif a bougé", "projets actifs ont bougé")} sur ${total} depuis ${days} jours.`,
+  },
+
+  capture: {
+    placeholder: "Noter une tâche, une idée, quelque chose à ne pas perdre…",
+    action: "Ajouter",
+    saved: "Ajouté aux tâches",
+    logPrefix: "Saisie rapide depuis le Command Center :",
+  },
+
+  okr: {
+    title: (quarter: string) => `Ce que je vise · ${quarter}`,
+    summary: (pct: number, elapsed: number, daysLeft: number) =>
+      `avancement ${pct} %, trimestre écoulé ${elapsed} %, ${daysLeft} jours restants`,
+    pace: (pace: number) => `rythme ${pace >= 0 ? "+" : ""}${pace} pts`,
+    paceMarker: "Position du trimestre écoulé",
+    empty: (quarter: string) => `Aucun objectif pour ${quarter}.`,
+    planningDue: (quarter: string, daysLeft: number) =>
+      `${quarter} n'a aucun objectif et il reste ${daysLeft} jours, la fenêtre de planification est ouverte`,
+    planningOk: (quarter: string) => `${quarter} est déjà amorcé`,
+    planLink: (quarter: string) => `Préparer le ${quarter}`,
+    openLink: "Ouvrir les OKR",
+  },
+
+  folds: {
+    analysis: "Analyse",
+    analysisSummary: "concentration client, projection, anomalie mensuelle, taux de conversion",
+    journal: "Journal",
+    journalSummary: (count: number) => `${count} dernières écritures`,
+    newSinceVisit: "nouveau",
   },
 
   debt: {

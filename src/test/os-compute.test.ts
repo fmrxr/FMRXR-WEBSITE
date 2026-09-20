@@ -7,7 +7,7 @@ import {
   clientConcentration, runRateProjection, pipelineWinRate, monthlyAnomaly,
   isOpportunityExpired, bdmSummary, financeOverview,
   libraryTriage, libraryMatches, libraryByCategory, libraryCategoryCounts, graphEntityCount,
-  countableInvoices, revenueInvoices, monthElapsedFraction,
+  countableInvoices, revenueInvoices, monthElapsedFraction, revenueHorizon, okrKrTarget, krAutoSpec, krAutoLabel,
   assetKindLabel, assetMatches, assetKindGroups, assetKindCounts, assetClientLabel, assetClientGroups,
   cfStageLabel, cfAdjacentStage, cfSummary,
   graphEntities, graphEdges, graphNodeDegrees, loadHistoricalEntities, graphEntitiesWithHistory, loadHistoricalEdges,
@@ -1152,22 +1152,49 @@ describe("clientConcentration, fenêtre et seuil", () => {
   });
 });
 
-describe("pipelineWinRate, opportunités expirées", () => {
-  it("compte une deadline dépassée comme une occasion perdue", () => {
+describe("pipelineWinRate, opportunités périmées", () => {
+  it("sort les opportunités périmées du taux et les compte comme à trancher", () => {
     const opps = [
       { id: "o1", name: "Gagnée", type: "grant" as const, status: "won" as const },
-      { id: "o2", name: "Périmée", type: "grant" as const, status: "lead" as const, deadline: "2026-01-01" },
+      { id: "o2", name: "Périmée sans décision", type: "grant" as const, status: "lead" as const, deadline: "2026-01-01" },
     ];
-    // Sans cette correction, le taux affichait 100 % : une seule opportunité « clôturée ».
-    expect(pipelineWinRate(opps, NOW).winRatePct).toBe(50);
+    const w = pipelineWinRate(opps, NOW);
+    // Une date passée sans décision est de la donnée périmée, pas une défaite.
+    expect(w.winRatePct).toBe(100);
+    expect(w.pendingDecision).toBe(1);
+    expect(w.lost).toBe(0);
   });
 
-  it("ne compte pas deux fois une opportunité perdue et périmée", () => {
+  it("ne compte pas comme à trancher une opportunité déjà perdue", () => {
     const opps = [
-      { id: "o1", name: "Gagnée", type: "grant" as const, status: "won" as const },
-      { id: "o2", name: "Perdue et périmée", type: "grant" as const, status: "lost" as const, deadline: "2026-01-01" },
+      { id: "o1", name: "Perdue et périmée", type: "grant" as const, status: "lost" as const, deadline: "2026-01-01" },
     ];
-    expect(pipelineWinRate(opps, NOW).lost).toBe(1);
+    const w = pipelineWinRate(opps, NOW);
+    expect(w.lost).toBe(1);
+    expect(w.pendingDecision).toBe(0);
+  });
+
+  it("renvoie null tant qu'aucune opportunité n'est tranchée", () => {
+    const opps = [{ id: "o1", name: "En cours", type: "grant" as const, status: "lead" as const, deadline: "2026-12-01" }];
+    expect(pipelineWinRate(opps, NOW).winRatePct).toBeNull();
+  });
+});
+
+describe("revenueHorizon", () => {
+  it("nomme le dernier mois engagé et le nombre de mois couverts", () => {
+    const finance = [
+      { id: "f1", type: "invoice" as const, amount: 2000, currency: "TND" as const, status: "sent" as const, issued: "2026-07-27" },
+      { id: "f2", type: "invoice" as const, amount: 2000, currency: "TND" as const, status: "sent" as const, issued: "2026-08-27" },
+      { id: "f3", type: "invoice" as const, amount: 2000, currency: "TND" as const, status: "sent" as const, issued: "2026-09-27" },
+    ];
+    const h = revenueHorizon(finance, NOW);
+    expect(h.lastCommittedMonth).toBe("2026-09");
+    expect(h.monthsCovered).toBe(3);
+    expect(h.committedTND).toBe(6000);
+  });
+
+  it("ne renvoie aucun horizon quand rien n'est engagé", () => {
+    expect(revenueHorizon([], NOW).lastCommittedMonth).toBeNull();
   });
 });
 
@@ -1179,5 +1206,63 @@ describe("monthElapsedFraction", () => {
 
   it("ne renvoie jamais 0, pour ne pas diviser par zéro le 1er du mois", () => {
     expect(monthElapsedFraction(new Date(2026, 0, 1, 0))).toBeGreaterThan(0);
+  });
+});
+
+describe("résultats clés calculés depuis le graphe", () => {
+  const graph = {
+    meta: { eur_tnd: 3.38 },
+    finance: [
+      { id: "caly", type: "invoice" as const, ref: "CALY", amount: 2000, currency: "TND" as const, status: "paid" as const, issued: "2026-07-04", client: "calypso" },
+      { id: "pico", type: "invoice" as const, ref: "PICO", amount: 2100, currency: "EUR" as const, status: "partial" as const, advance: 600, issued: "2026-07-10", client: "pi-consult" },
+    ],
+    quotes: [
+      { id: "q1", status: "accepted" as const, amount: 1, currency: "TND" as const, issued: "2026-07-05" },
+      { id: "q2", status: "sent" as const, amount: 1, currency: "TND" as const, issued: "2026-07-06" },
+    ],
+  };
+
+  it("lit la cible d'un encaissement sur la facture, pas sur une valeur figée", () => {
+    // Cible saisie volontairement fausse : c'est la facture qui fait foi.
+    const kr = { id: "k", label: "Encaisser Calypso", target: 5500, value: 2750, unit: "TND", auto: { kind: "invoice_collected", invoice: "caly" } };
+    expect(okrKrValue(kr, graph, NOW)).toBe(2000);
+    expect(okrKrTarget(kr, graph)).toBe(2000);
+    expect(okrKrProgress(kr, graph, NOW)).toBe(100);
+  });
+
+  it("suit une facture partielle par son avance, au taux du graphe", () => {
+    const kr = { id: "k", label: "Encaisser les 2 sites", target: 3800, value: 600, unit: "TND", auto: { kind: "invoice_collected", invoice: "pico" } };
+    expect(okrKrValue(kr, graph, NOW)).toBeCloseTo(600 * 3.38);
+    expect(okrKrTarget(kr, graph)).toBeCloseTo(2100 * 3.38);
+  });
+
+  it("retombe sur la valeur saisie quand la facture référencée n'existe plus", () => {
+    const kr = { id: "k", label: "X", target: 100, value: 42, unit: "", auto: { kind: "invoice_collected", invoice: "inconnue" } };
+    expect(okrKrValue(kr, graph, NOW)).toBe(0);
+    expect(okrKrTarget(kr, graph)).toBe(100);
+  });
+
+  it("compte les devis acceptés de la fenêtre", () => {
+    const kr = { id: "k", label: "Devis acceptés", target: 2, value: 0, unit: "devis", auto: { kind: "quotes_accepted", since: "2026-07-01" } };
+    expect(okrKrValue(kr, graph, NOW)).toBe(1);
+  });
+
+  it("totalise l'encaissé chez un client et en déduit la cible", () => {
+    const kr = { id: "k", label: "Client", target: 0, value: 0, unit: "TND", auto: { kind: "client_collected", client: "pi-consult" } };
+    expect(okrKrValue(kr, graph, NOW)).toBeCloseTo(600 * 3.38);
+    expect(okrKrTarget(kr, graph)).toBeCloseTo(2100 * 3.38);
+  });
+
+  it("accepte encore l'ancienne forme, une simple chaîne", () => {
+    const kr = { id: "k", label: "CA", target: 20000, value: 0, unit: "TND", auto: "ca_quarter" };
+    expect(krAutoSpec(kr)?.kind).toBe("ca_quarter");
+    expect(okrKrValue(kr, graph, NOW)).toBeGreaterThan(0);
+  });
+
+  it("garde la valeur saisie quand aucune source n'est branchée", () => {
+    const kr = { id: "k", label: "Manuel", target: 10, value: 4, unit: "", auto: undefined };
+    expect(okrKrValue(kr, graph, NOW)).toBe(4);
+    expect(okrKrTarget(kr, graph)).toBe(10);
+    expect(krAutoLabel({ auto: kr.auto })).toBeNull();
   });
 });

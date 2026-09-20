@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  applyRedBudget, briefing, columns, debt, eventSeries, healthBreakdown, logSince, nextAction, tasksDoneSince,
+  applyRedBudget, briefing, columns, debt, eventSeries, healthBreakdown, logSince, nextAction,
+  okrStrip, quarterProgress, recentActivity, tasksDoneSince,
 } from "@/lib/os/today";
 import { MONEY_SLOT, TODAY_LIMITS } from "@/lib/os/today-copy";
 import type { OsGraph, OsLogEntry } from "@/lib/os/types";
@@ -282,5 +283,116 @@ describe("helpers de fenêtre", () => {
       { id: "c", label: "C", done: true },
     ];
     expect(tasksDoneSince(tasks, new Date(NOW.getTime() - 86_400_000)).map((t) => t.id)).toEqual(["a"]);
+  });
+});
+
+describe("okrStrip", () => {
+  const okr = (id: string, quarter: string, value: number, target: number) => ({
+    id, quarter, objective: `Objectif ${id}`,
+    krs: [{ id: `${id}-kr`, label: "KR", target, value, unit: "" }],
+  });
+
+  it("ne garde que les objectifs du trimestre courant", () => {
+    const g = graphOf({ okrs: [okr("a", "2026-Q3", 5, 10), okr("b", "2026-Q2", 10, 10)] });
+    expect(okrStrip(g, NOW).objectives.map((o) => o.id)).toEqual(["a"]);
+  });
+
+  it("mesure le rythme comme l'écart au temps écoulé du trimestre", () => {
+    const g = graphOf({ okrs: [okr("a", "2026-Q3", 5, 10)] });
+    const s = okrStrip(g, NOW);
+    // Au 20 septembre, le T3 est écoulé à environ 88 % et l'objectif est à 50 %.
+    expect(s.elapsedPct).toBeGreaterThan(80);
+    expect(s.globalPct).toBe(50);
+    expect(s.pace).toBeCloseTo(50 - s.elapsedPct, 6);
+    expect(s.objectives[0].tone).toBe("risk");
+  });
+
+  it("qualifie en win un objectif en avance sur le calendrier", () => {
+    const g = graphOf({ okrs: [okr("a", "2026-Q3", 10, 10)] });
+    expect(okrStrip(g, NOW).objectives[0].tone).toBe("win");
+  });
+
+  it("réclame la planification quand le trimestre suivant est vide et la fin proche", () => {
+    const g = graphOf({ okrs: [okr("a", "2026-Q3", 5, 10)] });
+    const s = okrStrip(g, NOW);
+    expect(s.nextQuarter).toBe("2026-Q4");
+    expect(s.daysLeft).toBeLessThanOrEqual(TODAY_LIMITS.planningWindowDays);
+    expect(s.planningDue).toBe(true);
+  });
+
+  it("ne réclame rien si le trimestre suivant a déjà un objectif", () => {
+    const g = graphOf({ okrs: [okr("a", "2026-Q3", 5, 10), okr("b", "2026-Q4", 0, 10)] });
+    expect(okrStrip(g, NOW).planningDue).toBe(false);
+  });
+
+  it("passe à Q1 de l'année suivante depuis un quatrième trimestre", () => {
+    const enDecembre = new Date("2026-12-10T12:00:00.000Z");
+    expect(okrStrip(graphOf(), enDecembre).nextQuarter).toBe("2027-Q1");
+  });
+
+  it("reste à zéro sans objectif, sans diviser par zéro", () => {
+    const s = okrStrip(graphOf(), NOW);
+    expect(s.globalPct).toBe(0);
+    expect(s.objectives).toEqual([]);
+  });
+});
+
+describe("recentActivity", () => {
+  it("trie du plus récent au plus ancien et respecte le plafond", () => {
+    const g = graphOf({ log: [logEntry(-5, "a", "task"), logEntry(-1, "b", "task"), logEntry(-3, "c", "task")] });
+    const out = recentActivity(g, 2);
+    expect(out.map((e) => e.detail)).toHaveLength(2);
+    expect(Date.parse(out[0].ts)).toBeGreaterThan(Date.parse(out[1].ts));
+  });
+
+  it("marque comme nouveau ce qui suit la dernière visite", () => {
+    const g = graphOf({ log: [logEntry(-1, "recent", "task"), logEntry(-10, "vieux", "task")] });
+    const out = recentActivity(g, 10, new Date(NOW.getTime() - 3 * 86_400_000));
+    expect(out[0].isNew).toBe(true);
+    expect(out[1].isNew).toBe(false);
+  });
+
+  it("ignore les entrées dont l'horodatage est illisible", () => {
+    const g = graphOf({ log: [{ ts: "pas une date", action: "x", entity: "y", detail: "", by: "t", synced: true }] });
+    expect(recentActivity(g)).toEqual([]);
+  });
+});
+
+describe("quarterProgress", () => {
+  it("borne le pourcentage écoulé et compte les jours restants", () => {
+    const q = quarterProgress(new Date(2026, 6, 1, 0));
+    expect(q.elapsedPct).toBeGreaterThanOrEqual(0);
+    expect(q.elapsedPct).toBeLessThan(2);
+    expect(q.daysLeft).toBeGreaterThan(80);
+  });
+});
+
+describe("briefing, falaise de revenu et pipeline périmé", () => {
+  it("annonce la falaise quand le revenu engagé couvre peu de mois", () => {
+    const g = graphOf({
+      finance: [
+        { id: "f1", type: "invoice", amount: 2000, currency: "TND", status: "sent", issued: day(10) },
+        { id: "f2", type: "invoice", amount: 2000, currency: "TND", status: "sent", issued: day(40) },
+      ],
+    });
+    const line = briefing(g, NOW).find((l) => l.id === "horizon");
+    expect(line?.tone).toBe("watch");
+    expect(line?.text).toContain("octobre");
+  });
+
+  it("ne dit rien quand rien n'est engagé, plutôt que d'inventer une alerte", () => {
+    expect(briefing(graphOf(), NOW).find((l) => l.id === "horizon")).toBeUndefined();
+  });
+
+  it("signale les opportunités périmées comme donnée à trancher, pas comme échec", () => {
+    const g = graphOf({
+      bdm: { opportunities: [
+        { id: "o1", name: "Périmée", type: "grant", status: "lead", deadline: day(-30) },
+        { id: "o2", name: "Périmée aussi", type: "grant", status: "contact", deadline: day(-10) },
+      ] },
+    });
+    const line = briefing(g, NOW).find((l) => l.id === "pipeline-stale");
+    expect(line?.tone).toBe("info");
+    expect(line?.text).toContain("2");
   });
 });

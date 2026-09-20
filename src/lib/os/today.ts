@@ -3,7 +3,7 @@
 // renvoie null ou un tableau vide quand la donnée manque, plutôt qu'un repli fabriqué. Les textes
 // viennent de today-copy.ts, les seuils de TODAY_LIMITS.
 
-import { daysUntil, restOf, toTND } from "./compute";
+import { curQuarter, daysUntil, okrObjectiveProgress, pipelineWinRate, restOf, revenueHorizon, toTND } from "./compute";
 import { TODAY_COPY, TODAY_LIMITS } from "./today-copy";
 import type { OsBlocker, OsDeadline, OsGraph, OsLogEntry, OsTask } from "./types";
 
@@ -20,6 +20,16 @@ export interface BriefingLine {
 }
 
 const TONE_ORDER: Record<Tone, number> = { win: 0, risk: 1, watch: 2, info: 3 };
+
+/**
+ * Seuils du Command Center. Les valeurs par défaut vivent dans today-copy.ts, mais le graphe peut
+ * les surcharger via `meta.cc_limits` : rien n'est figé dans le code, la source de vérité reste
+ * le document Supabase, y compris pour la politique d'affichage.
+ */
+export function ccLimits(graph: Pick<OsGraph, "meta">): typeof TODAY_LIMITS {
+  const override = (graph.meta as { cc_limits?: Partial<typeof TODAY_LIMITS> } | undefined)?.cc_limits;
+  return override ? { ...TODAY_LIMITS, ...override } : TODAY_LIMITS;
+}
 
 /** Coupe un libellé de graphe à une longueur lisible dans une phrase, sur une frontière de mot. */
 function shorten(label: string, max: number = TODAY_LIMITS.labelChars): string {
@@ -143,8 +153,9 @@ function pendingCash(graph: Pick<OsGraph, "finance" | "meta" | "clients" | "peop
  * s'invente pas de repli. Le résultat est trié par ton puis coupé à TODAY_LIMITS.briefingLines.
  */
 export function briefing(graph: OsGraph, now: Date = new Date()): BriefingLine[] {
+  const L = ccLimits(graph);
   const lines: BriefingLine[] = [];
-  const since = new Date(now.getTime() - TODAY_LIMITS.winsWindowHours * 3_600_000);
+  const since = new Date(now.getTime() - L.winsWindowHours * 3_600_000);
 
   // 1. Ce qui a bougé aujourd'hui.
   const doneToday = tasksDoneSince(graph.tasks, since);
@@ -184,10 +195,10 @@ export function briefing(graph: OsGraph, now: Date = new Date()): BriefingLine[]
       tone: days < 0 ? "risk" : "watch",
       text:
         days < 0
-          ? TODAY_COPY.deadline.overdue(Math.abs(days), shorten(d.label, TODAY_LIMITS.sentenceChars))
+          ? TODAY_COPY.deadline.overdue(Math.abs(days), shorten(d.label, L.sentenceChars))
           : days === 0
-            ? TODAY_COPY.deadline.today(shorten(d.label, TODAY_LIMITS.sentenceChars))
-            : TODAY_COPY.deadline.soon(days, shorten(d.label, TODAY_LIMITS.sentenceChars)),
+            ? TODAY_COPY.deadline.today(shorten(d.label, L.sentenceChars))
+            : TODAY_COPY.deadline.soon(days, shorten(d.label, L.sentenceChars)),
       href: "/os/agenda",
     });
   }
@@ -204,7 +215,31 @@ export function briefing(graph: OsGraph, now: Date = new Date()): BriefingLine[]
     });
   }
 
-  // 4. Le blocage critique le plus ancien.
+  // 4. La falaise de revenu : jusqu'où c'est déjà engagé, et ce qu'il y a après.
+  const horizon = revenueHorizon(graph.finance, now, rate(graph));
+  if (horizon.lastCommittedMonth && horizon.monthsCovered <= L.horizonWarnMonths) {
+    const [y, m] = horizon.lastCommittedMonth.split("-").map(Number);
+    const monthLabel = new Date(y, m - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    lines.push({
+      id: "horizon",
+      tone: "watch",
+      text: TODAY_COPY.horizon.cliff(monthLabel, horizon.monthsCovered),
+      href: "/os/finance",
+    });
+  }
+
+  // 5. Les opportunités périmées sans décision : de la donnée à rafraîchir, pas une défaite.
+  const stale = pipelineWinRate(graph.bdm?.opportunities ?? [], now).pendingDecision;
+  if (stale > 0) {
+    lines.push({
+      id: "pipeline-stale",
+      tone: "info",
+      text: TODAY_COPY.pipeline.stale(stale),
+      href: "/os/pipeline",
+    });
+  }
+
+  // 6. Le blocage critique le plus ancien.
   const blocker = openBlockers(graph)
     .filter((b) => b.severity === "critical")
     .sort((a, b) => Date.parse(a.detected || "") - Date.parse(b.detected || ""))[0];
@@ -212,13 +247,13 @@ export function briefing(graph: OsGraph, now: Date = new Date()): BriefingLine[]
     lines.push({
       id: `blocker:${blocker.id}`,
       tone: "risk",
-      text: TODAY_COPY.blocker.line(shorten(blocker.label, TODAY_LIMITS.sentenceChars), blocker.owner),
+      text: TODAY_COPY.blocker.line(shorten(blocker.label, L.sentenceChars), blocker.owner),
       href: "/os/projets",
     });
   }
 
   const sorted = lines.sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone]);
-  return applyRedBudget(sorted).slice(0, TODAY_LIMITS.briefingLines);
+  return applyRedBudget(sorted).slice(0, L.briefingLines);
 }
 
 export interface NextAction {
@@ -234,15 +269,16 @@ export interface NextAction {
  * et l'on renvoie null si aucun candidat n'existe.
  */
 export function nextAction(graph: OsGraph, now: Date = new Date()): NextAction | null {
+  const L = ccLimits(graph);
   const candidates: NextAction[] = [];
 
   for (const d of graph.deadlines || []) {
     if (d.done) continue;
     const days = daysUntil(d.date, now) ?? 0;
-    if (days > TODAY_LIMITS.soonDays) continue;
+    if (days > L.soonDays) continue;
     candidates.push({
       id: d.id,
-      label: shorten(d.label, TODAY_LIMITS.sentenceChars),
+      label: shorten(d.label, L.sentenceChars),
       reason:
         days < 0
           ? TODAY_COPY.deadline.overdue(Math.abs(days), projectName(graph, d.project) ?? "")
@@ -255,7 +291,7 @@ export function nextAction(graph: OsGraph, now: Date = new Date()): NextAction |
   for (const b of openBlockers(graph)) {
     candidates.push({
       id: b.id,
-      label: shorten(b.label, TODAY_LIMITS.sentenceChars),
+      label: shorten(b.label, L.sentenceChars),
       reason: b.owner ?? projectName(graph, b.project) ?? "",
       href: "/os/projets",
       weight: b.severity === "critical" ? 220 : b.severity === "high" ? 120 : 50,
@@ -266,7 +302,7 @@ export function nextAction(graph: OsGraph, now: Date = new Date()): NextAction |
   if (cash.oldest) {
     candidates.push({
       id: cash.oldest.id,
-      label: shorten(clientName(graph, cash.oldest.client) ?? cash.oldest.label, TODAY_LIMITS.sentenceChars),
+      label: shorten(clientName(graph, cash.oldest.client) ?? cash.oldest.label, L.sentenceChars),
       reason: TODAY_COPY.columns.itemAge(cash.oldest.daysSince),
       href: "/os/finance",
       weight: 40 + cash.oldest.daysSince,
@@ -301,7 +337,7 @@ export interface ColumnView {
 }
 
 export function columns(graph: OsGraph, now: Date = new Date()): ColumnView[] {
-  const L = TODAY_LIMITS;
+  const L = ccLimits(graph);
   const C = TODAY_COPY.columns;
 
   // Argent
@@ -411,6 +447,7 @@ export interface DebtItem {
 
 /** Les retards, triés par enjeu et non par date, avec les fossiles comptés à part. */
 export function debt(graph: OsGraph, now: Date = new Date()): { items: DebtItem[]; fossilCount: number } {
+  const L = ccLimits(graph);
   const cashByProject = new Map<string, number>();
   for (const f of graph.finance || []) {
     if (!f.project) continue;
@@ -430,7 +467,7 @@ export function debt(graph: OsGraph, now: Date = new Date()): { items: DebtItem[
       label: t.label,
       project: projectName(graph, t.project),
       daysOverdue: days,
-      fossil: days > TODAY_LIMITS.fossilDays,
+      fossil: days > L.fossilDays,
       stake: (cashByProject.get(t.project ?? "") ?? 0) + (criticalProjects.has(t.project) ? 5000 : 0) + days,
       kind: "task" as const,
     }));
@@ -444,7 +481,7 @@ export function debt(graph: OsGraph, now: Date = new Date()): { items: DebtItem[
       label: d.label,
       project: projectName(graph, d.project),
       daysOverdue: days,
-      fossil: days > TODAY_LIMITS.fossilDays,
+      fossil: days > L.fossilDays,
       stake: (cashByProject.get(d.project ?? "") ?? 0) + (d.critical ? 10_000 : 0) + days,
       kind: "deadline" as const,
     }));
@@ -468,7 +505,7 @@ export interface HealthFacet {
  */
 export function healthBreakdown(graph: OsGraph, now: Date = new Date()): HealthFacet[] {
   const H = TODAY_COPY.health;
-  const L = TODAY_LIMITS;
+  const L = ccLimits(graph);
 
   const cash = pendingCash(graph, now);
   const oldestDays = cash.oldest ? cash.oldest.daysSince : null;
@@ -502,3 +539,105 @@ export function healthBreakdown(graph: OsGraph, now: Date = new Date()): HealthF
 }
 
 export type { OsBlocker, OsDeadline };
+
+// ═══════════ Command Center : bande OKR, journal, dernière visite ═══════════
+
+export interface OkrStripObjective {
+  id: string;
+  label: string;
+  pct: number;
+  /** Écart à la ligne de base du temps écoulé, en points. */
+  pace: number;
+  tone: Tone;
+}
+
+export interface OkrStrip {
+  quarter: string;
+  objectives: OkrStripObjective[];
+  globalPct: number;
+  elapsedPct: number;
+  pace: number;
+  daysLeft: number;
+  /** Le trimestre suivant n'a aucun objectif alors que la fenêtre de planification est ouverte. */
+  planningDue: boolean;
+  nextQuarter: string;
+}
+
+/** Part du trimestre déjà écoulée, en pourcentage, et jours restants. */
+export function quarterProgress(now: Date = new Date()): { elapsedPct: number; daysLeft: number; end: Date } {
+  const qi = Math.floor(now.getMonth() / 3);
+  const start = new Date(now.getFullYear(), qi * 3, 1);
+  const end = new Date(now.getFullYear(), qi * 3 + 3, 0, 23, 59, 59);
+  const elapsedPct = Math.min(100, Math.max(0, ((now.getTime() - start.getTime()) / (end.getTime() - start.getTime())) * 100));
+  const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / DAY_MS));
+  return { elapsedPct, daysLeft, end };
+}
+
+function nextQuarterKey(now: Date): string {
+  const qi = Math.floor(now.getMonth() / 3);
+  return qi === 3 ? `${now.getFullYear() + 1}-Q1` : `${now.getFullYear()}-Q${qi + 2}`;
+}
+
+/**
+ * Bande de suivi OKR du Command Center.
+ *
+ * Le ton d'un objectif se juge par rapport au temps écoulé, pas dans l'absolu : atteindre 70 % d'un
+ * KR ambitieux est le succès attendu, donc un objectif n'est en alerte que s'il décroche nettement
+ * du rythme du trimestre.
+ */
+export function okrStrip(graph: OsGraph, now: Date = new Date()): OkrStrip {
+  const L = ccLimits(graph);
+  const quarter = curQuarter(now);
+  const { elapsedPct, daysLeft } = quarterProgress(now);
+  const current = (graph.okrs || []).filter((o) => o.quarter === quarter);
+
+  const objectives: OkrStripObjective[] = current.map((o) => {
+    const pct = okrObjectiveProgress(o, graph, now);
+    const pace = pct - elapsedPct;
+    return {
+      id: o.id,
+      label: o.objective,
+      pct,
+      pace,
+      tone: pace >= 0 ? "win" : pace > -L.okrPaceTense ? "watch" : "risk",
+    };
+  });
+
+  const globalPct = objectives.length ? objectives.reduce((s, o) => s + o.pct, 0) / objectives.length : 0;
+  const nextQuarter = nextQuarterKey(now);
+  const nextEmpty = !(graph.okrs || []).some((o) => o.quarter === nextQuarter);
+
+  return {
+    quarter,
+    objectives,
+    globalPct,
+    elapsedPct,
+    pace: globalPct - elapsedPct,
+    daysLeft,
+    nextQuarter,
+    planningDue: nextEmpty && daysLeft <= L.planningWindowDays,
+  };
+}
+
+export interface ActivityEntry {
+  id: string;
+  ts: string;
+  detail: string;
+  by: string;
+  isNew: boolean;
+}
+
+/** Dernières écritures du journal, de la plus récente à la plus ancienne. */
+export function recentActivity(graph: Pick<OsGraph, "log">, limit: number = TODAY_LIMITS.journalEntries, since?: Date): ActivityEntry[] {
+  return (graph.log || [])
+    .filter((e) => !Number.isNaN(Date.parse(e.ts || "")))
+    .sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts))
+    .slice(0, limit)
+    .map((e, i) => ({
+      id: `${e.ts}:${e.entity}:${i}`,
+      ts: e.ts,
+      detail: e.detail,
+      by: e.by,
+      isNew: since ? Date.parse(e.ts) > since.getTime() : false,
+    }));
+}

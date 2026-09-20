@@ -20,8 +20,8 @@ export interface OsNavModule {
 }
 
 export const OS_MODULES: OsNavModule[] = [
-  { id: "today", label: "Today", group: "Command Center", phase: "A", native: true, href: "/os/today" },
-  { id: "dashboard", label: "Dashboard", group: "Command Center", phase: "B", native: true, href: "/os/dashboard" },
+  // Today et Dashboard ont fusionné le 20/09 : une seule page, en trois niveaux de détail.
+  { id: "today", label: "Command Center", group: "Command Center", phase: "A", native: true, href: "/os/today" },
   { id: "okr", label: "OKR", group: "Command Center", phase: "B", native: true, href: "/os/okr" },
   { id: "projets", label: "Projets", group: "Work", phase: "B", native: true, href: "/os/projets" },
   { id: "taches", label: "Tâches", group: "Work", phase: "B", native: true, href: "/os/taches" },
