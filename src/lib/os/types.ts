@@ -127,14 +127,22 @@ export interface OsQuote {
   validity?: string;
 }
 
+export type ExpenseFrequency = "monthly" | "quarterly" | "yearly";
+
 export interface OsExpense {
   id: string;
   label: string;
+  /** Montant d'une occurrence, pas du total annuel. */
   amount: number;
   currency: Currency;
+  /** Date de la dépense, ou date de première occurrence quand elle est récurrente. */
   date: string;
   category?: string;
   recurring?: boolean;
+  /** Périodicité d'une dépense récurrente. Absente, elle est considérée comme mensuelle. */
+  frequency?: ExpenseFrequency;
+  /** Dernière occurrence d'une récurrence arrêtée. Absente, la dépense court toujours. */
+  until?: string;
   project?: string;
   vendor?: string;
   notes?: string;
@@ -311,7 +319,20 @@ export interface OsOkrKeyResult {
   unit?: string;
   /** Chaîne = ancienne forme (`"ca_quarter"`), objet = source paramétrée. */
   auto?: "ca_quarter" | (string & {}) | OsKrAuto;
+  /** Confiance de tenir la cible : 1 faible, 2 moyenne, 3 haute. Saisie au point hebdomadaire. */
+  confidence?: 1 | 2 | 3;
+  /** Note finale du trimestre, de 0 à 1, posée à la clôture. */
+  grade?: number;
 }
+
+export interface OsOkrCheckin {
+  ts: string;
+  /** Confiance globale sur l'objectif au moment du point. */
+  confidence: 1 | 2 | 3;
+  note?: string;
+}
+
+export type OkrStatus = "draft" | "published";
 
 export interface OsOkr {
   id: string;
@@ -319,6 +340,13 @@ export interface OsOkr {
   objective: string;
   identity?: IdentityId;
   krs: OsOkrKeyResult[];
+  /** Absent = publié. Un brouillon ne compte dans aucun chiffre tant qu'il n'est pas publié. */
+  status?: OkrStatus;
+  /** Historique des points de suivi. */
+  checkins?: OsOkrCheckin[];
+  /** Note de clôture du trimestre, de 0 à 1. */
+  grade?: number;
+  closed_at?: string;
 }
 
 export type CfStage = "attente" | "ingere" | "montage" | "decline" | "livre";

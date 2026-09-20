@@ -3,8 +3,8 @@
 // renvoie null ou un tableau vide quand la donnée manque, plutôt qu'un repli fabriqué. Les textes
 // viennent de today-copy.ts, les seuils de TODAY_LIMITS.
 
-import { curQuarter, daysUntil, okrObjectiveProgress, pipelineWinRate, restOf, revenueHorizon, toTND } from "./compute";
-import { TODAY_COPY, TODAY_LIMITS } from "./today-copy";
+import { breakEven, curQuarter, daysUntil, okrObjectiveProgress, pipelineWinRate, restOf, revenueHorizon, toTND } from "./compute";
+import { MONEY_SLOT, TODAY_COPY, TODAY_LIMITS } from "./today-copy";
 import type { OsBlocker, OsDeadline, OsGraph, OsLogEntry, OsTask } from "./types";
 
 export type Tone = "win" | "watch" | "risk" | "info";
@@ -228,7 +228,24 @@ export function briefing(graph: OsGraph, now: Date = new Date()): BriefingLine[]
     });
   }
 
-  // 5. Les opportunités périmées sans décision : de la donnée à rafraîchir, pas une défaite.
+  // 5. Le seuil de rentabilité : ce que le studio coûte chaque mois face à ce qu'il rapporte.
+  const be = breakEven(graph.finance, graph.expenses, now, rate(graph));
+  if (be.monthlyBurnTND > 0) {
+    const runway = be.runwayMonths && be.runwayMonths > 0
+      ? TODAY_COPY.burn.runway(be.runwayMonths)
+      : TODAY_COPY.burn.noRunway;
+    lines.push({
+      id: "burn",
+      tone: be.covered ? "info" : "watch",
+      text: be.covered
+        ? TODAY_COPY.burn.covered(MONEY_SLOT, runway)
+        : TODAY_COPY.burn.uncovered(MONEY_SLOT, runway),
+      money: Math.abs(be.marginTND),
+      href: "/os/finance",
+    });
+  }
+
+  // 6. Les opportunités périmées sans décision : de la donnée à rafraîchir, pas une défaite.
   const stale = pipelineWinRate(graph.bdm?.opportunities ?? [], now).pendingDecision;
   if (stale > 0) {
     lines.push({
@@ -239,7 +256,7 @@ export function briefing(graph: OsGraph, now: Date = new Date()): BriefingLine[]
     });
   }
 
-  // 6. Le blocage critique le plus ancien.
+  // 7. Le blocage critique le plus ancien.
   const blocker = openBlockers(graph)
     .filter((b) => b.severity === "critical")
     .sort((a, b) => Date.parse(a.detected || "") - Date.parse(b.detected || ""))[0];

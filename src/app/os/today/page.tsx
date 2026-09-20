@@ -6,7 +6,7 @@ import {
   briefing, columns, debt, healthBreakdown, nextAction, okrStrip, recentActivity,
 } from "@/lib/os/today";
 import { TODAY_COPY } from "@/lib/os/today-copy";
-import { clientConcentration, monthlyAnomaly, monthlySeries, pipelineWinRate, revenueHorizon, runRateProjection } from "@/lib/os/compute";
+import { pipelineWinRate, revenueHorizon } from "@/lib/os/compute";
 import { Briefing } from "@/components/os/today/Briefing";
 import { CaptureBar } from "@/components/os/today/CaptureBar";
 import { ColumnCard } from "@/components/os/today/ColumnCard";
@@ -14,13 +14,7 @@ import { DebtSection } from "@/components/os/today/DebtSection";
 import { Fold } from "@/components/os/today/Fold";
 import { HealthChips } from "@/components/os/today/HealthChips";
 import { OkrStripCard } from "@/components/os/today/OkrStripCard";
-import { ConcentrationRiskCard } from "@/components/os/dashboard/ConcentrationRiskCard";
-import { RunRateProjectionCard } from "@/components/os/dashboard/RunRateProjectionCard";
-import { PipelineWinRateCard } from "@/components/os/dashboard/PipelineWinRateCard";
-import { AnomalyCard } from "@/components/os/dashboard/AnomalyCard";
-import { FxRateCard } from "@/components/os/dashboard/FxRateCard";
-import { RevenueHorizonCard } from "@/components/os/dashboard/RevenueHorizonCard";
-import { KpiGrid } from "@/components/os/dashboard/KpiGrid";
+import { AnalysisLinks } from "@/components/os/today/AnalysisLinks";
 
 const LAST_VISIT_KEY = "fmrxr-cc-last-visit-v1";
 
@@ -95,19 +89,10 @@ export default function CommandCenterPage() {
 
       <DebtSection items={debtItems} fossilCount={fossilCount} />
 
-      <Fold id="analysis" title={TODAY_COPY.folds.analysis} summary={TODAY_COPY.folds.analysisSummary}>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <RevenueHorizonCard horizon={revenueHorizon(graph.finance, now, eurTnd)} graph={graph} />
-          <ConcentrationRiskCard concentration={clientConcentration(graph.finance, eurTnd, now)} graph={graph} />
-          <RunRateProjectionCard projection={runRateProjection(graph.finance, now, eurTnd)} now={now} />
-          <PipelineWinRateCard winRate={pipelineWinRate(graph.bdm?.opportunities || [], now)} />
-          <AnomalyCard anomaly={monthlyAnomaly(monthlySeries(graph.finance, now, eurTnd), 40, now)} />
-          <FxRateCard />
-        </div>
-        <div className="mt-4">
-          <KpiGrid kpis={graph.kpis || []} graph={graph} now={now} />
-        </div>
-      </Fold>
+      <AnalysisLinks
+        horizonMonth={revenueHorizon(graph.finance, now, eurTnd).lastCommittedMonth}
+        pendingDecision={pipelineWinRate(graph.bdm?.opportunities || [], now).pendingDecision}
+      />
 
       <Fold id="journal" title={TODAY_COPY.folds.journal} summary={TODAY_COPY.folds.journalSummary(activity.length)}>
         <ul className="flex flex-col gap-2">

@@ -88,6 +88,16 @@ export const TODAY_COPY = {
       `Ton revenu déjà engagé s'arrête à ${monthLabel}, soit ${months} ${months > 1 ? "mois couverts" : "mois couvert"}. Au-delà, rien n'est signé.`,
   },
 
+  burn: {
+    uncovered: (missingSlot: string, monthsCovered: string) =>
+      `Il manque ${missingSlot} par mois pour couvrir tes charges. ${monthsCovered}`,
+    covered: (marginSlot: string, monthsCovered: string) =>
+      `Tes charges sont couvertes, avec ${marginSlot} de marge mensuelle. ${monthsCovered}`,
+    runway: (months: number) =>
+      `Le revenu déjà engagé couvre ${months.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} mois de charges.`,
+    noRunway: "Aucun revenu engagé devant pour les couvrir.",
+  },
+
   pipeline: {
     stale: (count: number) =>
       `${count} ${count > 1 ? "opportunités ont dépassé leur date" : "opportunité a dépassé sa date"} sans décision, à trancher pour que le pipeline dise la vérité.`,
@@ -151,9 +161,16 @@ export const TODAY_COPY = {
     openLink: "Ouvrir les OKR",
   },
 
+  analysis: {
+    title: "Pour creuser",
+    finance: (monthLabel: string) => `Finance, revenu engagé jusqu'à ${monthLabel} →`,
+    financePlain: "Finance, concentration, projection et anomalie →",
+    pipeline: (count: number) => `Pipeline, ${count} ${count > 1 ? "opportunités à trancher" : "opportunité à trancher"} →`,
+    pipelinePlain: "Pipeline, taux de conversion →",
+    kpis: "OKR et KPI →",
+  },
+
   folds: {
-    analysis: "Analyse",
-    analysisSummary: "concentration client, projection, anomalie mensuelle, taux de conversion",
     journal: "Journal",
     journalSummary: (count: number) => `${count} dernières écritures`,
     newSinceVisit: "nouveau",

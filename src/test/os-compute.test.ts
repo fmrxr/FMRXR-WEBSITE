@@ -8,6 +8,7 @@ import {
   isOpportunityExpired, bdmSummary, financeOverview,
   libraryTriage, libraryMatches, libraryByCategory, libraryCategoryCounts, graphEntityCount,
   countableInvoices, revenueInvoices, monthElapsedFraction, revenueHorizon, okrKrTarget, krAutoSpec, krAutoLabel,
+  monthlyBurn, recurringExpensesYtd, breakEven,
   assetKindLabel, assetMatches, assetKindGroups, assetKindCounts, assetClientLabel, assetClientGroups,
   cfStageLabel, cfAdjacentStage, cfSummary,
   graphEntities, graphEdges, graphNodeDegrees, loadHistoricalEntities, graphEntitiesWithHistory, loadHistoricalEdges,
@@ -605,11 +606,13 @@ describe("financeOverview", () => {
     expect(o.plafondPct).toBeCloseTo(((1000 + 500) / 1500) * 100);
   });
 
-  it("computes this year's expenses and net treasury", () => {
+  it("compte une charge récurrente chaque mois, pas une seule fois dans l'année", () => {
     const o = financeOverview(finance, expenses, NOW, 3.38, 75_000);
-    expect(o.expenseTND).toBe(200); // only e1 is in 2026
-    expect(o.recurringExpenseTND).toBe(200);
-    expect(o.netTND).toBeCloseTo(o.cashInTND - 200);
+    // e1 court depuis le 1er mai, soit environ 2,7 mois au 22 juillet : bien plus qu'une occurrence.
+    expect(o.recurringExpenseTND).toBe(200); // charge mensuelle
+    expect(o.expenseTND).toBeGreaterThan(450);
+    expect(o.expenseTND).toBeLessThan(600);
+    expect(o.netTND).toBeCloseTo(o.cashInTND - o.expenseTND);
   });
 });
 
@@ -1264,5 +1267,58 @@ describe("résultats clés calculés depuis le graphe", () => {
     expect(okrKrValue(kr, graph, NOW)).toBe(4);
     expect(okrKrTarget(kr, graph)).toBe(10);
     expect(krAutoLabel({ auto: kr.auto })).toBeNull();
+  });
+});
+
+describe("charges récurrentes et seuil de rentabilité", () => {
+  const salaire = {
+    id: "exp-remu", label: "Rémunération", amount: 2500, currency: "TND" as const,
+    date: "2026-01-01", recurring: true, frequency: "monthly" as const,
+  };
+
+  it("ramène toutes les périodicités au mois", () => {
+    expect(monthlyBurn([salaire], NOW)).toBe(2500);
+    expect(monthlyBurn([{ ...salaire, frequency: "yearly" as const, amount: 1200 }], NOW)).toBe(100);
+    expect(monthlyBurn([{ ...salaire, frequency: "quarterly" as const, amount: 300 }], NOW)).toBe(100);
+  });
+
+  it("traite une récurrence sans périodicité déclarée comme mensuelle", () => {
+    const { frequency, ...sansFrequence } = salaire;
+    expect(frequency).toBe("monthly");
+    expect(monthlyBurn([sansFrequence], NOW)).toBe(2500);
+  });
+
+  it("ignore une récurrence pas encore commencée ou déjà arrêtée", () => {
+    expect(monthlyBurn([{ ...salaire, date: "2026-12-01" }], NOW)).toBe(0);
+    expect(monthlyBurn([{ ...salaire, until: "2026-03-31" }], NOW)).toBe(0);
+    expect(monthlyBurn([{ ...salaire, until: "2026-12-31" }], NOW)).toBe(2500);
+  });
+
+  it("compte les mois écoulés depuis le début de la récurrence, pas depuis janvier", () => {
+    const depuisJanvier = recurringExpensesYtd([salaire], NOW);
+    const depuisMai = recurringExpensesYtd([{ ...salaire, date: "2026-05-01" }], NOW);
+    expect(depuisJanvier).toBeGreaterThan(depuisMai * 2);
+    // Environ 6,7 mois de charge au 22 juillet.
+    expect(depuisJanvier).toBeGreaterThan(2500 * 6.5);
+    expect(depuisJanvier).toBeLessThan(2500 * 7);
+  });
+
+  it("dit s'il manque de l'argent chaque mois, et combien de mois sont couverts", () => {
+    const finance = [
+      { id: "f1", type: "invoice" as const, amount: 7000, currency: "TND" as const, status: "paid" as const, issued: "2026-03-01" },
+      { id: "f2", type: "invoice" as const, amount: 2500, currency: "TND" as const, status: "sent" as const, issued: "2026-08-27" },
+      { id: "f3", type: "invoice" as const, amount: 2500, currency: "TND" as const, status: "sent" as const, issued: "2026-09-27" },
+    ];
+    const b = breakEven(finance, [salaire], NOW, 3.38);
+    expect(b.monthlyBurnTND).toBe(2500);
+    // 7 000 TND facturés sur 6,7 mois, soit environ 1 046 par mois : le mois n'est pas couvert.
+    expect(b.covered).toBe(false);
+    expect(b.marginTND).toBeLessThan(0);
+    // 5 000 TND déjà engagés devant, soit deux mois de charges.
+    expect(b.runwayMonths).toBeCloseTo(2, 1);
+  });
+
+  it("ne renvoie aucune autonomie quand il n'y a aucune charge", () => {
+    expect(breakEven([], [], NOW).runwayMonths).toBeNull();
   });
 });

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useOs } from "@/lib/os/store";
-import { bdmSummary, closingSoon, oppDeadlineStatus, relances } from "@/lib/os/compute";
+import { bdmSummary, closingSoon, oppDeadlineStatus, pipelineWinRate, relances } from "@/lib/os/compute";
 import { PipelineStats } from "@/components/os/pipeline/PipelineStats";
 import { OpportunityRow } from "@/components/os/pipeline/OpportunityRow";
 import { Section } from "@/components/os/Section";
+import { PipelineWinRateCard } from "@/components/os/pipeline/PipelineWinRateCard";
 import type { OpportunityStatus, OpportunityType } from "@/lib/os/types";
 
 const TYPE_OPTIONS: { value: OpportunityType; label: string }[] = [
@@ -199,6 +200,12 @@ export default function PipelinePage() {
           </div>
         </Section>
       )}
+
+      <Section id="pipeline-conversion" title="Conversion">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <PipelineWinRateCard winRate={pipelineWinRate(opportunities, now)} />
+        </div>
+      </Section>
 
       <Section id="pipeline-all" title={`Toutes les opportunités — ${opportunities.length}`}>
         <div className="fm-glass-card rounded-2xl px-4">

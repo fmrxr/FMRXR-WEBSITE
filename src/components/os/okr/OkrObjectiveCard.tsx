@@ -5,6 +5,8 @@ import { Card } from "../Card";
 import { Badge } from "../Badge";
 import { krAutoLabel, okrKrProgress, okrKrTarget, okrKrValue, okrObjectiveProgress } from "@/lib/os/compute";
 import { quarterProgress } from "@/lib/os/today";
+import { isDraft, lintKr } from "@/lib/os/okr";
+import { OkrCheckin } from "./OkrCheckin";
 import type { OsGraph, OsOkr } from "@/lib/os/types";
 
 /**
@@ -142,13 +144,16 @@ interface OkrObjectiveCardProps {
   onAddKr: (label: string, target: number, unit: string) => void;
   onSetKrValue: (krId: string, value: number) => void;
   onDelete: () => void;
+  onCheckin?: (confidence: 1 | 2 | 3, note: string) => void;
+  onPublish?: () => void;
 }
 
-export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSetKrValue, onDelete }: OkrObjectiveCardProps) {
+export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSetKrValue, onDelete, onCheckin, onPublish }: OkrObjectiveCardProps) {
   const [addingKr, setAddingKr] = useState(false);
   const [label, setLabel] = useState("");
   const [target, setTarget] = useState("");
   const [unit, setUnit] = useState("");
+  const lint = lintKr(label, target === "" ? undefined : Number(target));
 
   const pct = okrObjectiveProgress(okr, graph, now);
   const { elapsedPct } = quarterProgress(now);
@@ -171,6 +176,7 @@ export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSet
           <div className="mb-1 flex items-center gap-2 font-grotesk text-xs text-fmmuted">
             {identityName ? <Badge>{identityName}</Badge> : null}
             {okr.quarter}
+            {isDraft(okr) && <Badge tone="warn">brouillon</Badge>}
           </div>
           <div className="font-grotesk text-[14.5px] font-semibold text-fmfg">{okr.objective}</div>
         </div>
@@ -203,8 +209,22 @@ export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSet
         />
       ))}
 
+      {onCheckin && !isDraft(okr) && <OkrCheckin okr={okr} now={now} onCheckin={onCheckin} />}
+
+      {onPublish && isDraft(okr) && (
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-fmborder pt-3">
+          <span className="font-grotesk text-[11px] text-fmmuted">
+            Ce brouillon ne compte dans aucun chiffre tant qu&apos;il n&apos;est pas publié.
+          </span>
+          <button type="button" onClick={onPublish} className="fm-link font-grotesk text-xs text-fmaccent">
+            Publier l&apos;objectif
+          </button>
+        </div>
+      )}
+
       {addingKr ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             className="flex-1 rounded border border-fmborder bg-fmmutedbg px-2 py-1 font-grotesk text-xs text-fmfg"
             placeholder="Résultat clé (mesurable)"
@@ -231,6 +251,13 @@ export function OkrObjectiveCard({ okr, graph, identityName, now, onAddKr, onSet
           <button type="button" className="fm-link font-grotesk text-xs text-fmmuted" onClick={() => setAddingKr(false)}>
             Annuler
           </button>
+        </div>
+          {lint.level === "warn" && (
+            <p className="rounded border border-[#d9a441]/40 bg-[#d9a441]/5 px-2 py-1.5 font-grotesk text-[11px] leading-relaxed text-[#d9a441]">
+              {lint.message}
+              <span className="mt-0.5 block text-fmmuted">{lint.hint}</span>
+            </p>
+          )}
         </div>
       ) : (
         <div className="mt-3 flex gap-4">

@@ -396,3 +396,35 @@ describe("briefing, falaise de revenu et pipeline périmé", () => {
     expect(line?.text).toContain("2");
   });
 });
+
+describe("briefing, seuil de rentabilité", () => {
+  const salaire = {
+    id: "exp-remu", label: "Rémunération", amount: 2500, currency: "TND" as const,
+    date: "2026-01-01", recurring: true, frequency: "monthly" as const,
+  };
+
+  it("dit combien il manque chaque mois quand les charges ne sont pas couvertes", () => {
+    const g = graphOf({
+      expenses: [salaire],
+      finance: [{ id: "f1", type: "invoice", amount: 3000, currency: "TND", status: "paid", issued: day(-60) }],
+    });
+    const line = briefing(g, NOW).find((l) => l.id === "burn");
+    expect(line?.tone).toBe("watch");
+    expect(line?.text).toContain("Il manque");
+    expect(line?.money).toBeGreaterThan(0);
+  });
+
+  it("se tait quand aucune charge récurrente n'est déclarée", () => {
+    expect(briefing(graphOf(), NOW).find((l) => l.id === "burn")).toBeUndefined();
+  });
+
+  it("annonce la marge quand le revenu dépasse les charges", () => {
+    const g = graphOf({
+      expenses: [salaire],
+      finance: [{ id: "f1", type: "invoice", amount: 80_000, currency: "TND", status: "paid", issued: day(-60) }],
+    });
+    const line = briefing(g, NOW).find((l) => l.id === "burn");
+    expect(line?.text).toContain("couvertes");
+    expect(line?.tone).toBe("info");
+  });
+});

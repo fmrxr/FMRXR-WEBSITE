@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useOs } from "@/lib/os/store";
-import { financeOverview } from "@/lib/os/compute";
+import { breakEven, clientConcentration, financeOverview, monthlyAnomaly, monthlySeries, revenueHorizon, runRateProjection } from "@/lib/os/compute";
 import { parseRefSeq } from "@/lib/os/document";
 import type { GeneratedDocument } from "@/components/os/finance/DocumentGeneratorForm";
 import { DocumentGeneratorForm } from "@/components/os/finance/DocumentGeneratorForm";
@@ -16,6 +16,12 @@ import { QuoteTable } from "@/components/os/finance/QuoteTable";
 import { ExpenseTable } from "@/components/os/finance/ExpenseTable";
 import type { ExpenseDraft } from "@/components/os/finance/ExpenseTable";
 import { Section } from "@/components/os/Section";
+import { RevenueHorizonCard } from "@/components/os/finance/RevenueHorizonCard";
+import { BreakEvenCard } from "@/components/os/finance/BreakEvenCard";
+import { ConcentrationRiskCard } from "@/components/os/finance/ConcentrationRiskCard";
+import { RunRateProjectionCard } from "@/components/os/finance/RunRateProjectionCard";
+import { AnomalyCard } from "@/components/os/finance/AnomalyCard";
+import { FxRateCard } from "@/components/os/finance/FxRateCard";
 import { genId } from "@/lib/os/id";
 import type { InvoiceStatus, OsQuote, QuoteStatus } from "@/lib/os/types";
 
@@ -314,6 +320,17 @@ export default function FinancePage() {
       )}
 
       <FinanceOverviewCards overview={overview} now={now} />
+
+      <Section id="finance-analyse" title="Analyse">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <BreakEvenCard breakEven={breakEven(graph.finance, graph.expenses, now, eurTnd)} />
+          <RevenueHorizonCard horizon={revenueHorizon(graph.finance, now, eurTnd)} graph={graph} />
+          <ConcentrationRiskCard concentration={clientConcentration(graph.finance, eurTnd, now)} graph={graph} />
+          <RunRateProjectionCard projection={runRateProjection(graph.finance, now, eurTnd)} now={now} />
+          <AnomalyCard anomaly={monthlyAnomaly(monthlySeries(graph.finance, now, eurTnd), 40, now)} />
+          <FxRateCard />
+        </div>
+      </Section>
 
       <Section id="finance-forecast" title="Prévisions">
         <FinanceForecast graph={graph} now={now} />

@@ -942,10 +942,14 @@ export function financeOverview(
   const yearInvoiceItems: MoneyItem[] = yearInvoices.map((f) => ({ amount: f.amount || 0, currency: f.currency }));
   const yearInvoiceTND = yearInvoiceItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
 
-  const yearExpenses = expenses.filter((e) => (e.date || "").startsWith(year));
+  // Dépenses ponctuelles de l'année, puis les récurrences au prorata du temps écoulé : une charge
+  // mensuelle comptée une seule fois faisait paraître le studio douze fois plus rentable qu'il ne l'est.
+  const yearExpenses = expenses.filter((e) => !e.recurring && (e.date || "").startsWith(year));
   const expenseItems: MoneyItem[] = yearExpenses.map((e) => ({ amount: e.amount || 0, currency: e.currency }));
-  const expenseTND = expenseItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
-  const recurringExpenseTND = expenses.filter((e) => e.recurring).reduce((s, e) => s + toTND(e.amount || 0, e.currency, eurTnd), 0);
+  const oneOffTND = expenseItems.reduce((s, i) => s + toTND(i.amount, i.currency, eurTnd), 0);
+  const recurringYtdTND = recurringExpensesYtd(expenses, now, eurTnd);
+  const expenseTND = oneOffTND + recurringYtdTND;
+  const recurringExpenseTND = monthlyBurn(expenses, now, eurTnd);
 
   return {
     cashInItems,
@@ -960,7 +964,7 @@ export function financeOverview(
     plafondPct: (yearInvoiceTND / plafond) * 100,
     expenseItems,
     expenseTND,
-    expenseCount: yearExpenses.length,
+    expenseCount: yearExpenses.length + expenses.filter((e) => isRecurringActive(e, now)).length,
     recurringExpenseTND,
     netTND: cashInTND - expenseTND,
   };
@@ -1492,4 +1496,93 @@ export function serializeGraphForAsk(graph: OsGraph, logLimit = 60): string {
   }
 
   return lines.join("\n");
+}
+
+// ═══════════ Charges récurrentes, seuil de rentabilité, autonomie ═══════════
+
+const OCCURRENCES_PER_YEAR: Record<string, number> = { monthly: 12, quarterly: 4, yearly: 1 };
+
+/** Occurrences par an d'une dépense récurrente. Sans périodicité déclarée, elle est mensuelle. */
+export function expenseOccurrencesPerYear(e: Pick<OsExpense, "recurring" | "frequency">): number {
+  if (!e.recurring) return 0;
+  return OCCURRENCES_PER_YEAR[e.frequency || "monthly"] ?? 12;
+}
+
+/** Une récurrence est active si elle a commencé et n'a pas été arrêtée. */
+export function isRecurringActive(e: Pick<OsExpense, "recurring" | "date" | "until">, now: Date = new Date()): boolean {
+  if (!e.recurring) return false;
+  const start = Date.parse(e.date || "");
+  if (!Number.isNaN(start) && start > now.getTime()) return false;
+  const end = Date.parse(e.until || "");
+  return Number.isNaN(end) ? true : end >= now.getTime();
+}
+
+/**
+ * Charge mensuelle récurrente, toutes périodicités ramenées au mois.
+ *
+ * Sans cette normalisation, une dépense récurrente était comptée une seule fois dans l'année :
+ * une rémunération mensuelle apparaissait douze fois trop faible.
+ */
+export function monthlyBurn(expenses: OsExpense[] = [], now: Date = new Date(), eurTnd?: number): number {
+  return expenses
+    .filter((e) => isRecurringActive(e, now))
+    .reduce((s, e) => s + (toTND(e.amount || 0, e.currency, eurTnd) * expenseOccurrencesPerYear(e)) / 12, 0);
+}
+
+/**
+ * Charges récurrentes réellement engagées depuis le 1er janvier, chacune comptée à partir de sa
+ * propre date de début. Une récurrence qui commence en mai ne coûte pas depuis janvier.
+ */
+export function recurringExpensesYtd(expenses: OsExpense[] = [], now: Date = new Date(), eurTnd?: number): number {
+  const yearStart = new Date(now.getFullYear(), 0, 1).getTime();
+  const nowMs = now.getTime();
+
+  return (expenses || [])
+    .filter((e) => e.recurring)
+    .reduce((sum, e) => {
+      const declaredStart = Date.parse(e.date || "");
+      const start = Math.max(Number.isNaN(declaredStart) ? yearStart : declaredStart, yearStart);
+      const declaredEnd = Date.parse(e.until || "");
+      const end = Math.min(Number.isNaN(declaredEnd) ? nowMs : declaredEnd, nowMs);
+      if (end <= start) return sum;
+      const months = (end - start) / (86_400_000 * 30.436_875);
+      const monthlyAmount = (toTND(e.amount || 0, e.currency, eurTnd) * expenseOccurrencesPerYear(e)) / 12;
+      return sum + monthlyAmount * months;
+    }, 0);
+}
+
+export interface BreakEven {
+  /** Charge mensuelle à couvrir. */
+  monthlyBurnTND: number;
+  /** Revenu mensuel moyen constaté sur l'année en cours. */
+  monthlyRevenueTND: number;
+  /** Positif = le mois est couvert, négatif = il manque ce montant chaque mois. */
+  marginTND: number;
+  covered: boolean;
+  /** Mois de charges déjà couverts par le revenu engagé devant soi. */
+  runwayMonths: number | null;
+}
+
+/**
+ * Seuil de rentabilité mensuel et autonomie.
+ *
+ * L'autonomie se calcule sur le revenu déjà engagé, pas sur une moyenne : ce sont des factures
+ * réelles avec une date, donc une réponse à « combien de mois sont couverts sans rien vendre ».
+ */
+export function breakEven(
+  finance: OsInvoice[] = [],
+  expenses: OsExpense[] = [],
+  now: Date = new Date(),
+  eurTnd?: number,
+): BreakEven {
+  const monthlyBurnTND = monthlyBurn(expenses, now, eurTnd);
+  const monthlyRevenueTND = runRateProjection(finance, now, eurTnd).avgMonthly;
+  const committed = futureCommitments(finance, now, 12, eurTnd).reduce((s, m) => s + m.amountTND, 0);
+  return {
+    monthlyBurnTND,
+    monthlyRevenueTND,
+    marginTND: monthlyRevenueTND - monthlyBurnTND,
+    covered: monthlyRevenueTND >= monthlyBurnTND,
+    runwayMonths: monthlyBurnTND > 0 ? committed / monthlyBurnTND : null,
+  };
 }
