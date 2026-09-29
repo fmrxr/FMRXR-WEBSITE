@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
@@ -7,6 +8,30 @@ export const revalidate = 60;
 export async function generateStaticParams() {
   const projects = await getPublished("projects");
   return projects.map((p: any) => ({ slug: p.slug }));
+}
+
+// Chaque projet doit porter son propre titre et sa propre description : sans ça
+// les dix pages héritaient du titre global et Google les traitait comme des
+// doublons. On dérive tout du contenu réel plutôt que d'un gabarit figé.
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const p = await getBySlug("projects", slug);
+  if (!p) return { title: "Projet introuvable", robots: { index: false, follow: false } };
+
+  const context = [p.client, p.year, p.location].filter(Boolean).join(" · ");
+  const description = (p.summary || p.description || "").replace(/\s+/g, " ").trim().slice(0, 300)
+    || `${p.title}${context ? `. ${context}` : ""}`;
+  const url = `/projects/${p.slug}`;
+  const images = p.cover_url ? [{ url: p.cover_url, alt: p.title }] : undefined;
+
+  return {
+    title: `${p.title}${p.category ? ` · ${p.category}` : ""}`,
+    description,
+    keywords: [...(p.tags ?? []), ...(p.stack ?? []), p.client, p.category].filter(Boolean),
+    alternates: { canonical: url },
+    openGraph: { type: "article", url, title: p.title, description, images },
+    twitter: { card: "summary_large_image", title: p.title, description, images: images?.map((i) => i.url) },
+  };
 }
 
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -67,9 +92,27 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       </div>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        "@context": "https://schema.org", "@type": "CreativeWork",
-        name: p.title, about: p.category, dateCreated: p.year,
-        creator: { "@type": "Organization", name: "FMRXR Studio" },
+        "@context": "https://schema.org",
+        "@type": "CreativeWork",
+        name: p.title,
+        headline: p.title,
+        about: p.category,
+        dateCreated: p.year,
+        url: `https://fmrxr.com/projects/${p.slug}`,
+        description: p.summary || undefined,
+        abstract: p.description || undefined,
+        image: p.cover_url || undefined,
+        keywords: [...(p.role ?? []), ...(p.stack ?? []), ...(p.tags ?? [])].join(", ") || undefined,
+        locationCreated: p.location ? { "@type": "Place", name: p.location } : undefined,
+        genre: "New media art",
+        inLanguage: "fr",
+        creator: {
+          "@type": "Organization",
+          name: "FMRXR Studio",
+          url: "https://fmrxr.com",
+          founder: { "@type": "Person", name: "Haïfa Al Jamila Becheikh", alternateName: "EFFET MÈRE" },
+        },
+        ...(p.client ? { sponsor: { "@type": "Organization", name: p.client } } : {}),
       }) }} />
     </article>
   );

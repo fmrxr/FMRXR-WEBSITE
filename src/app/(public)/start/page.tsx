@@ -3,7 +3,7 @@ import { PageHero } from "@/components/site/PageHero";
 import { StartForm } from "@/components/site/StartForm";
 
 export const revalidate = 60;
-export const metadata = { title: "Start a project — FMRXR//" };
+export const metadata = { title: "Start a project" };
 
 export default async function StartPage({
   searchParams,

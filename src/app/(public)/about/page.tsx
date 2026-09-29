@@ -13,7 +13,7 @@ export default async function About() {
         <div className="fm-grotesk flex max-w-2xl flex-col gap-5 text-[15px] leading-relaxed text-fmfg/85">
           <p>
             {s.name} is a creative technology studio based in {s.location}, working at the intersection of
-            art, technology and brand. TouchDesigner-first, hardware-aware, editorially rigorous — every
+            art, technology and brand. TouchDesigner-first, hardware-aware, editorially rigorous. Every
             project is treated as a living system that must survive live conditions.
           </p>
           <p>

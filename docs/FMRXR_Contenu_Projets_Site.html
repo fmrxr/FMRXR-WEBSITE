@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMRXR// — Contenu projets fmrxr.com</title>
+<style>
+  :root{
+    --bg:#0d0c14; --surface:#111019; --surface2:#181620; --line:#1e1b2c;
+    --fg:#f5f5f8; --muted:#7b7a8e; --accent:#7bef7b; --blue:#4d9fff; --warn:#ffb84d; --red:#ff6b6b;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;
+    line-height:1.55;font-size:15px}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 16px 120px}
+
+  /* ---- toolbar ---- */
+  .bar{position:sticky;top:0;z-index:50;background:rgba(13,12,20,.94);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px}
+  .bar .sp{flex:1}
+  button{font:inherit;font-size:13px;cursor:pointer;border-radius:8px;padding:7px 13px;
+    background:var(--surface2);color:var(--fg);border:1px solid var(--line);transition:.15s}
+  button:hover{border-color:var(--muted)}
+  button.on{background:var(--accent);color:#0d0c14;border-color:var(--accent);font-weight:600}
+  #stamp{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  /* ---- head ---- */
+  header{padding:48px 0 28px;border-bottom:1px solid var(--line)}
+  .logo{font-family:var(--mono);font-size:13px;letter-spacing:.16em;color:var(--accent)}
+  h1{font-size:30px;line-height:1.15;margin:14px 0 8px;letter-spacing:-.02em}
+  .sub{color:var(--muted);max-width:68ch}
+
+  h2{font-size:12px;font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin:52px 0 16px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+
+  /* ---- legend / alert ---- */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:20px 0;font-size:12.5px;color:var(--muted)}
+  .alert{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--warn);
+    border-radius:8px;padding:16px 18px;margin:18px 0}
+  .alert h3{margin:0 0 8px;font-size:14px;color:var(--warn)}
+  .alert ul{margin:0;padding-left:18px}
+  .alert li{margin:5px 0}
+
+  /* ---- project card ---- */
+  .p{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:20px 22px;margin:14px 0}
+  .p.add{border-left:3px solid var(--blue)}
+  .p.rewrite{border-left:3px solid var(--accent)}
+  .ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+  .ph h3{margin:0;font-size:19px;letter-spacing:-.01em}
+  .slug{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  .meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-bottom:14px}
+
+  .f{display:grid;grid-template-columns:96px 1fr;gap:10px;padding:8px 0;
+    border-top:1px solid var(--line);align-items:start}
+  .f:first-of-type{border-top:0}
+  .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);padding-top:3px}
+  .v{min-height:1.5em;outline:none;border-radius:5px;padding:2px 5px;margin:-2px -5px}
+  body.edit .v{background:var(--surface2);box-shadow:inset 0 0 0 1px var(--line)}
+  body.edit .v:focus{box-shadow:inset 0 0 0 1px var(--accent)}
+  .v[data-ph]:empty::before{content:attr(data-ph);color:#4a4857;font-style:italic}
+
+  /* ---- badges ---- */
+  .b{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;
+    padding:2.5px 7px;border-radius:4px;vertical-align:middle;text-transform:uppercase;font-weight:600}
+  .b.src{background:rgba(123,239,123,.13);color:var(--accent);border:1px solid rgba(123,239,123,.3)}
+  .b.ask{background:rgba(255,184,77,.13);color:var(--warn);border:1px solid rgba(255,184,77,.3)}
+  .b.no{background:rgba(255,107,107,.13);color:var(--red);border:1px solid rgba(255,107,107,.3)}
+  .b.new{background:rgba(77,159,255,.13);color:var(--blue);border:1px solid rgba(77,159,255,.3)}
+  .need{color:var(--warn);font-style:italic}
+
+  .ig{margin-top:12px;padding:11px 13px;background:var(--surface2);
+    border:1px dashed var(--line);border-radius:7px}
+  .ig .k{margin-bottom:5px;color:var(--blue)}
+
+  footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);
+    color:var(--muted);font-size:12.5px}
+  a{color:var(--blue)}
+
+  @media print{
+    .bar{display:none} body{background:#fff;color:#000}
+    .p,.alert{border:1px solid #ccc;background:#fff;break-inside:avoid}
+    .k,.slug,.meta,.sub,footer{color:#555}
+  }
+  @media (max-width:640px){ .f{grid-template-columns:1fr;gap:3px} h1{font-size:24px} }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <button id="bEdit">✏️ Éditer</button>
+  <button id="bSave">💾 Enregistrer</button>
+  <button id="bReset">⟲ Réinitialiser</button>
+  <button id="bPdf">⬇ PDF</button>
+  <span class="sp"></span>
+  <span id="stamp">—</span>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div class="logo">FMRXR//</div>
+  <h1>Contenu des fiches projet — fmrxr.com</h1>
+  <p class="sub">Document de travail. Corrige les faits directement dedans, puis renvoie-le moi :
+  j'écris ensuite dans la table <code>projects</code> de Supabase. Rien n'est publié tant que tu n'as pas validé.</p>
+</header>
+
+<div class="legend">
+  <span><span class="b src">Sourcé</span> vérifié dans tes fichiers ou une source publique</span>
+  <span><span class="b ask">À confirmer</span> déduit, à valider par toi</span>
+  <span><span class="b no">Manquant</span> je n'ai aucune matière</span>
+  <span><span class="b new">À ajouter</span> absent du site</span>
+</div>
+
+<div class="alert">
+  <h3>⚠ Trois corrections de données avant toute publication</h3>
+  <ul>
+    <li><strong>État actuel du site :</strong> les 10 projets en ligne ont <code>description</code>, <code>role</code>, <code>stack</code>, <code>tags</code> et <code>location</code> <strong>entièrement vides</strong>. Seul <code>summary</code> est rempli, par une phrase générique de données de semence. Les pages <code>/projects/[slug]</code> sont des coquilles.</li>
+    <li><strong>Interference — année fausse.</strong> La base dit 2024. Les éditions publiques sont 2016, 2018, 2021, 2022, 2025. Tu en as fait trois : lesquelles ?</li>
+    <li><strong>Djerba Explore — année fausse (tranchée).</strong> La base dit 2024. C'est le XVIII<sup>e</sup> Sommet de la Francophonie, 19-20 novembre 2022, conception en 2021.</li>
+    <li><strong>Interference — 2021 et 2022 (tranché).</strong> Mais ta présentation commerciale annonce « 3 ans consécutifs » : à corriger partout si c'est bien deux éditions.</li>
+    <li><strong>SPECTRUM — année fausse (tranchée).</strong> La base dit 2025. C'est bien du 22 au 24 mai 2026, confirmé. Le client reste mal renseigné : GAT Assurances sponsorise la salle immersive, la production est FB Art &amp; Event.</li>
+    <li><strong>Ooredoo 5G — tranché : 19 février 2025.</strong> L'année en base est bonne. En revanche ta Présentation FMRXR 2026 le classe en 2026, à corriger dans le deck.</li>
+    <li><strong>Art Basel Paris — intitulé probablement faux.</strong> L'exposition réelle est DREAMING AGAIN chez WILDE Paris. Aucune source ne la relie à Art Basel.</li>
+    <li><strong>Between Frequencies — année et contexte faux.</strong> La base dit 2024 et laisse le client vide. C'est un projet lauréat de l'open call 2022 de la Kamel Lazaar Foundation, présenté au B7L9 Art Centre, sur une œuvre de DAWAN.</li>
+    <li><strong>Imaginary World — titre faux (tranché).</strong> Le vrai titre est <strong>« Le Monde Imaginaire »</strong>, mai 2025, commissariat Feriel Bouattour Ben Ammar, partenaire technologique Epson. Le nom anglais « Imaginary World Exposition » est à retirer du site et du CLAUDE.md.</li>
+  </ul>
+  <p style="margin:12px 0 0"><strong>Six des dix fiches en ligne portent une erreur factuelle</strong> sur l'année, le client ou l'intitulé. Tant qu'elles ne sont pas tranchées, ne rien publier : une date erronée sur un portfolio public se retourne vite contre toi en rendez-vous client.</p>
+</div>
+
+<div class="alert" style="border-left-color:var(--red)">
+  <h3 style="color:var(--red)">Constat de recherche : tu n'es pas indexée</h3>
+  <p style="margin:0">Aucune recherche web ne remonte Haïfa Becheikh, FMRXR ou EFFET MÈRE. Les résultats renvoient Haifa Wehbe, Haifa Beseisso, des marques de cosmétiques. <strong>Aucun de tes projets n'est crédité de façon indexable.</strong> C'est pour ça que je ne peux pas sourcer les anciens : la matière n'existe que chez toi. Ces fiches détaillées sur fmrxr.com seront la première trace indexable de ce corpus.</p>
+</div>
+
+<div class="alert" style="border-left-color:var(--accent)">
+  <h3 style="color:var(--accent)">Règle éditoriale — un mapping n'est pas une prestation technique</h3>
+  <p style="margin:0 0 8px">Chaque mapping que tu signes est du <strong>new media art</strong> reposant sur de l'<strong>art génératif</strong>. Les fiches ne doivent donc jamais le présenter comme un service de projection. La distinction est concrète :</p>
+  <ul>
+    <li><strong>À ne pas écrire :</strong> « projection sur la façade », « habillage visuel », « mise en lumière », « contenu diffusé ». Ce vocabulaire te place en prestataire d'exécution.</li>
+    <li><strong>À écrire :</strong> le système qui produit l'image, ce qui l'alimente en données, et ce qu'il fait apparaître. L'image n'est pas diffusée, elle est <em>générée</em>, en direct, par un système que tu as conçu.</li>
+  </ul>
+  <p style="margin:8px 0 0">C'est exactement ton hypothèse centrale : le réel n'est pas représenté, il est généré, et l'artiste est <em>opératrice de systèmes</em>. Une fiche qui dit « projection » vend une journée de technicien. Une fiche qui décrit le système génératif vend une œuvre. <strong>Les tags portent désormais <code>new media art</code> et <code>art génératif</code> sur toutes les pièces concernées</strong>, ce qui sert aussi ton référencement : c'est sous ces termes que te cherchent festivals, commissaires et jurys.</p>
+</div>
+
+<div class="alert" style="border-left-color:var(--red)">
+  <h3 style="color:var(--red)">Ta Présentation FMRXR 2026 contient deux erreurs</h3>
+  <p style="margin:0 0 8px">C'est le document que tu envoies aux prospects. Deux faits y sont faux :</p>
+  <ul>
+    <li><strong>Ooredoo 5G est classé en 2026.</strong> Le lancement a eu lieu le 19 février 2025. Tu viens de le confirmer, la presse aussi.</li>
+    <li><strong>« Pour 3 ans consécutifs » sur Interference.</strong> Tu m'en donnes deux, 2021 et 2022.</li>
+  </ul>
+  <p style="margin:8px 0 0">Ces deux points se vérifient en ligne en quelques secondes. Un partenaire institutionnel ou un jury de bourse qui les repère perd confiance sur le reste du dossier. <strong>À corriger dans le deck, pas seulement sur le site.</strong> Le document mentionne aussi encore <code>fmrxr-studio.webflow.io</code> comme adresse, alors que le site vit maintenant sur fmrxr.com.</p>
+</div>
+
+<div class="alert" style="border-left-color:var(--blue)">
+  <h3 style="color:var(--blue)">Un motif que tes archives ne montrent pas</h3>
+  <p style="margin:0 0 10px">En recoupant la presse, trois de tes projets partagent la même commissaire, <strong>Feriel Bouattour Ben Ammar</strong>, que ta propre présentation désigne comme la curatrice attitrée de FMRXR :</p>
+  <ul>
+    <li><strong>Le Monde Imaginaire</strong> — La Ruche, Bhar Lazreg, 22-25 mai 2025</li>
+    <li><strong>SPECTRUM: The Birth of Light</strong> — Studio B3, Bhar Lazreg, 22-24 mai 2026</li>
+    <li><strong>DREAMING AGAIN</strong> — WILDE Paris, novembre 2025 (commissariat New Media)</li>
+  </ul>
+  <p style="margin:10px 0 0">Même quartier, mêmes dates de mai, une année d'écart : SPECTRUM est vraisemblablement la suite de Le Monde Imaginaire. Ce n'est pas une série de commandes isolées, c'est <strong>une collaboration curatoriale continue qui s'exporte à Paris</strong>. Présenté comme tel sur le site, ça vaut bien plus que trois fiches séparées, et c'est exactement le genre d'argument qu'attend un dossier de bourse ou une candidature OIF. <span class="need">[À CONFIRMER] SPECTRUM est bien la deuxième édition ?</span></p>
+</div>
+
+<!-- ============ A. À RÉÉCRIRE ============ -->
+<h2>A — Les 10 projets en ligne, à réécrire</h2>
+
+<div class="p rewrite">
+  <div class="ph"><h3>Vigilance Zero</h3><span class="slug">vigilance-zero</span><span class="b src">Sourcé</span></div>
+  <div class="meta">Morninglory Paris · 2026 · Live A/V + Direction visuelle album · EFFET MÈRE × FMRXR Studio</div>
+  <div class="f"><div class="k">Périmètre</div><div class="v" contenteditable="false" data-k="vz-scope"><strong>Trois livrables distincts, une seule identité visuelle.</strong>
+<strong>Volet 1 —</strong> Direction visuelle du <strong>premier album</strong> de VIGILANCE ZERO.
+<strong>Volet 2 —</strong> Direction visuelle <strong>live</strong>, Calypso, Tunisie, 18 août 2026.
+<strong>Volet 3 —</strong> Direction artistique des <strong>productions vidéo de leurs sets live</strong> (captations et contenus diffusés).
+<span class="need">[À TRANCHER] une fiche unique en trois volets, ou des fiches séparées ? Je recommande une seule. Trois volets sur un même artiste, ce n'est pas trois prestations, c'est un rôle de direction artistique globale, et ça se vend beaucoup mieux ainsi.</span></div></div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="vz-loc">Calypso, Tunisie — 18 août 2026 · album livré début 2026</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="vz-sum">Direction artistique globale de VIGILANCE ZERO : le premier album, le live, et les productions vidéo de leurs sets.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="vz-desc">VIGILANCE ZERO (Le Ploum + Spicy Sofi) sont les party designers et résidents centraux de Morninglory Paris, collectif basé au Dock B. FMRXR signe d'abord la direction visuelle de leur premier album, puis prolonge ce langage en direct pour leur première soirée estivale en Tunisie.
+
+Le passage d'un support à l'autre est le cœur du projet. Ce qui est fixe sur la pochette devient, au Calypso, une installation audiovisuelle à trois dimensions simultanées : son, image et lumière se répondent en direct sur un LED wall. Ce n'est pas du VJing derrière des DJs, c'est une architecture où les trois couches sont réactives entre elles. Le même langage redescend ensuite dans les productions vidéo de leurs sets, de sorte qu'un extrait diffusé en ligne reste reconnaissable comme du VIGILANCE ZERO sans qu'on ait besoin d'un logo.
+
+Le set porte un concept unique, SEUIL. Il croise un artwork EFFET MÈRE, des portails de lumière spectrale cadrés de noir absolu, et le vocabulaire des liminal spaces, ces espaces de transit chargés de présence sans corps visibles. La danse en club y est traitée comme un seuil : entre soi et le collectif, entre contrôle et lâcher-prise, entre le monde dehors et la matrice dedans.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="vz-role">Direction artistique globale · Direction visuelle de l'album · Direction visuelle live · VJing · DA des productions vidéo · Conception du système génératif</div></div>
+  <div class="f"><div class="k">Album</div><div class="v" contenteditable="false" data-k="vz-lp"><span class="need">[À COMPLÉTER] titre de l'album, date de sortie, label, et ce que couvrait exactement la DA : pochette seule, ou pochette + visuels de titres + déclinaisons plateformes ?</span></div></div>
+  <div class="f"><div class="k">Vidéos</div><div class="v" contenteditable="false" data-k="vz-video"><span class="need">[À COMPLÉTER] combien de captations de sets, sur quels lieux, quels formats livrés (16:9 YouTube, 9:16 reels, teasers), et est-ce que tu diriges aussi le tournage ou seulement l'étalonnage et l'habillage ?</span></div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="vz-stack">TouchDesigner · GLSL · IA · art génératif · LED wall</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="vz-tags">new media art · art génératif · live a/v · vjing · club · techno · installation lumière</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="vz-ig" data-ph="colle le lien du reel / post ici"></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>Interference Light Art Festival</h3><span class="slug">interference</span><span class="b ask">À confirmer</span></div>
+  <div class="meta">Interference International · 3 éditions · Festival · EFFET MÈRE</div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="if-loc">Médina de Tunis, Tunisie</div></div>
+  <div class="f"><div class="k">Year</div><div class="v" contenteditable="false" data-k="if-year"><strong>2021 et 2022</strong> (confirmé par toi). <span class="need">[RESTE À TRANCHER] ta Présentation FMRXR annonce « 3 ans consécutifs » et ton CLAUDE.md dit « 3 éditions ». Tu m'en donnes deux. Soit il y a une troisième année (2018 ? 2025 ?), soit le « 3 ans » de ta présentation est une erreur à corriger dans tous tes supports commerciaux.</span></div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="if-sum">Deux éditions du premier festival d'art lumière de Tunisie et d'Afrique, en assistance technique interactive, formation et production visuelle.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="if-desc">INTERFERENCE est un projet d'exposition internationale dédié à l'art contemporain utilisant la lumière comme médium, déployé à travers les sites de la médina de Tunis. Fondé en 2016 sous le commissariat de Bettina Pelz et Aymen Gharbi, c'est le premier festival d'art lumière du continent africain. Les murs et les contours du quartier historique deviennent le support d'œuvres qui dialoguent avec l'architecture traditionnelle.
+
+FMRXR y intervient trois années consécutives, et sur trois fronts : l'assistance technique interactive auprès des artistes exposants, la formation, et la production visuelle. Une contribution d'infrastructure autant que d'auteur, sur un festival porté par une équipe largement bénévole.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="if-role">Assistance technique interactive · Formation · Production visuelle</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="if-stack" data-ph="à préciser si tu veux détailler"></div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="if-tags">new media art · art génératif · light art · festival · installation · médina · art contemporain</div></div>
+  <div class="f"><div class="k">Presse</div><div class="v" contenteditable="false" data-k="if-press">2022.intunis.net/effet-mere/ · 2022.intunis.net/the-universe-is-my-favourite-playground/ <span class="need">[À CONFIRMER] « The Universe Is My Favourite Playground » est bien le titre de ton œuvre 2022 ?</span></div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="if-ig">instagram.com/p/C436z0soxMJ/ · instagram.com/p/C4oOc6HrXE-/ <span class="need">[À VÉRIFIER] extraits de ta présentation, à réattribuer au bon projet</span></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>Ooredoo 5G Launch — AI-Driven Immersive Experience</h3><span class="slug">ooredoo-5g</span><span class="b src">Sourcé</span></div>
+  <div class="meta">Ooredoo Tunisie · 19 février 2025 · Brand activation · FMRXR Studio</div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="oo-loc">Tunis, Tunisie — 19 février 2025</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="oo-sum">Expérience immersive pilotée par IA pour le lancement du réseau 5G d'Ooredoo Tunisie.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="oo-desc">Expérience immersive et interactive conçue pour le lancement de la 5G d'Ooredoo Tunisie. Le parti pris : ne pas expliquer la 5G, la faire éprouver. Le parcours mêle le digital et le physique pour que les invités découvrent la technologie de manière ludique plutôt que démonstrative.
+
+Le dispositif combine réalité augmentée, vidéo interactive et contenus 3D pour illustrer les bénéfices de la 5G en temps réel, avec quiz, sondages et animations qui engagent le public plutôt que de l'asseoir. L'architecture technique absorbe les interactions simultanées sans interruption sur toute la durée de l'événement, et la direction artistique est alignée sur la charte Ooredoo. FMRXR assure aussi le pilotage global, en coordination des équipes techniques, créatives et marketing.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="oo-role">Direction créative · Conception du parcours immersif · Direction artistique · Architecture technique · Pilotage global de l'événement</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="oo-stack">Réalité augmentée · vidéo interactive · contenus 3D · interactions temps réel multi-utilisateurs</div></div>
+  <div class="f"><div class="k">Year</div><div class="v" contenteditable="false" data-k="oo-conflit"><strong>19 février 2025</strong> — confirmé par toi, et concordant avec la presse tunisienne. L'année « 2025 » de la base est donc correcte.
+<span class="need">[À CORRIGER HORS SITE] ta <strong>Présentation FMRXR 2026</strong> classe ce projet en 2026. C'est faux, et c'est le deuxième écart du même document après « 3 ans consécutifs » pour Interference.</span></div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="oo-tags">new media art · art génératif · brand activation · immersif · IA générative · telecom · corporate</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="oo-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>SPECTRUM: The Birth of Light</h3><span class="slug">spectrum-birth-of-light</span><span class="b src">Sourcé presse</span><span class="b ask">Client à corriger</span></div>
+  <div class="meta">FB Art &amp; Event · commissariat Feriel Bouattour Ben Ammar · mai 2026 · Salle immersive XR · FMRXR × Le Pro × GAT Assurances</div>
+  <div class="f"><div class="k">Year</div><div class="v" contenteditable="false" data-k="sp-year"><strong>22 au 24 mai 2026</strong> — confirmé par toi. <span class="need">[À CORRIGER EN BASE] la fiche actuelle dit 2025.</span></div></div>
+  <div class="f"><div class="k">⚠ Client</div><div class="v" contenteditable="false" data-k="sp-client"><span class="need">[À CORRIGER] la base dit « GAT Assurances ». En réalité : produit par <strong>FB Art &amp; Event</strong>, commissariat <strong>Feriel Bouattour Ben Ammar</strong>, salle immersive en collaboration <strong>Le Pro × FMRXR × GAT Assurances</strong>. GAT est le sponsor de la salle, pas le client de l'expo. Qui te facture ?</span></div></div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="sp-loc">Studio B3, Bhar Lazreg Creative District, Tunis — 22-24 mai 2026</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="sp-sum">Salle immersive XR au sein d'une exposition de 500 m² consacrée à la lumière comme matière.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="sp-desc">SPECTRUM traite la lumière sur trois plans à la fois : phénomène physique, matière émotionnelle et territoire d'expérimentation artistique. Le parcours, déployé sur plus de 500 m² au Studio B3 de Bhar Lazreg, est conçu comme une ascension progressive vers la lumière, entre matériaux réfléchissants et projections monumentales, avec plus de quinze artistes et designers tunisiens.
+
+FMRXR y signe la salle immersive XR, en collaboration avec Le Pro et GAT Assurances, et EFFET MÈRE une œuvre numérique proposant une lecture contemporaine de la naissance de la lumière. Installations numériques interactives, médiums pilotés par IA et sound design immersif composent un ensemble où le numérique ne s'ajoute pas au physique mais le prolonge.
+
+<span class="need">[À COMPLÉTER] dimensions de la salle immersive, dispositif de projection, durée de la boucle, interactivité éventuelle, fréquentation sur les trois jours.</span></div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="sp-role">Conception de la salle immersive XR · Direction artistique · Production de l'œuvre numérique (EFFET MÈRE)</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="sp-stack">XR · projections monumentales · installations interactives · IA générative · sound design immersif</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="sp-tags">new media art · art génératif · exposition · salle immersive · XR · lumière · art contemporain · Tunis</div></div>
+  <div class="f"><div class="k">Talk</div><div class="v" contenteditable="false" data-k="sp-talk">L'exposition comportait les « LB Talks » de Lézard &amp; Balthazar. <span class="need">[À CONFIRMER] c'est là que tu es intervenue, ou au panel de DREAMING AGAIN à Paris ? Précise-moi le sujet et je crée une section conférences à part.</span></div></div>
+  <div class="f"><div class="k">Presse</div><div class="v" contenteditable="false" data-k="sp-press">linstant-m.tn — « SPECTRUM: The Birth of Light, une immersion artistique où la lumière devient matière »</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="sp-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>Dolphin SURF Launch</h3><span class="slug">dolphin-surf</span><span class="b no">Manquant</span></div>
+  <div class="meta">BYD Tunisie · 2026 · Brand activation · FMRXR Studio</div>
+  <div class="f"><div class="k">Date &amp; lieu</div><div class="v" contenteditable="false" data-k="ds-when">Tunis, jeudi 15 janvier 2026 — lancement officiel annoncé le 16 janvier. Organisateur : BYD Tunisie / Helios Cars, concessionnaire officiel BYD. <span class="need">[À CONFIRMER] le client qui te paie, c'est BYD Tunisie ou Helios Cars ? La base dit « BYD Tunisie ».</span></div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="ds-sum">Dispositif visuel pour le lancement officiel de la BYD Dolphin SURF en Tunisie.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="ds-desc">Lancement officiel du modèle Dolphin SURF en Tunisie, dans un cadre décrit par la presse comme « convivial et technologique », réunissant partenaires, clients, médias et acteurs de la mobilité électrique autour de la découverte en avant-première du véhicule.
+
+<span class="need">[MANQUANT — et c'est révélateur] J'ai lu les deux articles de presse que tu m'as envoyés (Business News et La Presse). <strong>Aucun des deux ne mentionne FMRXR, ni le moindre élément immersif, projection, LED ou scénographique.</strong> Ils couvrent le produit et les dirigeants d'Helios Cars, pas la production. Il me faut donc ton dispositif réel, sinon cette fiche ne pourra rien affirmer. Un fichier <code>BYD - FMRXR.mp4</code> existe dans ton Drive : c'est probablement la meilleure preuve du livrable.</span></div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="ds-role" data-ph="à remplir"></div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="ds-stack" data-ph="à remplir"></div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="ds-tags">new media art · art génératif · brand activation · automobile · lancement produit · mobilité électrique</div></div>
+  <div class="f"><div class="k">Presse</div><div class="v" contenteditable="false" data-k="ds-press">businessnews.com.tn (16/01/2026) · lapresse.tn (16/01/2026) — utiles pour dater, inutiles pour créditer</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="ds-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>LIK</h3><span class="slug">lik</span><span class="b src">Sourcé</span><span class="b ask">Non publié</span></div>
+  <div class="meta">Rawdha Abdallah · 2026 · Music visualisation · EFFET MÈRE / FMRXR Studio</div>
+  <div class="f"><div class="k">Statut</div><div class="v" contenteditable="false" data-k="lik-st">Reste <code>published: false</code> tant que le clip n'est pas livré et sorti. À basculer le jour de la sortie.</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="lik-sum">Lyrics video animée de 5 min 19, construite comme un système de prompts plutôt que plan par plan.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="lik-desc">Clip animé pour Rawdha Abdallah, produit par Yall'Art Productions sous la direction artistique de Rym Ben Saida. 28 lignes de texte, 36 plans jour et nuit, chacun décomposé en couches animables.
+
+La méthode, baptisée CORRELAT, fait du clip une machine à produire plutôt qu'une suite d'images : 50 prompts organisés en quatre séries, déclinés en Markdown, CSV et JSON, permettent de générer, réviser et rejouer n'importe quel plan sans casser la cohérence de l'ensemble. Chaque fragment reste autonome, donc exploitable en teaser.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="lik-role">Direction créative · Conception du système de prompts · Direction d'animation</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="lik-stack">Système de prompts CORRELAT · IA générative <span class="need">[À CONFIRMER] quel moteur : Higgsfield ? autre ?</span></div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="lik-tags">new media art · art génératif · music video · animation · IA générative · direction artistique</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="lik-ig" data-ph="à la sortie"></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>DREAMING AGAIN — Lydia Lhote Lazaar</h3><span class="slug">art-basel-paris</span><span class="b src">Sourcé presse</span><span class="b ask">Intitulé à corriger</span></div>
+  <div class="meta">WILDE Paris · novembre 2025 · New Media Art · EFFET MÈRE · commissariat New Media : Feriel Bouattour Ben Ammar</div>
+  <div class="f"><div class="k">⚠ Titre à revoir</div><div class="v" contenteditable="false" data-k="ab-title"><span class="need">[À TRANCHER] la base l'appelle « Art Basel Paris ». La vraie exposition est <strong>DREAMING AGAIN</strong>, chez <strong>WILDE Paris</strong>, autour de novembre 2025. L'article ne mentionne pas Art Basel. Deux options : soit c'était un événement de la semaine Art Basel Paris et on écrit « DREAMING AGAIN — WILDE Paris, pendant Art Basel Paris », soit ce sont deux choses différentes et il faut deux fiches. Laquelle ?</span></div></div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="ab-loc">WILDE Paris — novembre 2025 <span class="need">[dates exactes à confirmer]</span></div></div>
+  <div class="f"><div class="k">Contexte</div><div class="v" contenteditable="false" data-k="ab-ctx">Première exposition parisienne de Lydia Lhote Lazaar, artiste franco-algérienne née en Tunisie. Commissariat général : Amina Idrissi-Kaitouni (Æ Agency). Commissariat New Media : Feriel Bouattour Ben Ammar. <span class="need">[À CONFIRMER] ton contrat passe par FB Art &amp; Event ou par Æ Agency ? La base dit FB Art &amp; Event, l'article crédite Æ Agency à la production.</span></div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="ab-sum">Installation New Media Art qui transforme le verre en interface numérique par l'intelligence artificielle.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="ab-desc">DREAMING AGAIN réunit les pièces mixtes de Lydia Lhote Lazaar, où se croisent mosaïque, céramique, verre recyclé et résine. EFFET MÈRE y répond par une installation New Media Art qui emploie l'intelligence artificielle pour transformer le verre en interface numérique.
+
+Le geste est précis : le verre de l'artiste est une matière opaque, recyclée, façonnée à la main ; l'installation en fait une surface lisible par la machine, donc une membrane entre deux régimes de production d'image. Ce n'est pas un écran posé à côté des œuvres, c'est leur prolongement computationnel.
+
+<span class="need">[À COMPLÉTER] dimensions et format de l'installation, nature de l'interaction avec le public, modèle ou pipeline IA employé, durée d'exposition.</span></div></div>
+  <div class="f"><div class="k">Talk</div><div class="v" contenteditable="false" data-k="ab-talk">Panel « The Future of Art: Technology as a Creative Partner », avec Eliza Kurazova, Chloé Collin et Tariq Krim. <span class="need">[À CONFIRMER] c'est bien à ce talk-là que tu étais invitée, ou au LB Talks de SPECTRUM ? Dans les deux cas c'est une ligne « conférence » à valoriser, pas seulement une fiche projet.</span></div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="ab-role">Conception de l'œuvre · Direction artistique · Développement du système IA · Intervenante panel</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="ab-stack">IA générative · installation interactive · écran <span class="need">[pipeline à préciser]</span></div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="ab-tags">art contemporain · new media art · Paris · IA · installation · verre</div></div>
+  <div class="f"><div class="k">Presse</div><div class="v" contenteditable="false" data-k="ab-press">linstant-m.tn — « Dreaming Again marque la première exposition parisienne de l'artiste Lydia Lhote Lazaar »</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="ab-ig">instagram.com/p/C5ehJfHoZpW/ <span class="need">[À VÉRIFIER] issu de ta présentation, à réattribuer si ce n'est pas le bon projet</span></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>Djerba Explore — XVIII<sup>e</sup> Sommet de la Francophonie</h3><span class="slug">djerba-explore</span><span class="b src">Sourcé fiches techniques</span></div>
+  <div class="meta">OIF / TICDCE · 19-20 novembre 2022 · Installation interactive · FMRXR Studio · scénographie dzeta</div>
+  <div class="f"><div class="k">Year</div><div class="v" contenteditable="false" data-k="dj-year"><strong>2021–2022.</strong> Conception et plans d'exécution en 2021 (planches du 27 mars, révisées le 6 août) ; exploitation lors du <strong>XVIIIᵉ Sommet de la Francophonie, 19 et 20 novembre 2022</strong>, à Djerba. <span class="need">[À CORRIGER EN BASE] la fiche actuelle dit 2024. Sur le site, afficher « 2022 » comme année de référence et mentionner 2021 comme phase de conception.</span></div></div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="dj-loc">Ancienne huilerie, parc Djerba Explore, Djerba, Tunisie</div></div>
+  <div class="f"><div class="k">Partenaires</div><div class="v" contenteditable="false" data-k="dj-part">Architecture &amp; scénographie : <strong>dzeta</strong> (Tunis) — chef de projet Memia Taktak, DP Mariem Khouja. Porteur : TICDCE / OIF.</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="dj-sum">Parcours immersif dans une ancienne huilerie, où neuf micros, une jarre d'olives et un dôme transforment les données de Djerba en environnement réactif.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="dj-desc">Installation immersive et interactive déployée dans une ancienne huilerie du parc Djerba Explore, pour le Sommet de la Francophonie. Le principe est constant sur tout le parcours : les données culturelles, sonores et environnementales de l'île ne sont pas illustrées, elles sont le matériau même de l'image et du son.
+
+Le parcours enchaîne cinq dispositifs. Le <strong>Zitoun Jarr</strong> en est le cœur symbolique : une jarre remplie d'olives, où le simple fait de toucher le zitoun déclenche le pixel mapping mural et une nappe sonore. Un capteur ultrason et un Arduino pilotent une dalle LED de 400 × 600 pixels via DMX. Le geste est celui d'un travail agricole millénaire, la réponse est computationnelle.
+
+Au sol, deux projections d'entrée et de sortie déploient des motifs en noir et blanc alimentés par une datavisualisation audio de l'ambiance en temps réel : <strong>neuf microphones répartis à différents niveaux de l'espace</strong> écoutent la salle et la salle se dessine elle-même. Le <strong>dôme</strong> reçoit une double projection, intérieure et extérieure, de la visualisation des données de Djerba. Le <strong>Square Hole</strong> prolonge cette lecture en lumière, par PARELED DMX piloté par une caméra de détection de mouvement. Enfin, des zones actives réparties dans l'espace laissent le public déclencher, par ses déplacements, différentes collections sonores de l'île.
+
+Le dispositif s'étend au-delà du bâtiment. Les <strong>Arcades</strong> ajoutent un pixel mapping sur quatre arcades, réactif à la position du public, avec seize enceintes, cinq caméras et quatre LED dirigeables de 30 m. L'<strong>Orchestre</strong> projette en temps réel sur la façade et sur l'arbre, à partir de détourages graphiques issus de la base d'images de Djerba.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="dj-role">Direction créative · Conception des dispositifs interactifs · Développement temps réel · Électronique embarquée · Datavisualisation · Design sonore interactif</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="dj-stack">Arduino UNO · capteurs ultrason HC-SR04 · Enttec USB DMX Pro Mk2 · PARELED DMX · dalle LED 400×600 px · 9 microphones + carte son · 7 enceintes · projection dôme intérieur/extérieur · pixel mapping · caméras de détection de mouvement · datavisualisation temps réel</div></div>
+  <div class="f"><div class="k">Échelle</div><div class="v" contenteditable="false" data-k="dj-scale">Huilerie : 4 projecteurs · 2 PC · 9 micros · 7 enceintes · 2 caméras · 2 Arduino · 4 capteurs ultrason.<br>Arcades : 16 enceintes · 5 caméras · 4 LED dirigeables 30 m.<br>Orchestre : 2 projecteurs sur façade et arbre.</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="dj-tags">new media art · art génératif · installation interactive · patrimoine · dôme · pixel mapping · data viz · Arduino · DMX · son interactif · francophonie</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="dj-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>Between Frequencies — DAWAN</h3><span class="slug">between-frequencies</span><span class="b src">Sourcé</span></div>
+  <div class="meta">Kamel Lazaar Foundation · B7L9 Art Centre, Tunis · EFFET MÈRE — création visuelle</div>
+  <div class="f"><div class="k">⚠ Corrections</div><div class="v" contenteditable="false" data-k="bf-fix"><span class="need">[À CORRIGER] la base dit « 2024 » et laisse le client vide. En réalité : projet lauréat de l'<strong>open call 2022 de la Kamel Lazaar Foundation</strong>, présenté au <strong>B7L9 Art Centre</strong>. Ce n'est donc ni une carte blanche ni un projet sans commanditaire, c'est une <strong>sélection institutionnelle</strong>. C'est bien plus fort, et c'est la ligne qui manque à tes dossiers de bourse.</span></div></div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="bf-loc">B7L9 Art Centre, Bhar Lazreg, Tunis <span class="need">[date exacte à confirmer]</span></div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="bf-sum">Mapping holographique sur tulle en chambre noire, nourri des archives de la télévision tunisienne et de systèmes de particules pilotés par la donnée.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="bf-desc">Between Frequencies est une installation multidisciplinaire de DAWAN (Hamza Nasraoui), retenue par l'open call de la Kamel Lazaar Foundation et présentée au B7L9 Art Centre. L'œuvre interroge la saturation informationnelle : en extrayant des éléments familiers de leur contexte, elle donne à voir comment l'information se fabrique. À partir de sons de radio et de réseaux sociaux, elle met en doute l'authenticité des espaces numériques et l'emprise des entreprises sur nos actions et nos affects. Sa structure triangulaire articule installation sonore, performances et musique électronique.
+
+EFFET MÈRE en signe la couche visuelle, par un mapping holographique sur tulle déployé en chambre noire. Le mapping épouse la géométrie du voile plutôt que de s'y poser : l'image flotte sans support visible, ce qui convient exactement à un propos sur l'information sans origine repérable. La matière est double. D'un côté les archives de la télévision tunisienne, mémoire collective et déjà médiatisée. De l'autre des systèmes de particules pilotés par la donnée, qui n'illustrent pas le flux mais le sont.
+
+Le geste rejoint l'hypothèse centrale de la pratique : le réel n'est pas représenté, il est généré. Ici l'archive n'est pas rejouée comme un document, elle est traitée comme matière première d'une machine qui la recompose devant le spectateur.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="bf-role">Mapping holographique sur tulle · Création visuelle · Développement du système génératif · Traitement des archives</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="bf-stack">Mapping holographique sur tulle · chambre noire · archives TV tunisienne · data-driven particle systems · temps réel</div></div>
+  <div class="f"><div class="k">Périmètre</div><div class="v" contenteditable="false" data-k="bf-scope">L'œuvre et le concept sont de DAWAN. FMRXR / EFFET MÈRE y intervient sur le <strong>mapping holographique</strong> et sa matière visuelle. La fiche doit créditer DAWAN comme auteur, sinon elle s'attribue une œuvre qui n'est pas la tienne.</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="bf-tags">new media art · art génératif · installation · holographique · archives · data viz · art contemporain · B7L9 · Tunis</div></div>
+  <div class="f"><div class="k">Institution</div><div class="v" contenteditable="false" data-k="bf-inst">kamellazaarfoundation.org — « Between Frequencies » By DAWAN, B7L9 Concerts &amp; Performances, entrée libre, 19 h</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="bf-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p rewrite">
+  <div class="ph"><h3>Immersive Clubbing</h3><span class="slug">bsmnt</span><span class="b no">Manquant</span></div>
+  <div class="meta">BSMNT / WABI · 2023 · Live A/V · EFFET MÈRE</div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="bs-sum">Format de clubbing immersif construit autour de la culture du dancefloor, avec projection interactive au sol.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="bs-desc">Un format pensé pour la culture chorégraphique et la performance live, pas pour la consommation de nightlife. L'espace est traité comme un hub social interactif où le public se relie par l'expérience plutôt qu'au bar, et où art, musique et activation de marque coexistent dans le même dispositif.
+
+La pièce centrale est une projection interactive au sol, qui réagit à la présence et au mouvement des danseurs. Le format s'est déployé sur plusieurs dates, en collaboration avec des artistes de référence de la scène tunisienne.
+
+<span class="need">[MANQUANT] Nombre de dates et période exacte. BSMNT et Wabi sont deux lieux distincts : on fait une fiche commune ou deux ?</span></div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="bs-role">Direction visuelle · Conception du dispositif interactif · VJing live · Curation artistique</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="bs-stack">Projection interactive au sol · tracking de mouvement · visuels temps réel</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="bs-tags">new media art · art génératif · live a/v · vjing · club · nightlife · projection interactive · brand activation</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="bs-ig">instagram.com/wabi.space/ · instagram.com/p/DQKcrjogiod/ <span class="need">[À VÉRIFIER] issus de ta présentation</span></div></div>
+</div>
+
+<!-- ============ B. À AJOUTER ============ -->
+<h2>B — Les projets livrés absents du site</h2>
+
+<div class="p add">
+  <div class="ph"><h3>Les 100 Violons — Zied Zouari</h3><span class="slug">100-violons</span><span class="b new">À ajouter</span><span class="b src">Sourcé</span></div>
+  <div class="meta">Le Pro (sponsoring) · juillet 2026 · Live A/V · EFFET MÈRE / FMRXR Studio</div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="cv-sum">Scénographie lumière générative pour le concert des 100 Violons de Zied Zouari : huit piliers LED en cercle, pilotés par shader en temps réel.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="cv-desc">Huit piliers disposés en cercle autour du public, habillés de LED P3.9 sur deux faces de 5 × 4 mètres, huit lamelles par face. La direction est volontairement minimaliste : couleurs plates et dégradés lents, aucune image figurative, rien qui vienne concurrencer l'orchestre.
+
+Le dispositif sépare les deux faces de chaque pilier. L'intérieur du cercle reçoit une gamme chaude, tournée vers le public et les musiciens ; l'extérieur une gamme froide, adressée au reste de la salle. Un seul shader GLSL alimente les seize surfaces via TouchDesigner, ce qui permet de tenir la cohérence sur près de cinquante minutes de set sans montage vidéo.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="cv-role">Direction visuelle · Conception du système génératif · Scénographie lumière · Opération live</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="cv-stack">TouchDesigner · GLSL · LED P3.9 · NDI</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="cv-tags">new media art · art génératif · live a/v · scénographie · génératif · musique classique · LED</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="cv-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>ACCESS PROTOCOL — Cyberpunk Halloween</h3><span class="slug">access-protocol</span><span class="b new">À ajouter</span><span class="b src">Sourcé</span></div>
+  <div class="meta">Morninglory Paris · 2026 · Web / Brand activation · FMRXR Studio</div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="ap-loc">42 Marches, Paris — soirée du 31 octobre 2026</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="ap-sum">Jeu web promotionnel adossé à une billetterie : dix clés à trouver en quarante secondes, un QR unique vérifié en caisse.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="ap-desc">Pour annoncer sa soirée Cyberpunk Halloween au 42 Marches, Morninglory Paris voulait mieux qu'un lien billetterie. ACCESS PROTOCOL transforme la promo en épreuve : dix clés à récupérer en quarante secondes, et une remise de 10 % à la clé.
+
+La difficulté n'est pas le jeu, c'est la caisse. Chaque victoire génère un QR code unique, vérifié à l'entrée par une page staff protégée par mot de passe, ce qui interdit la capture d'écran partagée. L'ensemble tourne en statique sur Netlify, la génération et la vérification des codes étant assurées par des Functions adossées à Netlify Blobs, sans base de données ni serveur à maintenir.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="ap-role">Conception du jeu · Direction artistique · Développement front · Architecture serverless</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="ap-stack">HTML/JS statique · Netlify Functions · Netlify Blobs · génération QR</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="ap-tags">web game · brand activation · nightlife · serverless · billetterie</div></div>
+  <div class="f"><div class="k">Live</div><div class="v" contenteditable="false" data-k="ap-live">sofiairlines.com/cyberpunk-halloween/ <span class="need">[À CONFIRMER] on affiche le lien client ou pas ?</span></div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="ap-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>mauritalent.com</h3><span class="slug">mauritalent</span><span class="b new">À ajouter</span><span class="b src">Sourcé</span></div>
+  <div class="meta">MAURITALENT SARL · 2026 · Web · FMRXR Studio</div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="mt-loc">Nouakchott, Mauritanie</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="mt-sum">Refonte complète du site d'un cabinet de recrutement mauritanien, livrée en statique et sans dépendance serveur.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="mt-desc">Refonte intégrale de mauritalent.com : charte graphique, architecture éditoriale et construction du site — accueil, services, secteurs, à propos, contact.
+
+Le choix technique est contraint par l'hébergement mutualisé du client. Le site est développé sous Next.js puis exporté en statique, images converties en WebP et règles de sécurité durcies côté serveur. Résultat : les performances d'un site moderne sur une infrastructure d'hébergement classique, sans base de données ni maintenance applicative.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="mt-role">Direction artistique · Charte graphique · Architecture éditoriale · Développement · Mise en ligne</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="mt-stack">Next.js (export statique) · WebP · durcissement .htaccess</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="mt-tags">web · refonte · identité · recrutement · Afrique de l'Ouest</div></div>
+  <div class="f"><div class="k">Live</div><div class="v" contenteditable="false" data-k="mt-live">mauritalent.com</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="mt-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>piconsult-mr.com</h3><span class="slug">piconsult</span><span class="b new">À ajouter</span><span class="b src">Sourcé</span></div>
+  <div class="meta">Pi Consult · 2026 · Web · FMRXR Studio</div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="pc-loc">Nouakchott, Mauritanie</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="pc-sum">Création complète, depuis la page blanche, du site d'un cabinet de conseil en ingénierie.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="pc-desc">Pi Consult n'avait pas de site. Le projet part d'un blueprint éditorial et d'une direction UX/UI, puis d'un travail de vectorisation et de nettoyage du logo existant.
+
+La direction artistique retenue est institutionnelle sans être froide : hero navy animé, slider de secteurs déplaçable à la main, compteurs animés, menu mobile repensé. Comme pour mauritalent.com, le site est construit sous Next.js puis exporté en statique pour tenir sur l'hébergement mutualisé du client. Le système de design issu de ce projet a été capitalisé en gabarit réutilisable.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="pc-role">Blueprint éditorial · Direction UX/UI · Direction artistique · Développement · Mise en ligne</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="pc-stack">Next.js (export statique) · design system Blueprint Institutional</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="pc-tags">web · création · design system · conseil · ingénierie</div></div>
+  <div class="f"><div class="k">Live</div><div class="v" contenteditable="false" data-k="pc-live">piconsult-mr.com</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="pc-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>NeoPhi — Motion design &amp; démo plateforme</h3><span class="slug">neophi</span><span class="b new">À ajouter</span><span class="b src">Sourcé</span></div>
+  <div class="meta">NeoPhi · 2026 · Motion design · FMRXR Studio</div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="np-sum">Langage d'animation et démo produit pour un SaaS d'IA appliqué à la recherche scientifique.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="np-desc">NeoPhi aide les chercheurs à traiter des corpus de publications. Le défi n'est pas de montrer un logiciel, c'est de rendre lisible un raisonnement.
+
+Le lot comprend le motion design du site, trois boucles de fond, un hero de workflow et ses déclinaisons 16:9 et 9:16, plus un asset logo réutilisable. La démo plateforme est construite comme une session continue : une seule question, un seul corpus de cent publications, du début à la fin, calée sur les timecodes réels de l'interface. Pas de montage qui triche sur la durée d'un traitement.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="np-role">Direction artistique · Motion design · Storyboard · Production vidéo</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="np-stack">HyperFrames · motion design · rendu 16:9 et 9:16</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="np-tags">motion design · SaaS · IA · démo produit · B2B</div></div>
+  <div class="f"><div class="k">Note</div><div class="v" contenteditable="false" data-k="np-note"><span class="need">[À CONFIRMER] mandat en cours. Tu veux le publier maintenant ou attendre la fin du retainer ?</span></div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="np-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>Mapping Oudhna</h3><span class="slug">mapping-oudhna</span><span class="b new">À ajouter</span><span class="b no">Manquant</span></div>
+  <div class="meta">Commissariat régional aux affaires culturelles de Ben Arous (Ahmed LARBI) · avril 2026 · Projection mapping</div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="mo-sum"><span class="need">[MANQUANT] Mapping sur le site archéologique d'Oudhna. Quelle surface, quel récit ?</span></div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="mo-desc"><span class="need">[MANQUANT] Support projeté (amphithéâtre ? thermes ?), puissance et nombre de projecteurs, durée, fréquentation, commande institutionnelle.</span></div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="mo-role" data-ph="à remplir"></div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="mo-stack" data-ph="à remplir"></div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="mo-tags">new media art · art génératif · projection mapping · patrimoine · institutionnel · archéologie</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="mo-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>Carrousel CGI — Fête de la Musique</h3><span class="slug">crk-cgi</span><span class="b new">À ajouter</span><span class="b src">Sourcé</span></div>
+  <div class="meta">CRK Maroquinerie (Maroua Gharbi) · juin 2026 · CGI / Brand activation · FMRXR Studio</div>
+  <div class="f"><div class="k">📊 Résultats</div><div class="v" contenteditable="false" data-k="crk-kpi"><strong>152 000 vues · 4 720 likes · 45 commentaires</strong>, sur un seul post. Chiffres tirés de ton devis de retainer FMRXR-CRK-2026-02.
+<span class="need">C'est la seule performance chiffrée de tout ton portfolio. À afficher en évidence sur la fiche : un client qui hésite lit un chiffre avant de lire un concept.</span></div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="crk-sum">Activation de marque en CGI pour la Fête de la Musique, 152 000 vues sur un post.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="crk-desc">Activation de marque conçue pour la Fête de la Musique, autour d'un sac de la maison décliné en Blush Pink et Cream. Le livrable associe un carrousel et une série de courtes vidéos CGI, en master vertical 9:16 avec recadrage 16:9.
+
+La direction artistique tient en une règle, tenue d'un bout à l'autre : <em>restrained luxury</em>. Mouvement de caméra lent, un seul geste par séquence, rendu matière soigné. Aucune surenchère d'effet, la retenue fait le luxe. La production est entièrement générative, sans studio photo ni shooting produit.
+
+Le post a généré 152 000 vues, 4 720 likes et 45 commentaires, une traction suffisante pour que FMRXR propose ensuite à CRK de transformer ce coup unique en présence régulière, sous forme de retainer trimestriel.</div></div>
+  <div class="f"><div class="k">Livrables</div><div class="v" contenteditable="false" data-k="crk-liv">Carrousel + vidéos CGI de 11 s, 15 s et 20 s <span class="need">[À CONFIRMER] lesquelles ont été publiées ? Le Drive contient quatre montages, dont un « CRK VIDEO(10) ».</span></div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="crk-role">Direction artistique · Production CGI · Idéation · Déclinaisons social</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="crk-stack">CGI · outils génératifs IA · master 9:16 + recadrage 16:9</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="crk-tags">CGI · brand activation · maroquinerie · luxe · IA générative · social</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="crk-ig" data-ph="le post aux 152 K vues — colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>Morninglory Paris — collaboration continue</h3><span class="slug">morninglory</span><span class="b new">À ajouter</span><span class="b src">Sourcé</span></div>
+  <div class="meta">Morninglory Paris · 2026 → · Projet ombrelle · FMRXR Studio × EFFET MÈRE</div>
+  <div class="f"><div class="k">Structure</div><div class="v" contenteditable="false" data-k="mgp-struct">Fiche parente regroupant les sous-projets. Sur le site, deux options : une seule fiche « Morninglory » qui déroule les volets, ou une fiche parente plus des fiches enfants pour les deux volets les plus forts (Vigilance Zero, CINESTHESIA). <span class="need">[À TRANCHER]</span></div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="mgp-sum">Direction artistique visuelle pour un collectif parisien qui ne produit pas des soirées mais des expériences, de la piste tunisienne à la salle de cinéma en Dolby Atmos.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="mgp-desc">Morninglory est un collectif parisien fondé en 2021, créateur d'expériences pluridisciplinaires hybrides à la croisée des musiques électroniques, des arts des nouveaux médias, de la scénographie, de la mode alternative et de l'architecture. Plus de cent événements, plus de deux mille participants par date, une communauté de 25 à 40 ans, vingt-cinq mille abonnés.
+
+La collaboration avec FMRXR démarre début 2026 et couvre plusieurs formats, du club à la salle de cinéma. Le fil commun n'est pas le VJing : c'est le traitement de l'image comme une architecture réactive au son, jamais comme une décoration.</div></div>
+  <div class="f"><div class="k">Sous-projets</div><div class="v" contenteditable="false" data-k="mgp-sub"><strong>1. Vigilance Zero × Calypso</strong> — Tunisie, 18 août 2026 — livré (fiche dédiée plus haut)
+<strong>2. CINESTHESIA / Morninglory Immersive</strong> — Pathé Palace Opéra, Dolby Atmos — <span class="need">proposition, non livrée</span>
+<strong>3. ACCESS PROTOCOL — Cyberpunk Halloween</strong> — 42 Marches Paris, 31 octobre 2026 — livré (fiche dédiée plus haut)
+<strong>4. Content événementiel &amp; brand activation</strong> — cycle clos aux 5 ans du collectif au Dock B, 28 août 2026
+<strong>5. Japan Tour 2026–2027</strong> — <span class="need">plan d'entrée de marché, prospection, à ne pas publier</span>
+<span class="need">[À CONFIRMER] lesquels tu veux voir publiés ?</span></div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="mgp-role">Direction artistique visuelle · Conception de dispositifs immersifs · Performance live · Développement web</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="mgp-tags">collectif · musiques électroniques · immersif · Paris · direction artistique</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="mgp-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>CINESTHESIA — Morninglory Immersive</h3><span class="slug">cinesthesia</span><span class="b new">À ajouter</span><span class="b src">Sourcé</span><span class="b ask">Non livré</span></div>
+  <div class="meta">Morninglory Paris × Pathé × Dolby · Pathé Palace Opéra, Paris · Direction artistique visuelle : FMRXR Studio</div>
+  <div class="f"><div class="k">⚠ Statut</div><div class="v" contenteditable="false" data-k="ci-st"><span class="need">Le dossier se clôt sur « Validation du principe » et une session technique Pathé/Dolby à programmer. C'est donc une <strong>proposition</strong>, pas une réalisation. À publier seulement si le POC a eu lieu depuis. Sinon, c'est une pièce de pitch, pas une fiche portfolio.</span></div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="ci-sum">Concert électronique live en salle de cinéma, où l'image est écrite pour lire la spatialisation du mix Dolby Atmos.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="ci-desc">CINESTHESIA naît du croisement entre cinéma et synesthésie : voir le son, écouter l'image. Le format installe un live électronique dans la Salle 1 du Pathé Palace Opéra, équipée Dolby Vision et Dolby Atmos, devant un public assis, en écoute active, pour une heure à une heure trente. Ni projection, ni club night.
+
+La direction artistique visuelle pose un principe strict : l'image ne suit pas le rythme, elle suit la structure. Elle réagit à la spatialisation du mix, pas à son amplitude. Un volume visuel apparaît quand un son circule au plafond ; une tension latérale accompagne l'ouverture sur les surrounds ; l'image se comprime sur les passages monophoniques. L'écriture est cinéma-native : format Scope 2.39, plans longs et continus, palette réduite, usage assumé du noir et du silence visuel, événements lumineux rares et signifiants.
+
+Toute la soirée se déroule dans un seul espace visuel, que chaque artiste active dans un état différent, sans rupture esthétique. Le parcours traverse quatre états : ÉMERGENCE en 3D, brumes volumétriques et lumière directionnelle ; STRUCTURATION en GLSL, apparition de plans, de lignes et de fractures lentes ; RÉSONANCE en 3D augmentée d'IA, fragmentation contrôlée des structures ; DISSOLUTION en point cloud, convergence des matières vers un pic lumineux unique puis un fondu lent au noir.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="ci-role">Direction artistique visuelle · Conception du dispositif image/son · Écriture des quatre états visuels</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="ci-stack">3D · GLSL · systèmes de particules · point cloud · IA générative · Dolby Atmos · Dolby Vision · Scope 2.39</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="ci-tags">new media art · art génératif · audiovisuel immersif · Dolby Atmos · cinéma · musique électronique · direction artistique · Paris</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="ci-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>Le Monde Imaginaire</h3><span class="slug">le-monde-imaginaire</span><span class="b new">À ajouter</span><span class="b src">Sourcé presse</span></div>
+  <div class="meta">Commissariat Feriel Bouattour Ben Ammar · partenaire technologique Epson · mai 2025 · EFFET MÈRE</div>
+  <div class="f"><div class="k">Titre</div><div class="v" contenteditable="false" data-k="iw-title"><strong>« Le Monde Imaginaire »</strong> — confirmé par toi. Initié et curaté par <strong>Feriel Bouattour Ben Ammar</strong>.
+<span class="need">[À CORRIGER EN BASE] tes archives et ton CLAUDE.md disent « Imaginary World Exposition » et attribuent le projet à FB Art &amp; Event. Les deux sont à reprendre. <strong>Reste une question :</strong> FB Art &amp; Event est-il quand même ton interlocuteur contractuel, même si l'article ne le cite pas ?</span></div></div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="iw-loc">Collectif La Ruche, Bhar Lazreg, Tunis — 22 au 25 mai 2025</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="iw-sum">Installation où le visiteur décrit son monde imaginaire à voix haute, et le voit apparaître, projeté en grand format et généré en temps réel.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="iw-desc">Le Monde Imaginaire explore l'enchantement du réel à travers le rêve et l'inconscient collectif. Sa commissaire, Feriel Bouattour Ben Ammar, la présente comme une invitation à franchir le seuil du connu pour explorer d'autres mondes, personnels ou collectifs.
+
+EFFET MÈRE y co-crée l'expérience technologique, en partenariat avec Epson. Le dispositif est une installation interactive à commande vocale : le visiteur décrit son monde imaginaire à voix haute, et la parole est convertie en image par génération assistée par IA, puis projetée en grand format par les vidéoprojecteurs dernière génération d'Epson. L'imagination n'est plus racontée, elle est visualisée en direct.
+
+La pièce tient dans un déplacement simple : le spectateur cesse d'être devant l'œuvre, il en devient la source. C'est la matrice qui produit, mais c'est sa voix qui la configure.</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="iw-role">Co-création de l'expérience technologique · Conception du dispositif interactif · Pipeline de génération temps réel</div></div>
+  <div class="f"><div class="k">Stack</div><div class="v" contenteditable="false" data-k="iw-stack">Reconnaissance vocale · génération d'images par IA · projection grand format Epson · temps réel</div></div>
+  <div class="f"><div class="k">Artistes</div><div class="v" contenteditable="false" data-k="iw-art">Majed Zalila, Akacha, Alia Derouiche, et d'autres. Contact Epson : Ali Kalboussi, Business Account Manager Tunisie.</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="iw-tags">new media art · art génératif · exposition · installation interactive · IA générative · projection · voix · Epson · Tunis</div></div>
+  <div class="f"><div class="k">Presse</div><div class="v" contenteditable="false" data-k="iw-press">leaders.com.tn — « Quand la technologie Epson donne vie à l'imaginaire : une immersion artistique inédite à Tunis »</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="iw-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<div class="p add">
+  <div class="ph"><h3>JMC Autrement — Journées Musicales de Carthage</h3><span class="slug">jmc-2021</span><span class="b new">À ajouter</span><span class="b src">Sourcé presse</span></div>
+  <div class="meta">JMC · décembre 2021 · Live A/V / déambulation · EFFET MÈRE</div>
+  <div class="f"><div class="k">⚠ Découverte</div><div class="v" contenteditable="false" data-k="jmc-new"><span class="need">Ce projet n'apparaît <strong>ni dans ton CLAUDE.md, ni dans la base, ni dans tes archives</strong>. Je l'ai trouvé dans les liens presse de ta Présentation FMRXR. Il est couvert par deux médias tunisiens, ce qui en fait une de tes rares références réellement indexées. À ne pas laisser de côté.</span></div></div>
+  <div class="f"><div class="k">Œuvre</div><div class="v" contenteditable="false" data-k="jmc-oeuvre"><strong>« Ambivalence »</strong> — à <strong>Bir Lahjar</strong>, avec <strong>DAWAN</strong>. <span class="need">[À CONFIRMER] l'article liste « Effet Mère, Rami et Dawan ». Qui est Rami, et le trio est-il exact ?</span></div></div>
+  <div class="f"><div class="k">Location</div><div class="v" contenteditable="false" data-k="jmc-loc">Bir Lahjar, médina de Tunis — dimanche 19 décembre 2021</div></div>
+  <div class="f"><div class="k">Summary</div><div class="v" contenteditable="false" data-k="jmc-sum">« Ambivalence », pièce audiovisuelle générative à Bir Lahjar, pour la déambulation nocturne des JMC dans la médina de Tunis.</div></div>
+  <div class="f"><div class="k">Description</div><div class="v" contenteditable="false" data-k="jmc-desc">Pour son édition « autrement », les Journées Musicales de Carthage quittent la salle et investissent la médina de Tunis le temps d'une déambulation nocturne. Quatre projets audiovisuels expérimentaux sont implantés dans quatre lieux du quartier historique : Dribet Dar Hessine, Midhet el Soltan, le Club Taher Haddad et Bir Lahjar. Commissariat d'Aymen Gharbi, co-direction de Zied Meddeb Hamrouni. Chaque pièce est née de deux résidences au Centre culturel de Hammamet, conçues pour faire travailler ensemble artistes visuels et artistes sonores.
+
+EFFET MÈRE y présente « Ambivalence » à Bir Lahjar, avec DAWAN.
+
+<span class="need">[À COMPLÉTER] le dispositif de ta pièce : mapping ? projection ? sur quelle surface du lieu ? quel système génératif, et alimenté par quoi ?</span></div></div>
+  <div class="f"><div class="k">Contexte</div><div class="v" contenteditable="false" data-k="jmc-ctx">Deux résidences préalables au Centre culturel de Hammamet, axées sur la collaboration entre artistes visuels et sonores. Autres pièces : « Untiled » (Oussema Menchaoui, Becem Sdiri), « Lucy » (Aziz Aisaoui, DAWAN), « Absyy » (Haïfa Ouierfelli, Rami Harrabi).</div></div>
+  <div class="f"><div class="k">Role</div><div class="v" contenteditable="false" data-k="jmc-role">Création visuelle générative · Co-création de la pièce</div></div>
+  <div class="f"><div class="k">Tags</div><div class="v" contenteditable="false" data-k="jmc-tags">new media art · art génératif · live a/v · musique électronique · médina · déambulation · festival</div></div>
+  <div class="f"><div class="k">Presse</div><div class="v" contenteditable="false" data-k="jmc-press">la-femme.tn · polture.com · kapitalis.com · letemps.news — quatre couvertures pour « JMC Autrement : la médina aux couleurs de la musique électronique ». <strong>C'est ton projet le mieux couvert par la presse.</strong></div></div>
+  <div class="f"><div class="k">À noter</div><div class="v" contenteditable="false" data-k="jmc-note"><strong>Deux fils se dessinent, exploitables sur le site :</strong> <strong>DAWAN</strong> est ton collaborateur sur « Ambivalence » (2021) puis sur Between Frequencies (2022) ; <strong>Aymen Gharbi</strong> curate à la fois JMC Autrement et Interference, où tu interviens ces mêmes années. Ce n'est pas une succession de commandes, c'est un réseau curatorial dans lequel tu es installée depuis 2021.</div></div>
+  <div class="ig"><div class="k">Lien Instagram</div><div class="v" contenteditable="false" data-k="jmc-ig" data-ph="colle le lien ici"></div></div>
+</div>
+
+<!-- ============ C. TECHNIQUE ============ -->
+<h2>C — Ce que l'affichage des vidéos Instagram implique</h2>
+
+<div class="p">
+  <p style="margin-top:0">La table <code>projects</code> n'a aujourd'hui que <code>cover_url</code> (texte) et <code>gallery</code> au format <code>{url, alt, caption}[]</code>. <strong>Aucun champ vidéo ni embed.</strong> Afficher des reels demande donc :</p>
+  <ol style="margin:0;padding-left:20px">
+    <li>une migration Supabase : ajout d'une colonne <code>embeds jsonb</code> (liste d'URL Instagram) ;</li>
+    <li>un composant React qui charge le script d'embed d'Instagram et rend chaque post ;</li>
+    <li>un champ correspondant dans <code>/admin</code> pour que tu colles les liens toi-même ensuite.</li>
+  </ol>
+  <p style="margin-bottom:0">Compter environ une heure. <strong>Deux réserves à connaître avant de s'engager :</strong> l'embed Instagram ne fonctionne que sur des comptes et publications <em>publics</em>, et il charge un script tiers qui ralentit un peu la page et pose une question RGPD sur le consentement. Une alternative plus rapide et plus sobre existe : afficher une vignette cliquable qui ouvre le reel sur Instagram, sans script tiers. <span class="need">[À TRANCHER] embed natif ou vignette cliquable ?</span></p>
+</div>
+
+<footer>
+  <strong>Prochaine étape.</strong> Remplis les champs marqués, colle les liens Instagram, corrige ce qui est faux, enregistre, puis renvoie-moi le document. J'écris ensuite dans Supabase et je republie. Tant que tu n'as pas validé, <strong>rien ne part en ligne</strong>.
+  <br><br>
+  FMRXR// — Creative Technology · Document de travail interne · fmrxr.com
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var KEY = "fmrxr_contenu_projets_v1";
+  var body = document.body;
+  var vals = document.querySelectorAll(".v");
+  var stamp = document.getElementById("stamp");
+  var editing = false, timer = null;
+
+  function now(){
+    var d = new Date();
+    return d.toLocaleDateString("fr-FR") + " " +
+      String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  }
+  function save(silent){
+    var o = {};
+    vals.forEach(function(el){ o[el.dataset.k] = el.innerHTML; });
+    try{
+      localStorage.setItem(KEY, JSON.stringify({ d:o, t:Date.now() }));
+      stamp.textContent = (silent ? "auto-enregistré " : "enregistré ") + now();
+    }catch(e){ stamp.textContent = "⚠ enregistrement impossible"; }
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) { stamp.textContent = "aucune modification enregistrée"; return; }
+      var p = JSON.parse(raw);
+      vals.forEach(function(el){
+        if(p.d && typeof p.d[el.dataset.k] === "string") el.innerHTML = p.d[el.dataset.k];
+      });
+      stamp.textContent = "repris du " + new Date(p.t).toLocaleDateString("fr-FR");
+    }catch(e){ stamp.textContent = "aucune modification enregistrée"; }
+  }
+  function setEdit(on){
+    editing = on;
+    body.classList.toggle("edit", on);
+    vals.forEach(function(el){ el.contentEditable = on ? "true" : "false"; });
+    var b = document.getElementById("bEdit");
+    b.classList.toggle("on", on);
+    b.textContent = on ? "✏️ Édition active" : "✏️ Éditer";
+  }
+
+  document.getElementById("bEdit").onclick = function(){ setEdit(!editing); };
+  document.getElementById("bSave").onclick = function(){ save(false); };
+  document.getElementById("bPdf").onclick = function(){ window.print(); };
+  document.getElementById("bReset").onclick = function(){
+    if(!confirm("Réinitialiser et perdre toutes tes modifications ?")) return;
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    location.reload();
+  };
+
+  // auto-save à chaque frappe (debounce 800 ms)
+  vals.forEach(function(el){
+    el.addEventListener("input", function(){
+      clearTimeout(timer);
+      stamp.textContent = "modification…";
+      timer = setTimeout(function(){ save(true); }, 800);
+    });
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

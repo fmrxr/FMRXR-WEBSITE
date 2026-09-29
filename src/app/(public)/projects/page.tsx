@@ -10,7 +10,7 @@ export default async function Projects() {
   const projects = await getPublished("projects");
   return (
     <>
-      <PageHero index="Work" title="Selected work" intro="Real systems, shipped under live conditions — immersive installations, projection mapping, generative environments and live A/V." />
+      <PageHero index="Work" title="Selected work" intro="Real systems, shipped under live conditions: new media art installations, projection mapping, generative environments and live A/V." />
       <section className="mx-auto max-w-[1200px] px-5 pb-24 md:px-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p: any, i: number) => (

@@ -68,7 +68,7 @@ export function Hero({ clips }: { clips: Clip[] }) {
           hasVideo ? "pb-16 pt-32 md:pb-20 md:pt-40" : "pt-36 pb-20 md:pt-44 md:pb-28"
         }`}
       >
-        <h1 className="sr-only">FMRXR — Creative Technology</h1>
+        <h1 className="sr-only">FMRXR Creative Technology</h1>
 
         <div className="fm-rise grid gap-8 md:grid-cols-[1.3fr_1fr]" style={{ animationDelay: "120ms" }}>
           <div>

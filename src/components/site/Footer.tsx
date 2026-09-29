@@ -25,7 +25,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
               {settings.description}
             </p>
             <p className="mt-6 text-[11px] uppercase tracking-[0.12em] text-fmmuted">
-              <span className="text-fmaccent">●</span> Available for projects — {settings.location}
+              <span className="text-fmaccent">●</span> Available for projects · {settings.location}
             </p>
           </div>
 
@@ -58,7 +58,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
         </div>
 
         <div className="mt-16 flex flex-col gap-3 border-t border-fmborder pt-6 text-[11px] uppercase tracking-[0.08em] text-fmmuted md:flex-row md:items-center md:justify-between">
-          <p>© {year} {settings.name} — {settings.tagline}</p>
+          <p>© {year} {settings.name} · {settings.tagline}</p>
           <p>{settings.founder} · Tunis, TN</p>
         </div>
       </div>

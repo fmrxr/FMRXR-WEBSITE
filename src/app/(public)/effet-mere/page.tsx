@@ -3,11 +3,11 @@ import { PageHero } from "@/components/site/PageHero";
 export default function EffetMere() {
   return (
     <>
-      <PageHero index="Effet Mère" title="Reality is not represented — it is generated." />
+      <PageHero index="Effet Mère" title="Reality is not represented. It is generated." />
       <section className="mx-auto max-w-2xl px-5 pb-24 md:px-8">
         <div className="fm-grotesk flex flex-col gap-5 text-[15px] leading-relaxed text-fmfg/85">
           <p>
-            Effet Mère is the artistic identity of Haïfa Becheikh — VJing, live performance, generative
+            Effet Mère is the artistic identity of Haïfa Becheikh, covering VJing, live performance, generative
             systems and contemporary art, in practice since 2009.
           </p>
           <p>

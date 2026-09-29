@@ -139,7 +139,7 @@ export function StartForm({
 
       <div className="flex flex-col gap-2">
         <label className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">
-          Attach a brief — image · reference · pdf · video (max {MAX_MB} MB each)
+          Attach a brief · image · reference · pdf · video (max {MAX_MB} MB each)
         </label>
         <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-fmborder px-4 py-6 text-center text-sm text-fmmuted transition-colors hover:bg-white/[0.02]">
           <input

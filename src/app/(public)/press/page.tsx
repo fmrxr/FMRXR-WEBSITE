@@ -4,7 +4,7 @@ import { PageHero } from "@/components/site/PageHero";
 export default function Press() {
   return (
     <>
-      <PageHero index="Press" title="Press & media" intro="Logos, founder bio, project stills and fact sheet — available on request." />
+      <PageHero index="Press" title="Press & media" intro="Logos, founder bio, project stills and fact sheet, available on request." />
       <section className="mx-auto max-w-3xl px-5 pb-24 md:px-8">
         <div className="fm-glass-card rounded-xl p-8">
           <p className="fm-grotesk text-fmmuted">

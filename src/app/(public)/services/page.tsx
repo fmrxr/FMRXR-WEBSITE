@@ -10,7 +10,7 @@ export default async function Services() {
   const services = await getPublished("services");
   return (
     <>
-      <PageHero index="Services" title="One studio, fullstack brand activation." intro="From creative direction to opening night — XR, projection mapping, generative art, live A/V and AI workflows, delivered as one system." />
+      <PageHero index="Services" title="One studio, fullstack brand activation." intro="From creative direction to opening night: XR, projection mapping, generative art, live A/V and AI workflows, delivered as one system." />
       <section className="mx-auto max-w-[1200px] px-5 pb-24 md:px-8">
         <div className="grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder md:grid-cols-2">
           {services.map((s: any, i: number) => (
