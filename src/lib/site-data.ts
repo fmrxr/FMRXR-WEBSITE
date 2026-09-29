@@ -22,5 +22,5 @@ export const SITE: SiteSettings = {
   description: "Emotional data · Immersive arts · Intelligent realities",
   email: "fmrxr.studio@gmail.com", phone: "+216 56 930 469", location: "Tunis, Tunisie",
   founder: "Haïfa Al Jamila Becheikh", artist_alias: "EFFET MÈRE",
-  socials: { instagram: "@fmrxr.studio", tiktok: "@fmrxrstudio", linkedin: "@fmrxrstudio", x: "@fmrxrstudio", web: "fmrxr-studio.webflow.io" },
+  socials: { instagram: "@fmrxr.studio", tiktok: "@fmrxrstudio", linkedin: "@fmrxrstudio", x: "@fmrxrstudio", web: "fmrxr.com" },
 };

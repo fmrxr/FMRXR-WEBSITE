@@ -1,3 +1,13 @@
+# Le site vit désormais sur Hostinger (https://fmrxr.com). Netlify reste déployé
+# uniquement comme redirecteur 301 : le build est conservé pour pouvoir revenir
+# en arrière en une minute (retirer le bloc [[redirects]] ci-dessous) si Hostinger
+# tombe. Ne pas supprimer le site Netlify tant que fmrxr.com n'est pas stable.
+[[redirects]]
+  from = "/*"
+  to = "https://fmrxr.com/:splat"
+  status = 301
+  force = true
+
 [build]
   command = "npm run build"
   publish = ".next"

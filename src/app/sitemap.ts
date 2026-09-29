@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getPublished } from "@/lib/public-data";
 
-const BASE = "https://fmrxr.studio";
+const BASE = "https://fmrxr.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [projects, services, industries, articles] = await Promise.all([

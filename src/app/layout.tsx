@@ -35,7 +35,7 @@ export default async function RootLayout({
     name: s.name,
     description: s.description,
     email: s.email,
-    url: "https://fmrxr.studio",
+    url: "https://fmrxr.com",
     founder: { "@type": "Person", name: s.founder },
   };
   return (

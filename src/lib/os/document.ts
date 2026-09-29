@@ -13,7 +13,7 @@ export const SELLER = {
   city: "Tunis, Tunisie",
   email: "fmrxr.studio@gmail.com",
   phone: "+216 56 930 469",
-  web: "fmrxr-studio.webflow.io",
+  web: "fmrxr.com",
   bank: {
     holder: "Haïfa Al Jamila BECHEIKH",
     bank: "AMEN BANK — Agence Gammarth",
