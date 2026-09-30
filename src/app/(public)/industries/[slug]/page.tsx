@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
@@ -7,6 +8,23 @@ export const revalidate = 60;
 export async function generateStaticParams() {
   const rows = await getPublished("industries");
   return rows.map((r: any) => ({ slug: r.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const r = await getBySlug("industries", slug);
+  if (!r) return { title: "Sector not found", robots: { index: false, follow: false } };
+
+  const description = (r.note || "").replace(/\s+/g, " ").trim().slice(0, 300)
+    || `Immersive and new media art work for ${r.name}, by FMRXR Studio.`;
+  const url = `/industries/${r.slug}`;
+
+  return {
+    title: r.name,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "website", url, title: r.name, description },
+  };
 }
 
 export default async function IndustryPage({ params }: { params: Promise<{ slug: string }> }) {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
@@ -7,6 +8,24 @@ export const revalidate = 60;
 export async function generateStaticParams() {
   const rows = await getPublished("services");
   return rows.map((s: any) => ({ slug: s.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const s = await getBySlug("services", slug);
+  if (!s) return { title: "Service not found", robots: { index: false, follow: false } };
+
+  const description = (s.short || s.description || "").replace(/\s+/g, " ").trim().slice(0, 300)
+    || `${s.title} by FMRXR Studio, Tunis.`;
+  const url = `/services/${s.slug}`;
+
+  return {
+    title: s.title,
+    description,
+    keywords: [...(s.outcomes ?? []), s.title, "FMRXR Studio", "new media art", "Tunis"].filter(Boolean),
+    alternates: { canonical: url },
+    openGraph: { type: "website", url, title: s.title, description },
+  };
 }
 
 export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {

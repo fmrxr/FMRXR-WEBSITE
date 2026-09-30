@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
@@ -7,6 +8,30 @@ export const revalidate = 60;
 export async function generateStaticParams() {
   const rows = await getPublished("articles");
   return rows.map((a: any) => ({ slug: a.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const a = await getBySlug("articles", slug);
+  if (!a) return { title: "Article not found", robots: { index: false, follow: false } };
+
+  // À défaut d'extrait, on ouvre sur le premier paragraphe : mieux vaut une
+  // description tirée du texte qu'un repli générique partagé par toutes les pages.
+  const description = (a.excerpt || a.body?.[0] || "").replace(/\s+/g, " ").trim().slice(0, 300);
+  const url = `/journal/${a.slug}`;
+  const images = a.cover_url ? [{ url: a.cover_url, alt: a.title }] : undefined;
+
+  return {
+    title: a.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article", url, title: a.title, description, images,
+      ...(a.date ? { publishedTime: a.date } : {}),
+      authors: ["Haïfa Al Jamila Becheikh"],
+    },
+    twitter: { card: "summary_large_image", title: a.title, description, images: images?.map((i) => i.url) },
+  };
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
