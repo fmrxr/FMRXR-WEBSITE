@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import { getSiteSettings } from "@/lib/public-data";
+import { Analytics } from "@/components/site/Analytics";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -49,6 +50,10 @@ export const metadata: Metadata = {
     creator: "@fmrxrstudio",
   },
   robots: { index: true, follow: true },
+  // Renseigner le code fourni par Google Search Console pour valider la propriété.
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export default async function RootLayout({
@@ -77,6 +82,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         {children}
+        <Analytics />
       </body>
     </html>
   );
