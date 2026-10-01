@@ -1,17 +1,20 @@
 import Script from "next/script";
 
-// Mesure d'audience, activée uniquement si l'identifiant est présent en
-// environnement. Tant que NEXT_PUBLIC_GA_ID n'est pas défini, rien n'est chargé
-// et aucune requête tierce ne part : le site reste identique pour le visiteur.
+// L'identifiant de mesure GA4 n'est pas un secret : il est visible dans le HTML
+// de chaque page. On le code en valeur par defaut pour ne pas dependre d'une
+// variable d'environnement a poser sur l'hebergeur, tout en laissant la
+// possibilite de le surcharger.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? "G-7VP6557ZL4";
+
 export function Analytics() {
-  const gaId = process.env.NEXT_PUBLIC_GA_ID;
-  if (!gaId) return null;
+  // Rien en developpement : sinon chaque npm run dev gonfle les statistiques.
+  if (!GA_ID || process.env.NODE_ENV !== "production") return null;
 
   return (
     <>
-      <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
       <Script id="ga-init" strategy="afterInteractive">
-        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{anonymize_ip:true});`}
+        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}',{anonymize_ip:true});`}
       </Script>
     </>
   );
