@@ -191,6 +191,71 @@
    FMRXR brand shell — applied to the public site via .fm
    Dark-first (#0d0c14), Resolve Sans body, Monument Extended headings.
    ============================================================ */
+/* ============================================================
+   CMS aux couleurs FMRXR
+   ------------------------------------------------------------
+   Le CMS est construit sur shadcn, qui lit tout depuis une poignee de
+   variables. On les remappe ici sur la palette de marque plutot que de
+   reecrire chaque page : Button, Input, Select, Card, Table, Dialog et le
+   Toaster suivent sans etre touches, et un composant ajoute plus tard suivra
+   aussi. La portee est une classe sur le layout /admin, donc le site public
+   et ses propres couleurs ne bougent pas.
+   ============================================================ */
+.fm-admin {
+  --background: var(--color-fmbg);
+  --foreground: var(--color-fmfg);
+  --card: var(--color-fmcard);
+  --card-foreground: var(--color-fmfg);
+  --popover: var(--color-fmcard);
+  --popover-foreground: var(--color-fmfg);
+  /* Bouton principal clair sur fond sombre, comme sur le site et dans l'OS. */
+  --primary: var(--color-fmfg);
+  --primary-foreground: var(--color-fmbg);
+  --secondary: var(--color-fmmutedbg);
+  --secondary-foreground: var(--color-fmfg);
+  --muted: var(--color-fmmutedbg);
+  --muted-foreground: var(--color-fmmuted);
+  --accent: var(--color-fmmutedbg);
+  --accent-foreground: var(--color-fmaccent);
+  /* Rouge eclairci : le destructive par defaut de shadcn est illisible sur
+     #0d0c14 une fois en texte. */
+  --destructive: oklch(0.68 0.19 25);
+  --border: var(--color-fmborder);
+  --input: var(--color-fmborder);
+  --ring: var(--color-fmaccent);
+  --sidebar: var(--color-fmbg);
+  --sidebar-foreground: var(--color-fmfg);
+  --sidebar-primary: var(--color-fmaccent);
+  --sidebar-primary-foreground: var(--color-fmbg);
+  --sidebar-accent: var(--color-fmmutedbg);
+  --sidebar-accent-foreground: var(--color-fmfg);
+  --sidebar-border: var(--color-fmborder);
+  --sidebar-ring: var(--color-fmaccent);
+}
+
+/* Les titres de page du CMS passent en Monument Extended, comme partout
+   ailleurs. Cible les h1/h2 plutot que chaque fichier de page. */
+.fm-admin h1,
+.fm-admin h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* Les champs natifs du CMS (select, input non shadcn) heritent rarement des
+   couleurs du theme : sur fond sombre ils restaient blancs. */
+.fm-admin select,
+.fm-admin input,
+.fm-admin textarea {
+  background-color: var(--color-fmmutedbg);
+  color: var(--color-fmfg);
+  border-color: var(--color-fmborder);
+}
+.fm-admin select option {
+  background-color: var(--color-fmbg);
+  color: var(--color-fmfg);
+}
+
 .fm {
   background-color: var(--color-fmbg);
   color: var(--color-fmfg);

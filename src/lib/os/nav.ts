@@ -23,6 +23,9 @@ export const OS_MODULES: OsNavModule[] = [
   // Today et Dashboard ont fusionné le 20/09 : une seule page, en trois niveaux de détail.
   { id: "today", label: "Command Center", group: "Command Center", phase: "A", native: true, href: "/os/today" },
   { id: "okr", label: "OKR", group: "Command Center", phase: "B", native: true, href: "/os/okr" },
+  // Lecture seule de l'espace /collab : ce que les collaborateurs y ecrivent
+  // remonte ici, sans que l'OS leur soit ouvert pour autant.
+  { id: "collab", label: "Collaborateurs", group: "Command Center", phase: "B", native: true, href: "/os/collab" },
   { id: "projets", label: "Projets", group: "Work", phase: "B", native: true, href: "/os/projets" },
   { id: "taches", label: "Tâches", group: "Work", phase: "B", native: true, href: "/os/taches" },
   { id: "agenda", label: "Agenda", group: "Work", phase: "B", native: true, href: "/os/agenda" },

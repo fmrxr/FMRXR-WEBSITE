@@ -7,7 +7,12 @@ export async function proxy(request: NextRequest) {
   // /api/os/agent/* s'authentifie par token Bearer (checkAgentToken), pas par cookie de session —
   // exempté du gate cookie, sinon le proxy redirige avant que la route ait pu vérifier le token.
   if (p.startsWith("/api/os/agent/")) return response;
-  const gated = p.startsWith("/admin") || p.startsWith("/os") || p.startsWith("/api/os");
+  // Premier filtre seulement : il ne verifie que la session. Le controle de role
+  // est fait par chaque layout (/os exige admin, /admin exige admin ou editor,
+  // /collab exige un role quelconque) et par les routes /api/os.
+  const gated =
+    p.startsWith("/admin") || p.startsWith("/os") || p.startsWith("/api/os") ||
+    p.startsWith("/collab");
   if (gated && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";

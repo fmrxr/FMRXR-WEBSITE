@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { modulesByGroup } from "@/lib/os/nav";
 import { signOut } from "@/app/actions/auth";
+import { SpaceSwitcher } from "@/components/shell/SpaceSwitcher";
 
 interface OsSidebarProps {
   mobileOpen: boolean;
@@ -33,6 +34,10 @@ export function OsSidebar({ mobileOpen, onClose }: OsSidebarProps) {
             ✕
           </button>
         </div>
+
+        {/* os/layout.tsx redirige tout ce qui n'est pas admin, donc quiconque
+            voit cette barre a les trois espaces ouverts. */}
+        <SpaceSwitcher roles={["admin"]} />
 
         <nav className="flex flex-1 flex-col gap-5 overflow-y-auto">
           {modulesByGroup().map(({ group, modules }) => (
@@ -65,8 +70,8 @@ export function OsSidebar({ mobileOpen, onClose }: OsSidebarProps) {
           <Link href="/os/legacy" className="fm-link px-2.5 py-1 font-grotesk text-xs text-fmmuted">
             Ancienne version →
           </Link>
-          <Link href="/admin" className="fm-link px-2.5 py-1 font-grotesk text-xs text-fmmuted">
-            Admin →
+          <Link href="/" className="fm-link px-2.5 py-1 font-grotesk text-xs text-fmmuted">
+            Site public →
           </Link>
           <form action={signOut}>
             <button type="submit" className="fm-link px-2.5 py-1 text-left font-grotesk text-xs text-fmmuted">

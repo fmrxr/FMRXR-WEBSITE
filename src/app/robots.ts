@@ -9,7 +9,10 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/os", "/os/", "/admin", "/admin/", "/api/", "/auth", "/start/thanks"],
+        disallow: [
+          "/os", "/os/", "/admin", "/admin/", "/collab", "/collab/",
+          "/api/", "/auth", "/start/thanks",
+        ],
       },
     ],
     sitemap: "https://fmrxr.com/sitemap.xml",
