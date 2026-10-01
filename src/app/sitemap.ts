@@ -3,6 +3,10 @@ import { getPublished } from "@/lib/public-data";
 
 const BASE = "https://fmrxr.com";
 
+// Le sitemap doit refleter l'etat reel de la base : fige au build, il omettait
+// les projets publies apres le dernier deploiement.
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [projects, services, industries, articles] = await Promise.all([
     getPublished("projects"), getPublished("services"),

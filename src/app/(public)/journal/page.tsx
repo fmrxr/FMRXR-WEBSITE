@@ -2,7 +2,12 @@ import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
 
-export const revalidate = 60;
+// Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
+// processus Node, chacun avec son propre cache : avec revalidate, une meme URL
+// renvoyait tantot l'ancienne version tantot la nouvelle selon le worker
+// touche. Le contenu vient de Supabase et change souvent, la coherence prime
+// ici sur la mise en cache.
+export const dynamic = "force-dynamic";
 
 export default async function Journal() {
   const rows = await getPublished("articles");
