@@ -1,75 +1,210 @@
 import Link from "next/link";
 import {
-  LEAD_DAYS, SchemaMissingError, STATUS_LABEL, formatDate,
+  LEAD_DAYS, SchemaMissingError, formatDate,
   listOpportunities, type Opportunity,
 } from "@/lib/collab/opportunities";
 import {
-  axisBounds, batchesOf, monthTicks, position, today, windowsOf,
-  type Batch, type Window,
+  axisBounds, batchesOf, monthsOf, peakOpen, today, windowsOf,
+  type Batch, type Day, type Month,
 } from "@/lib/collab/schedule";
 
 export const dynamic = "force-dynamic";
 
-type Bounds = ReturnType<typeof axisBounds>;
+// Semaine commencant le lundi, usage francais. La reference envoyee demarrait au
+// dimanche, convention americaine d'un gabarit generique.
+const WEEKDAYS = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
 
-function Gridlines({ bounds }: { bounds: Bounds }) {
+/** Titre raccourci : une case de calendrier ne tient pas une phrase. */
+function short(title: string) {
+  const head = title.split(/\s[—·:(]|,\s/)[0];
+  return head.length > 22 ? `${head.slice(0, 21)}…` : head;
+}
+
+function Cell({ day, peak }: { day: Day; peak: number }) {
+  // Fond neutre, pas colore. Une premiere version teintait la case en vert, la
+  // meme teinte que les pastilles « date cible » : la densite et l'identite se
+  // disputaient la couleur et la grille entiere virait a l'olive. La magnitude
+  // ne porte plus que sur la clarte, la teinte reste aux marqueurs.
+  const heat = day.inMonth && day.open > 0 ? 0.025 + (day.open / peak) * 0.065 : 0;
+
+  // Le compte ne s'ecrit pas dans la case : deux nombres cote a cote, le
+  // quantieme et le total, se lisent comme une plage de dates. Le fond porte la
+  // magnitude, l'infobulle donne le chiffre exact.
   return (
-    <>
-      {monthTicks(bounds).map((t) => (
-        <div
-          key={t.date.getTime()}
-          className="absolute inset-y-0 w-px bg-fmborder/60"
-          style={{ left: `${position(t.date, bounds)}%` }}
-        />
-      ))}
-      {/* Aujourd'hui est l'origine de l'axe, pas une date au milieu. */}
-      <div className="absolute inset-y-0 w-px bg-fmaccent/50" style={{ left: 0 }} />
-    </>
+    <div
+      title={day.inMonth && day.open > 0 ? `${day.open} appel${day.open > 1 ? "s" : ""} déposable${day.open > 1 ? "s" : ""} ce jour-là` : undefined}
+      className={`relative min-h-20 border-b border-r border-fmborder p-1.5 last:border-r-0 ${
+        day.inMonth ? "" : "opacity-25"
+      }`}
+      style={heat ? { backgroundColor: `rgba(245, 245, 248, ${heat.toFixed(3)})` } : undefined}
+    >
+      <div className="flex items-baseline gap-1.5">
+        <span
+          className={`fm-grotesk text-[11px] tabular-nums ${
+            day.isToday
+              ? "rounded bg-fmfg px-1 font-medium text-fmbg"
+              : day.past
+                ? "text-fmmuted/60"
+                : "text-fmfg/75"
+          }`}
+        >
+          {day.date.getUTCDate()}
+        </span>
+      </div>
+
+      <div className="mt-1 flex flex-col gap-0.5">
+        {day.events.map((e) => (
+          <Link
+            key={e.kind + e.window.slug}
+            href={`/collab/${e.window.slug}`}
+            prefetch={false}
+            title={`${e.kind === "deadline" ? "Clôture" : "Date cible"} · ${e.window.title}`}
+            className={`fm-grotesk flex items-center gap-1 truncate rounded px-1 py-0.5 text-[10px] leading-tight transition-colors ${
+              e.kind === "deadline"
+                ? "bg-[#ef4444]/18 text-fmfg hover:bg-[#ef4444]/30"
+                : "bg-fmaccent/15 text-fmfg hover:bg-fmaccent/25"
+            }`}
+          >
+            <span
+              className={`size-1 shrink-0 rounded-full ${
+                e.kind === "deadline" ? "bg-[#ef4444]" : "bg-fmaccent"
+              }`}
+              aria-hidden
+            />
+            <span className="truncate">{short(e.window.title)}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function Row({ w, bounds }: { w: Window; bounds: Bounds }) {
-  const left = position(w.start, bounds);
-  const right = position(w.end, bounds);
-  const prepRight = position(w.late ? w.start : w.target, bounds);
+const DAY_LABEL = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", timeZone: "UTC" });
 
+/**
+ * Vue telephone : l'agenda, pas la grille.
+ *
+ * Une grille de sept colonnes sur 375 px ne laisse que cinquante pixels par
+ * jour, de quoi afficher un quantieme et rien d'autre. Les applications de
+ * calendrier basculent toutes en liste a cette largeur, et c'est la bonne
+ * reponse : seuls les jours qui portent quelque chose, dans l'ordre.
+ */
+function Agenda({ m }: { m: Month }) {
+  const days = m.weeks.flat().filter((d) => d.inMonth && d.events.length > 0);
+  if (days.length === 0) {
+    return (
+      <p className="fm-grotesk mt-3 rounded-xl border border-fmborder px-4 py-5 text-xs text-fmmuted">
+        Aucune échéance ce mois-ci.
+      </p>
+    );
+  }
   return (
-    <Link
-      href={`/collab/${w.slug}`}
-      prefetch={false}
-      className="fm-row grid grid-cols-1 items-center gap-1 border-b border-fmborder px-4 py-3 last:border-b-0 md:grid-cols-[minmax(0,11rem)_1fr_minmax(0,10rem)] md:gap-4"
-    >
-      <div className="min-w-0">
-        <p className="fm-grotesk truncate text-sm text-fmfg">{w.title}</p>
-        <p className="fm-grotesk truncate text-[11px] text-fmmuted">
-          {STATUS_LABEL[w.status]}{w.assignee && ` · ${w.assignee}`}
-        </p>
-      </div>
-
-      <div className="relative h-7">
-        <Gridlines bounds={bounds} />
-        {/* Trait fin : le temps qui reste avant que la fenetre s'ouvre. */}
-        {!w.late && prepRight > 0 && (
-          <div
-            className="absolute top-1/2 h-px -translate-y-1/2 bg-fmborder"
-            style={{ left: 0, width: `${prepRight}%` }}
-          />
-        )}
+    <div className="mt-3 overflow-hidden rounded-xl border border-fmborder md:hidden">
+      {days.map((day) => (
         <div
-          className={`absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full ${
-            w.late ? "bg-amber-400/70" : "bg-fmaccent/70"
-          }`}
-          style={{ left: `${left}%`, width: `${Math.max(0.6, right - left)}%` }}
-        />
-      </div>
+          key={day.date.getTime()}
+          className="flex gap-3 border-b border-fmborder px-4 py-3 last:border-b-0"
+        >
+          <div className="w-16 shrink-0 pt-0.5">
+            <p
+              className={`fm-grotesk text-xs capitalize tabular-nums ${
+                day.isToday ? "font-medium text-fmaccent" : day.past ? "text-fmmuted/60" : "text-fmfg"
+              }`}
+            >
+              {DAY_LABEL.format(day.date)}
+            </p>
+            {day.open > 0 && (
+              <p className="fm-grotesk text-[10px] tabular-nums text-fmmuted">
+                {day.open} ouvert{day.open > 1 ? "s" : ""}
+              </p>
+            )}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            {day.events.map((e) => (
+              <Link
+                key={e.kind + e.window.slug}
+                href={`/collab/${e.window.slug}`}
+                prefetch={false}
+                className="fm-grotesk flex items-center gap-2 text-xs text-fmfg"
+              >
+                <span
+                  className={`size-1.5 shrink-0 rounded-full ${
+                    e.kind === "deadline" ? "bg-[#ef4444]" : "bg-fmaccent"
+                  }`}
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1 truncate">{e.window.title}</span>
+                <span className="shrink-0 text-[10px] uppercase tracking-[0.08em] text-fmmuted">
+                  {e.kind === "deadline" ? "clôture" : "cible"}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-      <div className="shrink-0 md:text-right">
-        <p className={`fm-grotesk text-xs ${w.late ? "text-amber-300" : "text-fmfg"}`}>
-          {w.late ? "déposable maintenant" : `prêt le ${formatDate(w.target)}`}
-        </p>
-        <p className="fm-grotesk text-[11px] text-fmmuted">clôture {formatDate(w.end)}</p>
+function MonthGrid({ m, peak }: { m: Month; peak: number }) {
+  return (
+    <section>
+      <h2 className="fm-display text-lg capitalize text-fmfg">{m.label}</h2>
+      {/* Grille au-dela de 768 px seulement. En dessous, sept colonnes rendent
+          les pastilles illisibles et un defilement lateral n'est qu'un pis-aller :
+          c'est la vue agenda qui prend le relais. */}
+      <div className="mt-3 hidden overflow-hidden rounded-xl border border-fmborder md:block">
+        <div>
+        <div className="grid grid-cols-7 border-b border-fmborder bg-fmmutedbg/40">
+          {WEEKDAYS.map((d) => (
+            <span
+              key={d}
+              className="border-r border-fmborder px-2 py-1.5 text-center text-[10px] uppercase tracking-[0.12em] text-fmmuted last:border-r-0"
+            >
+              {d}
+            </span>
+          ))}
+        </div>
+        {m.weeks.map((week) => (
+          <div key={week[0].date.getTime()} className="grid grid-cols-7">
+            {week.map((day) => <Cell key={day.date.getTime()} day={day} peak={peak} />)}
+          </div>
+        ))}
+        </div>
       </div>
-    </Link>
+      <Agenda m={m} />
+    </section>
+  );
+}
+
+function Legend({ peak }: { peak: number }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <span className="flex items-center gap-2">
+        <span className="size-2 rounded-full bg-[#ef4444]" aria-hidden />
+        <span className="fm-grotesk text-[11px] text-fmmuted">Clôture, dernier jour utile</span>
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="size-2 rounded-full bg-fmaccent" aria-hidden />
+        <span className="fm-grotesk text-[11px] text-fmmuted">
+          Date cible, {`${LEAD_DAYS} jours`} avant la clôture
+        </span>
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="flex" aria-hidden>
+          {[0.25, 0.5, 0.75, 1].map((f) => (
+            <span
+              key={f}
+              className="h-3 w-4 border border-fmborder"
+              style={{ backgroundColor: `rgba(245, 245, 248, ${(0.025 + f * 0.065).toFixed(3)})` }}
+            />
+          ))}
+        </span>
+        <span className="fm-grotesk text-[11px] text-fmmuted">
+          Fond : appels déposables ce jour-là, jusqu’à {peak}
+        </span>
+      </span>
+    </div>
   );
 }
 
@@ -91,13 +226,15 @@ function BatchCard({ b, rank }: { b: Batch; rank: number }) {
           </span>
         )}
       </div>
+      {/* Sur telephone chaque ligne passe a la ligne plutot que d'etre coupee :
+          la place manque en largeur, pas en hauteur. */}
       <ul className="fm-grotesk mt-2.5 flex flex-col gap-1">
         {b.windows.map((w) => (
-          <li key={w.slug} className="truncate text-xs text-fmfg/80">
+          <li key={w.slug} className="text-xs text-fmfg/80 md:truncate">
             <Link href={`/collab/${w.slug}`} prefetch={false} className="fm-link">
               {w.title}
             </Link>
-            <span className="text-fmmuted"> · ferme le {formatDate(w.end)}</span>
+            <span className="tabular-nums text-fmmuted"> · ferme le {formatDate(w.end)}</span>
           </li>
         ))}
       </ul>
@@ -122,10 +259,11 @@ export default async function Calendrier() {
 
   const windows = windowsOf(all);
   const bounds = axisBounds(windows);
+  const months = monthsOf(windows, bounds);
+  const peak = peakOpen(months);
   const batches = batchesOf(windows);
   const now = today();
   const undated = all.filter((o) => o.eligible && !o.deadline);
-  const busiest = Math.max(0, ...batches.map((b) => b.windows.length));
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 md:px-8 md:py-14">
@@ -135,10 +273,11 @@ export default async function Calendrier() {
 
       <h1 className="fm-display mt-5 text-3xl text-fmfg md:text-4xl">Calendrier</h1>
       <p className="fm-grotesk mt-4 max-w-2xl text-sm leading-relaxed text-fmfg/80">
-        Chaque barre est la <strong className="text-fmfg">fenêtre de dépôt</strong> d’un appel :
-        de sa date cible à sa clôture, soit les {`${LEAD_DAYS} jours`} pendant lesquels le dossier
-        peut encore partir avec l’avance qui compte. Le trait fin qui la précède est le temps
-        restant pour le préparer. Tout est calculé depuis les clôtures enregistrées.
+        Chaque appel pose deux repères : sa <strong className="text-fmfg">date cible</strong>,
+        soit {`${LEAD_DAYS} jours`} avant la clôture, et sa{" "}
+        <strong className="text-fmfg">clôture</strong>. Le fond d’une journée s’assombrit avec le
+        nombre d’appels qu’on peut y déposer : les semaines chargées se repèrent sans lire une
+        seule date. Tout est calculé depuis les clôtures enregistrées.
       </p>
 
       {windows.length === 0 ? (
@@ -147,26 +286,19 @@ export default async function Calendrier() {
         </p>
       ) : (
         <>
-          <div className="mt-8 overflow-hidden rounded-xl border border-fmborder">
-            {windows.map((w) => <Row key={w.slug} w={w} bounds={bounds} />)}
-            <div className="relative h-5 px-4 pb-2 md:ml-[11rem] md:mr-[10rem]">
-              {monthTicks(bounds).map((t) => (
-                <span
-                  key={t.date.getTime()}
-                  className="absolute top-0 -translate-x-1/2 text-[10px] uppercase tracking-[0.1em] text-fmmuted"
-                  style={{ left: `${position(t.date, bounds)}%` }}
-                >
-                  {t.label}
-                </span>
-              ))}
-            </div>
+          <div className="mt-6">
+            <Legend peak={peak} />
+          </div>
+
+          <div className="mt-6 flex flex-col gap-8">
+            {months.map((m) => <MonthGrid key={`${m.year}-${m.month}`} m={m} peak={peak} />)}
           </div>
 
           <h2 className="fm-display mt-12 text-lg text-fmfg">Ce qui part ensemble</h2>
           <p className="fm-grotesk mt-1 max-w-2xl text-xs leading-relaxed text-fmmuted">
-            Chaque bloc réunit des appels dont les fenêtres se recouvrent toutes, deux à deux :
-            il existe une période où ils peuvent partir le même jour. Un même dossier peut
-            apparaître dans plusieurs blocs, sa fenêtre croisant plusieurs groupes.
+            Chaque bloc réunit des appels dont les fenêtres de dépôt se recouvrent toutes, deux à
+            deux : il existe une période où ils peuvent partir le même jour. Un même dossier peut
+            apparaître dans plusieurs blocs.
           </p>
           <div className="mt-4 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder md:grid-cols-2">
             {batches.map((b, i) => <BatchCard key={`${b.from.getTime()}-${b.windows.length}`} b={b} rank={i} />)}
@@ -174,33 +306,12 @@ export default async function Calendrier() {
         </>
       )}
 
-      <section className="mt-10 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-3">
-        <div className="bg-fmbg p-5">
-          <p className="fm-display text-2xl text-fmfg">{busiest}</p>
-          <p className="fm-grotesk mt-1.5 text-xs leading-relaxed text-fmmuted">
-            Dossiers déposables en même temps, au plus chargé
-          </p>
-        </div>
-        <div className="bg-fmbg p-5">
-          <p className="fm-display text-2xl text-fmfg">{windows.filter((w) => w.late).length}</p>
-          <p className="fm-grotesk mt-1.5 text-xs leading-relaxed text-fmmuted">
-            Fenêtres déjà ouvertes, à traiter sans attendre
-          </p>
-        </div>
-        <div className="bg-fmbg p-5">
-          <p className="fm-display text-2xl text-fmfg">{batches.length}</p>
-          <p className="fm-grotesk mt-1.5 text-xs leading-relaxed text-fmmuted">
-            Périodes distinctes à arbitrer
-          </p>
-        </div>
-      </section>
-
       {undated.length > 0 && (
         <section className="mt-10">
           <h2 className="fm-display text-lg text-fmfg">Hors calendrier</h2>
           <p className="fm-grotesk mt-1 text-xs text-fmmuted">
-            Aucune clôture publiée, donc impossibles à placer sur l’axe. À dater avant de pouvoir
-            les arbitrer avec le reste.
+            Aucune clôture publiée, donc impossibles à placer. À dater avant de pouvoir les
+            arbitrer avec le reste.
           </p>
           <div className="mt-3 overflow-hidden rounded-xl border border-fmborder">
             {undated.map((o) => (
@@ -221,7 +332,7 @@ export default async function Calendrier() {
       )}
 
       <p className="fm-grotesk mt-8 text-xs text-fmmuted">
-        Axe du {formatDate(now)} au {formatDate(bounds.to)}, {bounds.days} jours d’horizon.
+        Du {formatDate(now)} au {formatDate(bounds.to)}.
       </p>
     </div>
   );
