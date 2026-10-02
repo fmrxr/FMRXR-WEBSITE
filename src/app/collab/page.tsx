@@ -45,6 +45,12 @@ function Row({ o }: { o: Opportunity }) {
   return (
     <Link
       href={`/collab/${o.slug}`}
+      // Aucun lien de cet espace n'est precharge. Toutes ces pages sont
+      // authentifiees et en force-dynamic : un prefetch n'economise rien, il
+      // declenche un rendu serveur complet avec son appel Supabase. Sur cette
+      // liste, c'etait dix-huit rendus au seul affichage de la page, et chaque
+      // revalidation les relancait tous.
+      prefetch={false}
       className="fm-row grid grid-cols-1 gap-3 border-b border-fmborder px-5 py-4 last:border-b-0 md:grid-cols-[1fr_auto] md:items-center md:gap-6 md:px-6"
     >
       <div className="min-w-0">
@@ -166,6 +172,7 @@ export default async function CollabIndex({
           <span className="text-fmmuted">Qui :</span>
           <Link
             href="/collab"
+            prefetch={false}
             className={`rounded-full border px-3 py-1 ${!filter ? "border-fmaccent/50 text-fmaccent" : "border-fmborder text-fmmuted"}`}
           >
             tout le monde
@@ -174,6 +181,7 @@ export default async function CollabIndex({
             <Link
               key={a}
               href={`/collab?who=${encodeURIComponent(a)}`}
+              prefetch={false}
               className={`rounded-full border px-3 py-1 ${filter === a ? "border-fmaccent/50 text-fmaccent" : "border-fmborder text-fmmuted"}`}
             >
               {a}
@@ -212,6 +220,7 @@ export default async function CollabIndex({
               <Link
                 key={o.id}
                 href={`/collab/${o.slug}`}
+                prefetch={false}
                 className="fm-row flex items-center gap-3 border-b border-fmborder px-5 py-3 last:border-b-0"
               >
                 <p className="fm-grotesk truncate text-sm text-fmfg/60">{o.title}</p>

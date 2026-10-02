@@ -45,7 +45,7 @@ export default async function Dossier({ params }: { params: Promise<{ slug: stri
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-14">
-      <Link href="/collab" className="fm-link text-xs uppercase tracking-[0.12em] text-fmmuted">
+      <Link href="/collab" prefetch={false} className="fm-link text-xs uppercase tracking-[0.12em] text-fmmuted">
         ← Tous les appels
       </Link>
 

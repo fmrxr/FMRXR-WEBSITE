@@ -46,7 +46,7 @@ export default async function CollabLayout({ children }: { children: React.React
     <div className="fm fm-canvas relative flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-fmborder bg-fmbg/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4 md:px-8">
-          <Link href="/collab" className="fm-display text-sm tracking-[0.08em] text-fmfg">
+          <Link href="/collab" prefetch={false} className="fm-display text-sm tracking-[0.08em] text-fmfg">
             FMRXR<span className="text-fmaccent">//</span>
           </Link>
           {/* Le selecteur ne rend rien quand un seul espace est ouvert, cas d'un

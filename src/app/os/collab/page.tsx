@@ -17,6 +17,7 @@ function Reply({ n, unread }: { n: CollabActivity; unread: boolean }) {
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Link
           href={`/collab/${n.slug}`}
+          prefetch={false}
           className="fm-link font-grotesk text-sm text-fmfg"
         >
           {n.title}
@@ -45,6 +46,7 @@ function Touched({ o }: { o: Opportunity }) {
   return (
     <Link
       href={`/collab/${o.slug}`}
+      prefetch={false}
       className="fm-row flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-fmborder px-4 py-3 last:border-b-0"
     >
       <span className="min-w-0 flex-1 truncate font-grotesk text-sm text-fmfg">{o.title}</span>
@@ -102,6 +104,7 @@ export default async function OsCollab() {
           <SeenButton count={unreadCount} />
           <Link
             href="/collab"
+            prefetch={false}
             className="fm-link shrink-0 font-grotesk text-[11px] uppercase tracking-[0.1em] text-fmmuted"
           >
             Ouvrir l’espace →
