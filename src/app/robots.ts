@@ -11,7 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         disallow: [
           "/os", "/os/", "/admin", "/admin/", "/collab", "/collab/",
-          "/api/", "/auth", "/start/thanks",
+          "/account", "/api/", "/auth", "/start/thanks",
         ],
       },
     ],

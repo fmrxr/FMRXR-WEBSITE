@@ -29,6 +29,9 @@ export default async function CollabLayout({ children }: { children: React.React
             rechargez cette page.
           </p>
           <p className="fm-grotesk mt-4 text-xs text-fmmuted">{user.email}</p>
+          <Link href="/account" className="fm-link fm-grotesk mt-3 inline-block text-xs uppercase tracking-[0.12em] text-fmmuted">
+            Changer mon mot de passe
+          </Link>
           <form action={signOut} className="mt-5">
             <button type="submit" className="fm-link text-xs uppercase tracking-[0.12em] text-fmmuted">
               Sortir
@@ -55,7 +58,9 @@ export default async function CollabLayout({ children }: { children: React.React
             <span className="text-[10px] uppercase tracking-[0.14em] text-fmmuted">Opportunities</span>
           )}
           <div className="ml-auto flex items-center gap-4">
-            <span className="hidden text-xs text-fmmuted sm:inline">{user.email}</span>
+            <Link href="/account" className="fm-link hidden text-xs text-fmmuted sm:inline">
+              {user.email}
+            </Link>
             <form action={signOut}>
               <button type="submit" className="fm-link text-xs uppercase tracking-[0.12em] text-fmmuted">
                 Sortir

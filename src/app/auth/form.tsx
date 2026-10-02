@@ -6,12 +6,33 @@ import { signIn } from "@/app/actions/auth";
 // Pas de creation de compte ici. Le compte admin existe, et les acces se
 // donnent depuis /admin/team : laisser une inscription ouverte reviendrait a
 // laisser n'importe qui se creer un compte sur le domaine.
+// Supabase renvoie ses erreurs en anglais. Elles s'affichent telles quelles a
+// des gens qui n'ont pas demande a lire de l'anglais pour se connecter.
+const FR: Record<string, string> = {
+  "Invalid login credentials": "Adresse ou mot de passe incorrect.",
+  "Email not confirmed": "Cette adresse n’a pas encore été confirmée.",
+  "Email logins are disabled": "La connexion par email est désactivée.",
+};
+
+function translate(message: string) {
+  if (FR[message]) return FR[message];
+  if (message.startsWith("For security purposes")) {
+    return "Trop de tentatives rapprochées. Patiente une minute.";
+  }
+  return message;
+}
+
 export function AuthForm({ initialError }: { initialError?: string }) {
   const [error, setError] = useState<string | null>(initialError ?? null);
+  // Champ controle : apres un echec, l'action serveur reinitialise le
+  // formulaire et l'adresse disparaissait. Se tromper de mot de passe obligeait
+  // a retaper son email a chaque fois.
+  const [email, setEmail] = useState("");
 
   async function action(fd: FormData) {
+    setError(null);
     const res = await signIn(fd);
-    if (res?.error) setError(res.error);
+    if (res?.error) setError(translate(res.error));
   }
 
   return (
@@ -26,6 +47,7 @@ export function AuthForm({ initialError }: { initialError?: string }) {
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">Email</label>
             <input id="email" name="email" type="email" required autoComplete="email"
+              value={email} onChange={(e) => setEmail(e.target.value)}
               className="rounded-md border border-fmborder bg-fmbg/60 px-3 py-2 text-sm text-fmfg outline-none focus:border-fmaccent/60" />
           </div>
           <div className="flex flex-col gap-1.5">
