@@ -39,11 +39,30 @@ export async function GET(request: NextRequest) {
   // On n'accepte qu'un chemin interne : une URL absolue venue de la query
   // transformerait ce lien en redirection ouverte.
   const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
-  return NextResponse.redirect(new URL(safeNext ?? landingPath(await currentRoles()), request.url));
+  return redirectTo(request, safeNext ?? landingPath(await currentRoles()));
+}
+
+/**
+ * Redirection construite sur request.nextUrl, pas sur request.url.
+ *
+ * Derriere le proxy d'Hostinger, request.url porte l'adresse de bind interne :
+ * les liens renvoyaient vers https://0.0.0.0:3000/auth, c'est-a-dire nulle part.
+ * nextUrl porte l'hote public, c'est deja ce dont se sert proxy.ts.
+ */
+function redirectTo(request: NextRequest, path: string) {
+  const url = request.nextUrl.clone();
+  // `next` peut porter sa propre chaine de requete : l'affecter entiere a
+  // pathname produirait un chemin contenant un « ? » encode.
+  const [pathname, search = ""] = path.split("?");
+  url.pathname = pathname;
+  url.search = search;
+  return NextResponse.redirect(url);
 }
 
 function fail(request: NextRequest, message: string) {
-  const url = new URL("/auth", request.url);
+  const url = request.nextUrl.clone();
+  url.pathname = "/auth";
+  url.search = "";
   url.searchParams.set("error", message);
   return NextResponse.redirect(url);
 }
