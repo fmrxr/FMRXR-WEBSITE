@@ -188,6 +188,13 @@ export default async function CollabIndex({
             </Link>
           ))}
         </div>
+        <Link
+          href="/collab/calendrier"
+          prefetch={false}
+          className="fm-link fm-grotesk text-xs uppercase tracking-[0.1em] text-fmfg"
+        >
+          Calendrier des chevauchements →
+        </Link>
         <p className="fm-grotesk ml-auto text-xs text-fmmuted">
           {scan
             ? `Dernier relevé : ${formatDate(scan.at.slice(0, 10))}${
