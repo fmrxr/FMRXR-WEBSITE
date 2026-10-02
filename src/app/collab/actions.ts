@@ -14,8 +14,18 @@ async function client() {
   return getSupabaseServer();
 }
 
+/**
+ * On ne revalide que le dossier affiche.
+ *
+ * Revalider aussi « /collab » invalidait la page d'index, que le selecteur
+ * d'espace garde en lien visible : Next la rechargeait alors en boucle, elle et
+ * /account, a chaque message publie. Trente-deux requetes pour un clic, chacune
+ * etant un rendu serveur authentifie complet, au point de faire tomber la page.
+ *
+ * L'index n'en a de toute facon pas besoin : il est en force-dynamic, donc
+ * recalcule a chaque visite.
+ */
 function refresh(slug: string) {
-  revalidatePath("/collab");
   revalidatePath(`/collab/${slug}`);
 }
 

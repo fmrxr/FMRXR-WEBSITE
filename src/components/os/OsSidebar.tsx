@@ -70,7 +70,7 @@ export function OsSidebar({ mobileOpen, onClose }: OsSidebarProps) {
           <Link href="/os/legacy" className="fm-link px-2.5 py-1 font-grotesk text-xs text-fmmuted">
             Ancienne version →
           </Link>
-          <Link href="/account" className="fm-link px-2.5 py-1 font-grotesk text-xs text-fmmuted">
+          <Link href="/account" prefetch={false} className="fm-link px-2.5 py-1 font-grotesk text-xs text-fmmuted">
             Mon compte →
           </Link>
           <Link href="/" className="fm-link px-2.5 py-1 font-grotesk text-xs text-fmmuted">

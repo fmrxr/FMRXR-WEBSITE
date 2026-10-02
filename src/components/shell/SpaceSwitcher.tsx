@@ -33,6 +33,12 @@ export function SpaceSwitcher({ roles }: { roles: Role[] }) {
           <Link
             key={s.href}
             href={s.href}
+            // Pas de prefetch : ces trois pages sont authentifiees et en
+            // force-dynamic, donc chaque prechargement est un rendu serveur
+            // complet avec son appel Supabase, pour un lien qu'on ne suit que
+            // rarement. Et comme ils sont visibles en permanence, la moindre
+            // revalidation les rechargeait tous.
+            prefetch={false}
             aria-current={active ? "page" : undefined}
             className={[
               "fm-grotesk rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.1em] transition-colors",

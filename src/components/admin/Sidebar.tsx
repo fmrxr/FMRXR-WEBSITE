@@ -71,7 +71,7 @@ export function Sidebar({ roles }: { roles: Role[] }) {
       </nav>
 
       <div className="mt-auto flex flex-col gap-0.5 border-t border-fmborder pt-3">
-        <Link href="/account" className="fm-link fm-grotesk px-2.5 py-1 text-xs text-fmmuted">
+        <Link href="/account" prefetch={false} className="fm-link fm-grotesk px-2.5 py-1 text-xs text-fmmuted">
           Mon compte →
         </Link>
         <Link href="/" className="fm-link fm-grotesk px-2.5 py-1 text-xs text-fmmuted">
