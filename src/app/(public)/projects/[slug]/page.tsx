@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
+import { GameEmbed } from "@/components/site/GameEmbed";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -96,8 +97,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         // pleine largeur : à demi-largeur il a l'air d'une vignette orpheline.
         <div className={`mt-10 grid gap-4 ${p.gallery.length > 1 ? "md:grid-cols-2" : ""}`}>
           {p.gallery.map((g: any, i: number) => (
-            <figure key={i}>
-              {youtubeId(g.url) ? (
+            // Un embed jouable prend les deux colonnes : à demi-largeur on ne
+            // joue pas, on regarde une vignette.
+            <figure key={i} className={g.embed ? "md:col-span-2" : undefined}>
+              {g.embed ? (
+                <GameEmbed url={g.url} poster={g.poster || undefined} title={g.alt || p.title} />
+              ) : youtubeId(g.url) ? (
                 <div className="relative w-full overflow-hidden rounded-xl border border-fmborder pt-[56.25%]">
                   <iframe
                     src={`https://www.youtube-nocookie.com/embed/${youtubeId(g.url)}`}

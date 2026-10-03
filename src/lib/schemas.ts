@@ -31,6 +31,10 @@ export const galleryItem = z.object({
   credit: otext(120),
   poster: ourl,
   sound: z.preprocess((v) => (v == null ? false : v), z.boolean()),
+  // `embed` marque une URL qui est une page web jouable ou manipulable, pas un
+  // média : la page projet l'affiche dans un cadre, derrière un clic. Réservé
+  // aux projets dont le livrable EST le site (jeu, outil, plateforme).
+  embed: z.preprocess((v) => (v == null ? false : v), z.boolean()),
 });
 
 export const projectSchema = z.object({
