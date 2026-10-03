@@ -10,6 +10,12 @@ import { getBySlug, getPublished } from "@/lib/public-data";
 // ici sur la mise en cache.
 export const dynamic = "force-dynamic";
 
+// Une entrée de galerie peut être une vidéo. On ne la lit que sur l'extension
+// du fichier, sans champ de type à saisir dans l'admin : une URL qui finit par
+// .mp4/.webm/.mov devient un <video>, tout le reste reste une image.
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v)(\?.*)?$/i;
+const isVideo = (url?: string) => !!url && VIDEO_EXT.test(url);
+
 export async function generateStaticParams() {
   const projects = await getPublished("projects");
   return projects.map((p: any) => ({ slug: p.slug }));
@@ -78,11 +84,35 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       ) : null}
 
       {Array.isArray(p.gallery) && p.gallery.length > 0 && (
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
+        // Deux colonnes dès qu'il y a de quoi les remplir. Un média seul reste
+        // pleine largeur : à demi-largeur il a l'air d'une vignette orpheline.
+        <div className={`mt-10 grid gap-4 ${p.gallery.length > 1 ? "md:grid-cols-2" : ""}`}>
           {p.gallery.map((g: any, i: number) => (
             <figure key={i}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={g.url} alt={g.alt} className="rounded-xl border border-fmborder" />
+              {isVideo(g.url) ? (
+                // Deux comportements selon que la bande-son fait partie de
+                // l'œuvre ou non. Sans son : muette, en boucle, lancée seule,
+                // et `muted` + `playsInline` sont obligatoires sinon les
+                // navigateurs mobiles refusent l'autoplay et la vignette reste
+                // figée. Avec son : jamais d'autoplay, contrôles visibles, et
+                // `preload="metadata"` pour ne pas imposer le fichier entier à
+                // quelqu'un qui ne cliquera pas.
+                <video
+                  src={g.url}
+                  poster={g.poster || undefined}
+                  aria-label={g.alt || undefined}
+                  controls={!!g.sound}
+                  muted={!g.sound}
+                  loop={!g.sound}
+                  autoPlay={!g.sound}
+                  playsInline
+                  preload="metadata"
+                  className="w-full rounded-xl border border-fmborder"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={g.url} alt={g.alt} className="rounded-xl border border-fmborder" />
+              )}
               {g.caption && <figcaption className="mt-2 text-xs text-fmmuted">{g.caption}</figcaption>}
             </figure>
           ))}

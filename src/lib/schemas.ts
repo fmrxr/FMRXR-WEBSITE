@@ -11,10 +11,21 @@ const oemail = z.preprocess((v) => (v == null ? "" : v), z.string().email().or(z
 const arr = <T extends z.ZodTypeAny>(item: T) =>
   z.preprocess((v) => (v == null ? [] : v), z.array(item));
 
+// Une entrée de galerie peut être une image ou une vidéo : la page projet
+// regarde l'extension de `url` et rend <video> pour .mp4/.webm/.mov, <img>
+// sinon. `poster` n'a de sens que pour une vidéo (image affichée avant le
+// chargement) et reste vide pour une image.
+//
+// `sound` sépare les deux usages de la vidéo. À false (le défaut), c'est de la
+// documentation d'installation : muette, en boucle, lancée toute seule. À true,
+// la bande-son fait partie de l'œuvre : lecteur avec contrôles, rien ne démarre
+// sans un clic, et le fichier n'est téléchargé qu'à ce moment-là.
 export const galleryItem = z.object({
   url: z.string().url(),
   alt: otext(180),
   caption: otext(280),
+  poster: ourl,
+  sound: z.preprocess((v) => (v == null ? false : v), z.boolean()),
 });
 
 export const projectSchema = z.object({
