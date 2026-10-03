@@ -20,10 +20,15 @@ const arr = <T extends z.ZodTypeAny>(item: T) =>
 // documentation d'installation : muette, en boucle, lancée toute seule. À true,
 // la bande-son fait partie de l'œuvre : lecteur avec contrôles, rien ne démarre
 // sans un clic, et le fichier n'est téléchargé qu'à ce moment-là.
+// `credit` nomme l'auteur de la prise de vue, pas celui de l'œuvre. Beaucoup de
+// documentation vient de photographes tiers qui autorisent l'usage contre
+// mention, donc le crédit doit voyager avec le média et pas se perdre dans une
+// légende rédigée à la main.
 export const galleryItem = z.object({
   url: z.string().url(),
   alt: otext(180),
   caption: otext(280),
+  credit: otext(120),
   poster: ourl,
   sound: z.preprocess((v) => (v == null ? false : v), z.boolean()),
 });

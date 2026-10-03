@@ -113,7 +113,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={g.url} alt={g.alt} className="rounded-xl border border-fmborder" />
               )}
-              {g.caption && <figcaption className="mt-2 text-xs text-fmmuted">{g.caption}</figcaption>}
+              {(g.caption || g.credit) && (
+                <figcaption className="mt-2 text-xs text-fmmuted">
+                  {g.caption}
+                  {g.credit && (
+                    <span className="block text-[10px] uppercase tracking-[0.12em] text-fmmuted/70">
+                      Photo {g.credit}
+                    </span>
+                  )}
+                </figcaption>
+              )}
             </figure>
           ))}
         </div>
