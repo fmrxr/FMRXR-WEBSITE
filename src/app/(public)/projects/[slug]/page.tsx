@@ -16,6 +16,14 @@ export const dynamic = "force-dynamic";
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v)(\?.*)?$/i;
 const isVideo = (url?: string) => !!url && VIDEO_EXT.test(url);
 
+// Une partie de la documentation ne nous appartient pas et vit sur YouTube
+// (captations de festival, full shows). On l'embarque plutôt que de la
+// re-héberger : les droits restent chez le diffuseur et le compteur de vues
+// aussi. Domaine -nocookie pour ne pas poser de traceur publicitaire tant que
+// le visiteur n'a pas lancé la lecture.
+const YT = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+const youtubeId = (url?: string) => (url ? (url.match(YT)?.[1] ?? null) : null);
+
 export async function generateStaticParams() {
   const projects = await getPublished("projects");
   return projects.map((p: any) => ({ slug: p.slug }));
@@ -89,7 +97,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         <div className={`mt-10 grid gap-4 ${p.gallery.length > 1 ? "md:grid-cols-2" : ""}`}>
           {p.gallery.map((g: any, i: number) => (
             <figure key={i}>
-              {isVideo(g.url) ? (
+              {youtubeId(g.url) ? (
+                <div className="relative w-full overflow-hidden rounded-xl border border-fmborder pt-[56.25%]">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${youtubeId(g.url)}`}
+                    title={g.alt || g.caption || "Video"}
+                    loading="lazy"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 h-full w-full"
+                  />
+                </div>
+              ) : isVideo(g.url) ? (
                 // Deux comportements selon que la bande-son fait partie de
                 // l'œuvre ou non. Sans son : muette, en boucle, lancée seule,
                 // et `muted` + `playsInline` sont obligatoires sinon les
