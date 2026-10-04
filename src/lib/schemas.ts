@@ -37,6 +37,16 @@ export const galleryItem = z.object({
   embed: z.preprocess((v) => (v == null ? false : v), z.boolean()),
 });
 
+// Un chiffre mis en avant sous le résumé d'une fiche. `value` est la valeur telle
+// qu'elle s'affiche en grand, déjà abrégée à la main ("152 K", "0", "1st") : le
+// format fait partie de l'éditorial, on ne le recalcule pas. `note` porte la
+// nuance sans laquelle le chiffre ment, du genre "organic, no paid promotion".
+export const metricItem = z.object({
+  value: z.string().min(1).max(16),
+  label: otext(40),
+  note: otext(80),
+});
+
 export const projectSchema = z.object({
   slug, title: z.string().min(1).max(120),
   client: otext(120),
@@ -51,6 +61,7 @@ export const projectSchema = z.object({
   gradient: otext(120),
   cover_url: ourl,
   gallery: arr(galleryItem),
+  metrics: arr(metricItem),
   sort_order: z.number().int().default(0),
   published: z.boolean().default(false),
 });

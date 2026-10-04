@@ -73,6 +73,29 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       )}
 
       {p.summary && <p className="fm-grotesk mt-8 max-w-2xl text-lg leading-relaxed text-fmfg/85">{p.summary}</p>}
+
+      {Array.isArray(p.metrics) && p.metrics.length > 0 && (
+        // Les chiffres montent juste sous le résumé : c'est la preuve, elle se lit
+        // avant le récit. Même grammaire que le bloc Role/Stack plus bas, grille
+        // d'un pixel sur fond de bordure, pour que la page reste d'un seul bloc.
+        //
+        // La valeur garde les chiffres proportionnels du Sans : `tabular-nums`
+        // donne à chaque chiffre la largeur d'un zéro, ce qui fait flotter un
+        // "152 K" à cette taille. Le tabulaire est pour les colonnes alignées,
+        // pas pour un nombre isolé. Et la valeur reste en encre, jamais en
+        // couleur d'accent : ici c'est la taille qui hiérarchise.
+        <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-4">
+          {p.metrics.map((m: any, i: number) => (
+            <div key={i} className="bg-fmbg p-5">
+              <p className="fm-display text-[clamp(1.75rem,4vw,2.5rem)] leading-none text-fmfg">{m.value}</p>
+              {m.label && (
+                <p className="mt-3 text-[10px] uppercase tracking-[0.12em] text-fmmuted">{m.label}</p>
+              )}
+              {m.note && <p className="fm-grotesk mt-1.5 text-xs leading-snug text-fmmuted/80">{m.note}</p>}
+            </div>
+          ))}
+        </div>
+      )}
       {p.description && <p className="fm-grotesk mt-4 max-w-2xl whitespace-pre-line leading-relaxed text-fmmuted">{p.description}</p>}
 
       {(Array.isArray(p.role) && p.role.length > 0) || (Array.isArray(p.stack) && p.stack.length > 0) ? (
