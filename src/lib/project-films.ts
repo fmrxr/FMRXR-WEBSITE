@@ -11,6 +11,7 @@ const FILMS = new Set([
   "crk-cgi", "entangled-tatwin", "spectrum-birth-of-light", "don-pac-fashion-weak",
   "morninglory-content", "hide-and-seek", "ala-listening-party", "access-protocol", "spicy-sofi",
   "neophi", "phenix-business", "dolphin-surf", "dreaming-again", "mapping-oudhna",
+  "interference",
 ]);
 
 export function projectFilm(slug: string): string | null {
