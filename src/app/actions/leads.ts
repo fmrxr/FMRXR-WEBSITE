@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { assertRole } from "@/lib/auth";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { leadSchema } from "@/lib/schemas";
+import { notifyLead } from "@/lib/notify-lead";
 
 export async function submitLead(input: unknown): Promise<{ ok: true } | { error: string }> {
   const parsed = leadSchema.safeParse(input);
@@ -10,6 +11,7 @@ export async function submitLead(input: unknown): Promise<{ ok: true } | { error
   const supabase = await getSupabaseServer();
   const { error } = await supabase.from("leads").insert(parsed.data as Record<string, unknown>);
   if (error) return { error: error.message };
+  await notifyLead(parsed.data);
   revalidatePath("/admin/requests");
   return { ok: true };
 }
