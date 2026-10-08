@@ -39,6 +39,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
       { name: "role", label: "Roles", type: "string-list" },
       { name: "stack", label: "Stack", type: "string-list" },
       { name: "tags", label: "Tags", type: "string-list" },
+      { name: "industries", label: "Industries (slugs)", type: "string-list" },
       { name: "gradient", label: "Gradient", type: "text" },
       { name: "cover_url", label: "Cover image", type: "image" },
       { name: "gallery", label: "Gallery", type: "gallery" },

@@ -35,6 +35,8 @@ export const galleryItem = z.object({
   // média : la page projet l'affiche dans un cadre, derrière un clic. Réservé
   // aux projets dont le livrable EST le site (jeu, outil, plateforme).
   embed: z.preprocess((v) => (v == null ? false : v), z.boolean()),
+  // Libellé du bouton d'un embed (« Browse the charter »). Vide : « Play the game ».
+  label: otext(60),
 });
 
 // Un chiffre mis en avant sous le résumé d'une fiche. `value` est la valeur telle
@@ -58,6 +60,9 @@ export const projectSchema = z.object({
   role: arr(otext(80)),
   stack: arr(otext(80)),
   tags: arr(otext(40)),
+  // Slugs de la table `industries`. Un projet peut en porter plusieurs : la page
+  // Work le montre alors dans chaque rangée concernée.
+  industries: arr(otext(60)),
   gradient: otext(120),
   cover_url: ourl,
   gallery: arr(galleryItem),
