@@ -4,6 +4,8 @@ import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
 import { ProjectRow } from "@/components/site/ProjectRow";
 import { IndustryNav } from "@/components/site/IndustryNav";
+import { CardFilm } from "@/components/site/CardFilm";
+import { projectFilm } from "@/lib/project-films";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -30,13 +32,22 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const LATEST = 8;
 
 function Card({ p, i }: { p: any; i: number }) {
+  const film = projectFilm(p.slug);
   return (
     <Link
       href={`/projects/${p.slug}`}
       className="fm-glass-card group block w-[78vw] max-w-[300px] shrink-0 snap-start overflow-hidden rounded-xl sm:w-72"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
-        {p.cover_url ? (
+        {film ? (
+          // La couverture sert d'affiche : rien ne se télécharge tant que la
+          // carte n'est pas à l'écran, et la boucle s'arrête quand elle en sort.
+          <CardFilm
+            src={film}
+            poster={p.cover_url || film.replace(/\.mp4$/, ".jpg")}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : p.cover_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={p.cover_url}

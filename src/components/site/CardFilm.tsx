@@ -5,7 +5,15 @@ import { useEffect, useRef } from "react";
 // Une boucle muette dans une carte de liste. Onze cartes, onze films : rien ne
 // se télécharge tant que la carte n'est pas à l'écran (preload="none", seule
 // l'affiche s'affiche), et chaque boucle se met en pause dès qu'elle en sort.
-export function CardFilm({ src, poster }: { src: string; poster: string }) {
+export function CardFilm({
+  src,
+  poster,
+  className = "aspect-video w-full rounded-lg border border-fmborder bg-fmbg object-cover",
+}: {
+  src: string;
+  poster: string;
+  className?: string;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -29,7 +37,8 @@ export function CardFilm({ src, poster }: { src: string; poster: string }) {
       loop
       playsInline
       preload="none"
-      className="aspect-video w-full rounded-lg border border-fmborder bg-fmbg object-cover"
+      draggable={false}
+      className={className}
     />
   );
 }
