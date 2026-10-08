@@ -153,7 +153,7 @@ export default async function About() {
         </div>
 
         <div className="mt-16 border-t border-fmborder pt-8">
-          <Link href="/start" className="group text-sm uppercase tracking-[0.12em] text-fmfg">
+          <Link href="/start" data-cta="about_start" className="group text-sm uppercase tracking-[0.12em] text-fmfg">
             Work with us{" "}
             <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
           </Link>

@@ -68,7 +68,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
       )}
 
       <div className="mt-16 border-t border-fmborder pt-8">
-        <Link href="/contact" className="group text-sm uppercase tracking-[0.12em] text-fmfg">
+        <Link href={`/start?service=${s.slug}`} data-cta="service_start" className="group text-sm uppercase tracking-[0.12em] text-fmfg">
           Book a technical feasibility call{" "}
           <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
         </Link>

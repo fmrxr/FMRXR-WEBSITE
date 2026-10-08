@@ -50,6 +50,7 @@ export function Header() {
           ))}
           <Link
             href="/start"
+            data-cta="header_start"
             className="group text-[11px] uppercase tracking-[0.12em] text-fmfg"
           >
             Start a project{" "}

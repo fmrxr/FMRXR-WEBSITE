@@ -54,6 +54,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+function startHref(p: { slug: string; industries?: string[] | null; services?: string[] | null }) {
+  const q = new URLSearchParams();
+  if (Array.isArray(p.industries) && p.industries[0]) q.set("industry", p.industries[0]);
+  if (Array.isArray(p.services) && p.services[0]) q.set("service", p.services[0]);
+  q.set("ref", p.slug);
+  return `/start?${q.toString()}`;
+}
+
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = await getBySlug("projects", slug);
@@ -177,11 +185,27 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         </div>
       )}
 
-      <div className="mt-16 border-t border-fmborder pt-8">
-        <Link href="/contact" className="group text-sm uppercase tracking-[0.12em] text-fmfg">
-          Request a similar installation{" "}
-          <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
-        </Link>
+      {/* Le visiteur qui arrive au bas d'une fiche s'est reconnu dans un
+          projet : on lui ouvre le brief déjà orienté sur le secteur et le
+          service de ce projet, et on garde la trace du projet d'origine. */}
+      <div className="mt-16 flex flex-col gap-6 border-t border-fmborder pt-10 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">Similar brief?</p>
+          <p className="fm-display mt-2 max-w-md text-2xl leading-tight text-fmfg">Build an experience like this one.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+          <Link
+            href={startHref(p)}
+            data-cta="project_similar"
+            className="group inline-flex items-center gap-2 rounded-full bg-fmaccent px-6 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-fmbg transition-opacity hover:opacity-90"
+          >
+            Discuss a similar project
+            <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+          </Link>
+          <Link href="/projects" className="fm-link text-[11px] uppercase tracking-[0.14em] text-fmmuted">
+            More work
+          </Link>
+        </div>
       </div>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

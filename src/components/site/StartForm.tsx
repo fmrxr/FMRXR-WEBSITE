@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { submitLead } from "@/app/actions/leads";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { track } from "@/lib/track";
 
 type Attachment = { url: string; name: string; type: string };
 const MAX_MB = 50;
@@ -21,18 +22,24 @@ export function StartForm({
   services,
   defaultIndustry,
   defaultService,
+  refProject,
 }: {
   industries: { slug: string; name: string }[];
   services: { slug: string; title: string }[];
   defaultIndustry: string;
   defaultService: string;
+  // Slug du projet depuis lequel la personne est venue (« Discuss a similar
+  // project ») : joint à la demande pour que le studio sache de quoi on parle.
+  refProject?: string;
 }) {
   const [d, setD] = useState({
     name: "",
     email: "",
     company: "",
-    industry: defaultIndustry,
-    service: defaultService,
+    // L'URL porte des slugs (?industry=music), les menus et la demande
+    // enregistrée portent des noms : on accepte l'un ou l'autre.
+    industry: industries.find((i) => i.slug === defaultIndustry || i.name === defaultIndustry)?.name ?? "",
+    service: services.find((s) => s.slug === defaultService || s.title === defaultService)?.title ?? "",
     budget: "",
     timeline: "",
     location: "",
@@ -41,9 +48,20 @@ export function StartForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [started, setStarted] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const set = (k: string, v: string) => setD((s) => ({ ...s, [k]: v }));
+
+  // Entonnoir mesuré dans GA4 : form_start au premier champ touché, puis
+  // generate_lead (événement recommandé GA4) ou form_error. Seulement les
+  // choix des menus, jamais ce que la personne a écrit.
+  const funnel = () => ({ industry: d.industry || "none", service: d.service || "none", budget: d.budget || "none", ref: refProject || "none" });
+  function onFirstFocus() {
+    if (started) return;
+    setStarted(true);
+    track("form_start", { form: "start", industry: d.industry || "none", service: d.service || "none", ref: refProject || "none" });
+  }
 
   async function addFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -77,12 +95,17 @@ export function StartForm({
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const res = await submitLead({ ...d, attachments });
+    const ref = refProject ? `
+
+Seen on fmrxr.com/projects/${refProject}` : "";
+    const res = await submitLead({ ...d, message: (d.message + ref).trim().slice(0, 2000), attachments });
     setBusy(false);
     if ("error" in res) {
       setError(res.error);
+      track("form_error", { form: "start" });
       return;
     }
+    track("generate_lead", { form: "start", ...funnel() });
     setSent(true);
   }
 
@@ -102,7 +125,13 @@ export function StartForm({
   }
 
   return (
-    <form onSubmit={submit} className="fm-glass-card flex flex-col gap-4 rounded-xl p-6 md:p-8">
+    <form onSubmit={submit} onFocusCapture={onFirstFocus} className="fm-glass-card flex flex-col gap-4 rounded-xl p-6 md:p-8">
+      {refProject && (
+        <p className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">
+          <span className="text-fmaccent">●</span> About a project like{" "}
+          <Link href={`/projects/${refProject}`} className="fm-link text-fmfg">{refProject.replace(/-/g, " ")}</Link>
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">Name *</label>

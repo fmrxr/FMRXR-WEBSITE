@@ -33,6 +33,12 @@ export function Analytics() {
       <Script id="ga-init" strategy="afterInteractive">
         {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}${CONSENT}gtag('js',new Date());gtag('config','${GA_ID}',{anonymize_ip:true});`}
       </Script>
+      {/* Un seul écouteur pour tous les CTA : un lien marqué data-cta="<nom>"
+          envoie cta_click avec ce nom et la page d'origine. Ajouter un CTA
+          mesuré revient à poser l'attribut, sans composant client. */}
+      <Script id="ga-cta" strategy="afterInteractive">
+        {`document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('[data-cta]');if(!a||typeof gtag!=='function')return;gtag('event','cta_click',{cta:a.getAttribute('data-cta'),link_url:a.getAttribute('href')||'',page_path:location.pathname});},{capture:true});`}
+      </Script>
     </>
   );
 }

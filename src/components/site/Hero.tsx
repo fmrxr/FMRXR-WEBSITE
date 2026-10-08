@@ -68,12 +68,40 @@ export function Hero({ clips }: { clips: Clip[] }) {
           hasVideo ? "pb-16 pt-32 md:pb-20 md:pt-40" : "pt-36 pb-20 md:pt-44 md:pb-28"
         }`}
       >
-        <h1 className="sr-only">FMRXR Creative Technology</h1>
-
-        <div className="fm-rise grid gap-8 md:grid-cols-[1.3fr_1fr]" style={{ animationDelay: "120ms" }}>
+        <div className="fm-rise grid gap-10 md:grid-cols-[1.3fr_1fr] md:items-end" style={{ animationDelay: "120ms" }}>
+          {/* La promesse d'abord : un directeur marketing doit comprendre en
+              quelques secondes ce que le studio produit, avant de regarder
+              quel projet passe derrière. */}
           <div>
-            {hasVideo ? (
-              <div className="fm-glass-card max-w-md rounded-xl p-5">
+            <h1 className="fm-display max-w-2xl text-[clamp(2rem,5vw,3.5rem)] leading-[1.02] text-fmfg">
+              Creative technology for experiences that react, generate and perform.
+            </h1>
+            <p className="fm-grotesk mt-5 max-w-xl text-base leading-relaxed text-fmfg/80 md:text-lg">
+              Immersive environments, real-time systems and interactive experiences for brands, artists and institutions.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+              <Link
+                href="/start"
+                data-cta="hero_start"
+                className="group inline-flex items-center gap-2 rounded-full bg-fmaccent px-6 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-fmbg transition-opacity hover:opacity-90"
+              >
+                Start a project
+                <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+              <Link
+                href="/projects"
+                data-cta="hero_work"
+                className="group text-[11px] uppercase tracking-[0.14em] text-fmfg"
+              >
+                Explore our work{" "}
+                <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-start gap-4 md:items-end">
+            {hasVideo && (
+              <div className="fm-glass-card w-full max-w-sm rounded-xl p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">
                     <span className="text-fmaccent">●</span> Now showing
@@ -82,7 +110,7 @@ export function Hero({ clips }: { clips: Clip[] }) {
                     {pad(i + 1)} / {pad(valid.length)}
                   </span>
                 </div>
-                <h2 className="fm-display mt-3 text-2xl text-fmfg">{active?.title || "Untitled"}</h2>
+                <h2 className="fm-display mt-3 text-xl text-fmfg">{active?.title || "Untitled"}</h2>
                 {active?.description && (
                   <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{active.description}</p>
                 )}
@@ -102,19 +130,8 @@ export function Hero({ clips }: { clips: Clip[] }) {
                   </div>
                 )}
               </div>
-            ) : (
-              <p className="fm-grotesk max-w-xl text-base leading-relaxed text-fmfg/85 md:text-lg">
-                Immersive systems, generative worlds, real-time AI art and marketing automation.
-              </p>
             )}
-          </div>
-
-          <div className="flex flex-col items-start gap-4 md:items-end md:justify-end">
-            <Link href="/experiential" className="group text-sm uppercase tracking-[0.12em] text-fmfg">
-              Experiential{" "}
-              <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
-            </Link>
-            <Link href="/effet-mere" className="fm-link text-sm uppercase tracking-[0.12em] text-fmmuted">
+            <Link href="/effet-mere" className="fm-link text-[11px] uppercase tracking-[0.12em] text-fmmuted">
               About Effet Mère ↠
             </Link>
           </div>

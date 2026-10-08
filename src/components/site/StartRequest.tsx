@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { track } from "@/lib/track";
 
 const selectBase =
   "w-full rounded-md border border-fmborder bg-fmbg/60 px-4 py-3 text-sm outline-none focus:border-fmaccent/60";
@@ -21,6 +22,7 @@ export function StartRequest({
     const q = new URLSearchParams();
     if (industry) q.set("industry", industry);
     if (service) q.set("service", service);
+    track("cta_click", { cta: "home_brief_picker", industry: industry || "none", service: service || "none", page_path: location.pathname });
     router.push(`/start${q.toString() ? `?${q.toString()}` : ""}`);
   }
 

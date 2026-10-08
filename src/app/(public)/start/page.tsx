@@ -13,7 +13,7 @@ export const metadata = {
 export default async function StartPage({
   searchParams,
 }: {
-  searchParams: Promise<{ industry?: string; service?: string }>;
+  searchParams: Promise<{ industry?: string; service?: string; ref?: string }>;
 }) {
   const sp = await searchParams;
   const [industries, services] = await Promise.all([
@@ -29,6 +29,7 @@ export default async function StartPage({
           services={services}
           defaultIndustry={sp.industry ?? ""}
           defaultService={sp.service ?? ""}
+          refProject={/^[a-z0-9-]{1,80}$/.test(sp.ref ?? "") ? sp.ref : undefined}
         />
       </section>
     </>
