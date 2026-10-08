@@ -15,6 +15,9 @@ export const dynamic = "force-dynamic";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+// Fichiers publics du bucket Supabase `media` (films, affiches).
+const MEDIA = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media`;
+
 const METHOD: [string, string][] = [
   ["Brief", "Four questions before any concept: the date, the space, the budget range, and what the event is for."],
   ["Concept", "One central idea, said in a sentence a marketing director can repeat to their own management."],
@@ -108,7 +111,23 @@ export default async function Home() {
             reprennent l'article, rien n'est ajouté ici qu'il ne dise pas. */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
           <SectionHeader index="S/03" title="From brief to opening night." href="/journal/brief-to-opening-night" cta="The full method" />
-          <ol className="mt-10 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-3">
+          {/* Le film de la méthode, premier motion design du studio. Muet et en
+              boucle par défaut, comme tout média qui démarre seul dans une page ;
+              les contrôles restent visibles pour lancer le son, qui fait partie
+              du film (la salle réagit à la musique). */}
+          <video
+            src={`${MEDIA}/fmrxr-method-film-16x9.mp4`}
+            poster={`${MEDIA}/fmrxr-method-film-poster.jpg`}
+            aria-label="FMRXR, from brief to opening night: one room, from an empty space to opening night, generated in light"
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls
+            preload="metadata"
+            className="mt-10 aspect-video w-full rounded-xl border border-fmborder bg-fmbg object-cover"
+          />
+          <ol className="mt-4 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-3">
             {METHOD.map(([title, body], i) => (
               <li key={title} className="bg-fmbg p-6">
                 <span className="text-[11px] tracking-[0.1em] text-fmaccent">{pad(i + 1)}</span>
