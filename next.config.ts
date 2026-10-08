@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
         destination: "/projects/dreaming-again",
         permanent: true,
       },
+      // « TouchDesigner / GLSL » nommait un outil, pas un service. Le service est
+      // devenu Real-Time Systems, les outils restent cités dans sa fiche.
+      {
+        source: "/services/touchdesigner",
+        destination: "/services/real-time-systems",
+        permanent: true,
+      },
     ];
   },
 };
