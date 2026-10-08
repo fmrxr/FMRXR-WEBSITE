@@ -63,6 +63,8 @@ export const projectSchema = z.object({
   // Slugs de la table `industries`. Un projet peut en porter plusieurs : la page
   // Work le montre alors dans chaque rangée concernée.
   industries: arr(otext(60)),
+  // Slugs de la table `services` : l'autre classement de la page Work.
+  services: arr(otext(60)),
   gradient: otext(120),
   cover_url: ourl,
   gallery: arr(galleryItem),

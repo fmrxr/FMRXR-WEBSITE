@@ -51,7 +51,7 @@ function Card({ p, i }: { p: any; i: number }) {
   );
 }
 
-function Row({ id, title, href, projects }: { id: string; title: string; href?: string; projects: any[] }) {
+function Row({ id, title, href, cta, projects }: { id: string; title: string; href?: string; cta?: string; projects: any[] }) {
   return (
     // scroll-mt : le header fixe et le bandeau collé ne doivent pas masquer le
     // titre de la rangée quand on y saute depuis le bandeau.
@@ -62,7 +62,7 @@ function Row({ id, title, href, projects }: { id: string; title: string; href?: 
         </h2>
         {href && (
           <Link href={href} className="fm-link shrink-0 text-[11px] uppercase tracking-[0.12em] text-fmmuted">
-            The sector →
+            {cta} →
           </Link>
         )}
       </div>
@@ -75,29 +75,38 @@ function Row({ id, title, href, projects }: { id: string; title: string; href?: 
   );
 }
 
-// Une rangée par industrie, dans l'ordre éditorial de la table `industries`.
-// Un projet qui sert plusieurs secteurs apparaît dans chacun, comme un titre
-// classé dans plusieurs genres. Ceux qui n'ont pas encore d'industrie ne
-// disparaissent pas : ils tombent dans une dernière rangée.
-export default async function Projects() {
-  const [projects, industries] = await Promise.all([getPublished("projects"), getPublished("industries")]);
+// Deux classements du même catalogue, au choix du visiteur : par industrie
+// (pour qui vient d'un secteur) ou par service (pour qui vient avec un besoin).
+// Une rangée par entrée, dans l'ordre éditorial de sa table. Un projet qui
+// relève de plusieurs entrées apparaît dans chacune, comme un titre classé
+// dans plusieurs genres. Ceux qui n'ont rien de renseigné ne disparaissent
+// pas : ils tombent dans une dernière rangée.
+//
+// Le choix passe par l'URL (?view=services) : il se partage, se garde au
+// retour arrière, et la page reste rendue côté serveur.
+const VIEWS = {
+  industries: { table: "industries", field: "industries", name: "name", base: "/industries", cta: "The sector" },
+  services: { table: "services", field: "services", name: "title", base: "/services", cta: "The service" },
+} as const;
 
-  const rows = industries
-    .map((ind: any) => ({
-      ind,
-      items: projects.filter((p: any) => Array.isArray(p.industries) && p.industries.includes(ind.slug)),
-    }))
+export default async function Projects({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+  const { view: requested } = await searchParams;
+  const view = requested === "services" ? "services" : "industries";
+  const V = VIEWS[view];
+  const [projects, groups] = await Promise.all([getPublished("projects"), getPublished(V.table)]);
+
+  const tagged = (p: any) => (Array.isArray(p[V.field]) ? (p[V.field] as string[]) : []);
+  const rows = groups
+    .map((g: any) => ({ g, items: projects.filter((p: any) => tagged(p).includes(g.slug)) }))
     .filter((r: any) => r.items.length > 0);
 
-  const known = new Set(industries.map((ind: any) => ind.slug));
-  const unsorted = projects.filter(
-    (p: any) => !Array.isArray(p.industries) || !p.industries.some((s: string) => known.has(s)),
-  );
+  const known = new Set(groups.map((g: any) => g.slug));
+  const unsorted = projects.filter((p: any) => !tagged(p).some((s) => known.has(s)));
 
   const more = rows.length ? "More work" : "All projects";
   const nav = [
     { id: "latest", label: "Latest", count: Math.min(LATEST, projects.length) },
-    ...rows.map(({ ind, items }: any) => ({ id: ind.slug, label: ind.name, count: items.length })),
+    ...rows.map(({ g, items }: any) => ({ id: g.slug, label: g[V.name], count: items.length })),
     ...(unsorted.length ? [{ id: "more", label: more, count: unsorted.length }] : []),
   ];
 
@@ -105,10 +114,10 @@ export default async function Projects() {
     <>
       <PageHero index="Work" title="Selected work" intro="Real systems, shipped under live conditions: new media art installations, projection mapping, generative environments and live A/V." />
       <div className="mx-auto max-w-[1200px] overflow-x-clip px-5 pb-24 md:px-8">
-        <IndustryNav items={nav} />
+        <IndustryNav key={view} items={nav} view={view} />
         <Row id="latest" title="Latest" projects={projects.slice(0, LATEST)} />
-        {rows.map(({ ind, items }: any) => (
-          <Row key={ind.id} id={ind.slug} title={ind.name} href={`/industries/${ind.slug}`} projects={items} />
+        {rows.map(({ g, items }: any) => (
+          <Row key={g.id} id={g.slug} title={g[V.name]} href={`${V.base}/${g.slug}`} cta={V.cta} projects={items} />
         ))}
         {unsorted.length > 0 && <Row id="more" title={more} projects={unsorted} />}
       </div>

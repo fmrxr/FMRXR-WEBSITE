@@ -1,11 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-// Bandeau collé sous le header de la page Work : une pastille par rangée, qui
-// y renvoie. La pastille de la rangée en cours de lecture s'allume, et se
+// Bandeau collé sous le header de la page Work. À gauche, la bascule entre les
+// deux classements (industrie ou service) ; à droite, une pastille par rangée,
+// qui y renvoie. La pastille de la rangée en cours de lecture s'allume, et se
 // recentre dans le bandeau quand il déborde (sur téléphone il défile au doigt).
-export function IndustryNav({ items }: { items: { id: string; label: string; count: number }[] }) {
+export function IndustryNav({
+  items,
+  view,
+}: {
+  items: { id: string; label: string; count: number }[];
+  view: "industries" | "services";
+}) {
   const [active, setActive] = useState(items[0]?.id);
   const bar = useRef<HTMLDivElement>(null);
 
@@ -14,7 +22,11 @@ export function IndustryNav({ items }: { items: { id: string; label: string; cou
     // sous le header et le bandeau : c'est là que l'œil la lit.
     const io = new IntersectionObserver(
       (entries) => {
-        const hit = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        const hit = entries
+          .filter((e) => e.isIntersecting)
+          .sort(
+            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
+          )[0];
         if (hit) setActive(hit.target.id);
       },
       { rootMargin: "-130px 0px -55% 0px" },
@@ -29,39 +41,79 @@ export function IndustryNav({ items }: { items: { id: string; label: string; cou
   useEffect(() => {
     const b = bar.current;
     const chip = b?.querySelector<HTMLElement>(`[data-id="${active}"]`);
-    if (b && chip) b.scrollTo({ left: chip.offsetLeft - b.clientWidth / 2 + chip.clientWidth / 2, behavior: "smooth" });
+    if (b && chip)
+      b.scrollTo({
+        left: chip.offsetLeft - b.offsetLeft - b.clientWidth / 2 + chip.clientWidth / 2,
+        behavior: "smooth",
+      });
   }, [active]);
 
   return (
     <nav
-      aria-label="Industries"
+      aria-label="Work sections"
       className="sticky top-[57px] z-40 -mx-5 mb-10 border-b border-fmborder/70 bg-[#0d0c14]/75 backdrop-blur-xl md:-mx-8"
     >
-      <div ref={bar} className="no-scrollbar flex gap-2 overflow-x-auto px-5 py-3 md:px-8">
-        {items.map((it) => (
-          <a
-            key={it.id}
-            data-id={it.id}
-            href={`#${it.id}`}
-            onClick={(e) => {
-              // Glissé plutôt que saut sec : on garde le fil de la page.
-              const target = document.getElementById(it.id);
-              if (!target) return;
-              e.preventDefault();
-              target.scrollIntoView({ behavior: "smooth", block: "start" });
-              history.replaceState(null, "", `#${it.id}`);
-              setActive(it.id);
-            }}
-            aria-current={active === it.id ? "true" : undefined}
-            className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[11px] uppercase tracking-[0.1em] transition-colors ${
-              active === it.id
-                ? "border-fmaccent/70 bg-fmaccent/10 text-fmfg"
-                : "border-fmborder text-fmmuted hover:border-fmfg/30 hover:text-fmfg"
-            }`}
-          >
-            {it.label} <span className="ml-1 text-fmmuted">{String(it.count).padStart(2, "0")}</span>
-          </a>
-        ))}
+      <div className="flex items-center gap-2 py-3 pl-5 md:pl-8">
+        {/* La bascule reste fixe à gauche : seules les pastilles défilent. */}
+        <div
+          role="group"
+          aria-label="Sort by"
+          className="flex shrink-0 rounded-full border border-fmborder p-0.5"
+        >
+          {(
+            [
+              ["industries", "By industry", "/projects"],
+              ["services", "By service", "/projects?view=services"],
+            ] as const
+          ).map(([key, label, href]) => (
+            <Link
+              key={key}
+              href={href}
+              scroll={false}
+              aria-current={view === key ? "page" : undefined}
+              className={`whitespace-nowrap rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.1em] transition-colors ${
+                view === key
+                  ? "bg-fmfg text-fmbg"
+                  : "text-fmmuted hover:text-fmfg"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+        <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-fmborder" />
+        <div
+          ref={bar}
+          className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pr-5 md:pr-8"
+        >
+          {items.map((it) => (
+            <a
+              key={it.id}
+              data-id={it.id}
+              href={`#${it.id}`}
+              onClick={(e) => {
+                // Glissé plutôt que saut sec : on garde le fil de la page.
+                const target = document.getElementById(it.id);
+                if (!target) return;
+                e.preventDefault();
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+                history.replaceState(null, "", `#${it.id}`);
+                setActive(it.id);
+              }}
+              aria-current={active === it.id ? "true" : undefined}
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[11px] uppercase tracking-[0.1em] transition-colors ${
+                active === it.id
+                  ? "border-fmaccent/70 bg-fmaccent/10 text-fmfg"
+                  : "border-fmborder text-fmmuted hover:border-fmfg/30 hover:text-fmfg"
+              }`}
+            >
+              {it.label}{" "}
+              <span className="ml-1 text-fmmuted">
+                {String(it.count).padStart(2, "0")}
+              </span>
+            </a>
+          ))}
+        </div>
       </div>
     </nav>
   );
