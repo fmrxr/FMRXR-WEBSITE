@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
 import { ProjectRow } from "@/components/site/ProjectRow";
+import { IndustryNav } from "@/components/site/IndustryNav";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -50,9 +51,11 @@ function Card({ p, i }: { p: any; i: number }) {
   );
 }
 
-function Row({ title, href, projects }: { title: string; href?: string; projects: any[] }) {
+function Row({ id, title, href, projects }: { id: string; title: string; href?: string; projects: any[] }) {
   return (
-    <section className="mt-14 first:mt-0">
+    // scroll-mt : le header fixe et le bandeau collé ne doivent pas masquer le
+    // titre de la rangée quand on y saute depuis le bandeau.
+    <section id={id} className="mt-14 scroll-mt-32 first-of-type:mt-0">
       <div className="mb-4 flex items-baseline justify-between gap-4">
         <h2 className="fm-display text-xl text-fmfg md:text-2xl">
           {title} <span className="ml-1 align-middle text-[11px] tracking-[0.12em] text-fmmuted">{pad(projects.length)}</span>
@@ -91,15 +94,23 @@ export default async function Projects() {
     (p: any) => !Array.isArray(p.industries) || !p.industries.some((s: string) => known.has(s)),
   );
 
+  const more = rows.length ? "More work" : "All projects";
+  const nav = [
+    { id: "latest", label: "Latest", count: Math.min(LATEST, projects.length) },
+    ...rows.map(({ ind, items }: any) => ({ id: ind.slug, label: ind.name, count: items.length })),
+    ...(unsorted.length ? [{ id: "more", label: more, count: unsorted.length }] : []),
+  ];
+
   return (
     <>
       <PageHero index="Work" title="Selected work" intro="Real systems, shipped under live conditions: new media art installations, projection mapping, generative environments and live A/V." />
       <div className="mx-auto max-w-[1200px] overflow-x-clip px-5 pb-24 md:px-8">
-        <Row title="Latest" projects={projects.slice(0, LATEST)} />
+        <IndustryNav items={nav} />
+        <Row id="latest" title="Latest" projects={projects.slice(0, LATEST)} />
         {rows.map(({ ind, items }: any) => (
-          <Row key={ind.id} title={ind.name} href={`/industries/${ind.slug}`} projects={items} />
+          <Row key={ind.id} id={ind.slug} title={ind.name} href={`/industries/${ind.slug}`} projects={items} />
         ))}
-        {unsorted.length > 0 && <Row title={rows.length ? "More work" : "All projects"} projects={unsorted} />}
+        {unsorted.length > 0 && <Row id="more" title={more} projects={unsorted} />}
       </div>
     </>
   );
