@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
+import { ScrollFilm } from "@/components/site/ScrollFilm";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -9,6 +10,16 @@ import { getBySlug, getPublished } from "@/lib/public-data";
 // touche. Le contenu vient de Supabase et change souvent, la coherence prime
 // ici sur la mise en cache.
 export const dynamic = "force-dynamic";
+
+// Chaque service a sa boucle de 15 s, dans le style motion du studio
+// (BRAND/Motion/FMRXR_MOTION_STYLE.md, projets dans BRAND/Motion/fmrxr-services/).
+// Fichiers dans le bucket media : svc-<slug>.mp4 et svc-<slug>.jpg. Un service
+// ajouté sans film n'en affiche simplement pas.
+const MEDIA = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media`;
+const FILMS = new Set([
+  "creative-direction", "xr", "projection-mapping", "generative-art", "interactive-installation",
+  "real-time-systems", "brand-activation", "vjing", "ai-workflows", "web", "motion-design",
+]);
 
 export async function generateStaticParams() {
   const rows = await getPublished("services");
@@ -42,6 +53,15 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
       <Link href="/services" className="fm-link text-[11px] uppercase tracking-[0.12em] text-fmmuted">← Services</Link>
       <h1 className="fm-display mt-8 text-[clamp(2.25rem,6vw,4.5rem)] text-fmfg">{s.title}</h1>
       {s.short && <p className="fm-grotesk mt-5 text-lg leading-relaxed text-fmfg/85">{s.short}</p>}
+      {FILMS.has(s.slug) && (
+        <ScrollFilm
+          src={`${MEDIA}/svc-${s.slug}.mp4`}
+          poster={`${MEDIA}/svc-${s.slug}.jpg`}
+          label={`${s.title}: a 15 second loop generated in light`}
+          sound={false}
+          className="mt-8"
+        />
+      )}
       {s.description && <p className="fm-grotesk mt-4 whitespace-pre-line leading-relaxed text-fmmuted">{s.description}</p>}
 
       {Array.isArray(s.outcomes) && s.outcomes.length > 0 && (

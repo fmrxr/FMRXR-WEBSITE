@@ -8,7 +8,20 @@ import { useEffect, useRef, useState } from "react";
 // reprend au retour, en boucle. Muet par défaut (un navigateur refuse sinon
 // la lecture automatique) ; un bouton discret rend le son, qui fait partie du
 // film puisque la salle réagit à la musique.
-export function ScrollFilm({ src, poster, label }: { src: string; poster: string; label: string }) {
+export function ScrollFilm({
+  src,
+  poster,
+  label,
+  sound = true,
+  className = "mt-10",
+}: {
+  src: string;
+  poster: string;
+  label: string;
+  // false for a silent loop: no sound button to offer
+  sound?: boolean;
+  className?: string;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
   const started = useRef(false);
   const [muted, setMuted] = useState(true);
@@ -35,7 +48,7 @@ export function ScrollFilm({ src, poster, label }: { src: string; poster: string
   }, []);
 
   return (
-    <div className="relative mt-10">
+    <div className={`relative ${className}`}>
       <video
         ref={ref}
         src={src}
@@ -47,6 +60,7 @@ export function ScrollFilm({ src, poster, label }: { src: string; poster: string
         preload="metadata"
         className="aspect-video w-full rounded-xl border border-fmborder bg-fmbg object-cover"
       />
+      {sound && (
       <button
         type="button"
         onClick={() => {
@@ -61,6 +75,7 @@ export function ScrollFilm({ src, poster, label }: { src: string; poster: string
       >
         {muted ? "Sound on" : "Sound off"}
       </button>
+      )}
     </div>
   );
 }
