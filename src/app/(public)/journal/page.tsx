@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
@@ -8,6 +9,17 @@ import { PageHero } from "@/components/site/PageHero";
 // touche. Le contenu vient de Supabase et change souvent, la coherence prime
 // ici sur la mise en cache.
 export const dynamic = "force-dynamic";
+
+// Titre, description et canonical propres : sans eux la page héritait de ceux
+// de l"accueil, canonical "/" compris, et Google la lisait comme un doublon.
+export const metadata: Metadata = {
+  title: "Journal · Notes on generative systems and live conditions",
+  description:
+    "Field notes from FMRXR Studio: generative systems, TouchDesigner pipelines, live production and the practice behind the work.",
+  keywords: ["generative systems", "TouchDesigner pipeline", "immersive art Tunisia", "live production", "new media art"],
+  alternates: { canonical: "/journal" },
+  openGraph: { type: "website", url: "/journal", title: "Journal · Notes on generative systems and live conditions · FMRXR//", description: "Field notes from FMRXR Studio: generative systems, TouchDesigner pipelines, live production and the practice behind the work." },
+};
 
 export default async function Journal() {
   const rows = await getPublished("articles");

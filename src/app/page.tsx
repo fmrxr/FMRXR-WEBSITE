@@ -15,6 +15,15 @@ export const dynamic = "force-dynamic";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+const METHOD: [string, string][] = [
+  ["Brief", "Four questions before any concept: the date, the space, the budget range, and what the event is for."],
+  ["Concept", "One central idea, said in a sentence a marketing director can repeat to their own management."],
+  ["Technical study", "Surfaces, signal chain, power, sightlines and failure modes, studied alongside the concept, never after."],
+  ["Build", "The look first, usually as a shader, then the network that routes and controls it, then the hardware."],
+  ["Rehearsal", "The first time the image meets the real surface, brightness and distance. Non-negotiable, not buffer."],
+  ["Live", "On the night the work is operation: someone watches the room and steers the system as it runs."],
+];
+
 export default async function Home() {
   const [settings, projects, services, industries, clients, articles] = await Promise.all([
     getSiteSettings(),
@@ -93,9 +102,30 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ===== METHOD ===== */}
+        {/* La méthode, résumée de l'article « Brief to Opening Night » : un grand
+            compte achète une façon de livrer autant qu'une image. Les étapes
+            reprennent l'article, rien n'est ajouté ici qu'il ne dise pas. */}
+        <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
+          <SectionHeader index="S/03" title="From brief to opening night." href="/journal/brief-to-opening-night" cta="The full method" />
+          <ol className="mt-10 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-3">
+            {METHOD.map(([title, body], i) => (
+              <li key={title} className="bg-fmbg p-6">
+                <span className="text-[11px] tracking-[0.1em] text-fmaccent">{pad(i + 1)}</span>
+                <h3 className="fm-display mt-3 text-lg text-fmfg">{title}</h3>
+                <p className="fm-grotesk mt-2 text-[14px] leading-relaxed text-fmmuted">{body}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="fm-grotesk mt-6 max-w-2xl text-[15px] leading-relaxed text-fmfg/80">
+            Afterwards, the system stays an asset: the shader, the network, the runbook. The next edition, venue or
+            campaign starts from parameters, not from a blank file.
+          </p>
+        </section>
+
         {/* ===== CLIENTS ===== */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-          <SectionHeader index="S/03" title="Trusted by leaders" />
+          <SectionHeader index="S/04" title="Trusted by leaders" />
           <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
             <Rail gapClass="gap-3">
               {clients.map((c: any) => (
@@ -110,7 +140,7 @@ export default async function Home() {
         {/* ===== JOURNAL ===== */}
         {articles.length > 0 && (
           <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-            <SectionHeader index="S/04" title="Journal" href="/journal" cta="All entries" />
+            <SectionHeader index="S/05" title="Journal" href="/journal" cta="All entries" />
             <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
               <Rail reverse>
                 {articles.map((a: any) => (

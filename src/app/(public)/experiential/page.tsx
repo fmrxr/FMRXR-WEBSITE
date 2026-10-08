@@ -1,6 +1,13 @@
 import { PageHero } from "@/components/site/PageHero";
 
-export const metadata = { title: "Experiential" };
+// Page d'attente : son canonical est le sien (sinon elle héritait de "/"), et
+// elle reste hors index tant qu'elle n'a pas de contenu. Retirer `robots` le
+// jour où elle se remplit.
+export const metadata = {
+  title: "Experiential",
+  alternates: { canonical: "/experiential" },
+  robots: { index: false, follow: true },
+};
 
 export default function Experiential() {
   return (

@@ -44,7 +44,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/effet-mere`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE}/press`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/contact`, changeFrequency: "yearly", priority: 0.5 },
-    { url: `${BASE}/experiential`, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   const collection = (rows: any[], prefix: string, priority: number): MetadataRoute.Sitemap =>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
@@ -10,6 +11,17 @@ import { IndustryNav } from "@/components/site/IndustryNav";
 // touche. Le contenu vient de Supabase et change souvent, la coherence prime
 // ici sur la mise en cache.
 export const dynamic = "force-dynamic";
+
+// Titre, description et canonical propres : sans eux la page héritait de ceux
+// de l"accueil, canonical "/" compris, et Google la lisait comme un doublon.
+export const metadata: Metadata = {
+  title: "Work · Immersive installations, mapping and live A/V projects",
+  description:
+    "Selected work by FMRXR Studio, by industry or by service: Ooredoo 5G, BYD Dolphin Surf, SPECTRUM, Les 100 Violons at the National Museum of Carthage, Interference, ClassZ, NeoPhi.",
+  keywords: ["immersive installation portfolio", "projection mapping projects", "new media art", "brand activation", "live A/V", "Tunisia", "Paris"],
+  alternates: { canonical: "/projects" },
+  openGraph: { type: "website", url: "/projects", title: "Work · Immersive installations, mapping and live A/V projects · FMRXR//", description: "Selected work by FMRXR Studio, by industry or by service: Ooredoo 5G, BYD Dolphin Surf, SPECTRUM, Les 100 Violons at the National Museum of Carthage, Interference, ClassZ, NeoPhi." },
+};
 
 const pad = (n: number) => String(n).padStart(2, "0");
 

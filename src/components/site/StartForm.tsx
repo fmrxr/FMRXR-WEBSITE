@@ -8,6 +8,11 @@ import { getSupabaseBrowser } from "@/lib/supabase/client";
 type Attachment = { url: string; name: string; type: string };
 const MAX_MB = 50;
 
+// Fourchettes en euros : c'est la devise de la majorité des devis du studio.
+// « Not defined yet » reste un vrai choix, pas un champ vide.
+const BUDGETS = ["Under €5k", "€5k to €15k", "€15k to €30k", "€30k to €75k", "€75k and above", "Not defined yet"];
+const TIMELINES = ["Within 1 month", "1 to 3 months", "3 to 6 months", "6 months or more", "Not fixed yet"];
+
 const fieldCls =
   "w-full rounded-md border border-fmborder bg-fmbg/60 px-4 py-3 text-sm text-fmfg outline-none focus:border-fmaccent/60";
 
@@ -28,6 +33,9 @@ export function StartForm({
     company: "",
     industry: defaultIndustry,
     service: defaultService,
+    budget: "",
+    timeline: "",
+    location: "",
     message: "",
   });
   const [busy, setBusy] = useState(false);
@@ -132,9 +140,34 @@ export function StartForm({
         </div>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">Budget range</label>
+          <select className={fieldCls} value={d.budget} onChange={(e) => set("budget", e.target.value)}>
+            <option value="">Select…</option>
+            {BUDGETS.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">Project date</label>
+          <select className={fieldCls} value={d.timeline} onChange={(e) => set("timeline", e.target.value)}>
+            <option value="">Select…</option>
+            {TIMELINES.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">Location</label>
+          <input className={fieldCls} value={d.location} onChange={(e) => set("location", e.target.value)} placeholder="City, country" />
+        </div>
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <label className="text-[10px] uppercase tracking-[0.12em] text-fmmuted">Project brief</label>
-        <textarea rows={4} className={fieldCls} value={d.message} onChange={(e) => set("message", e.target.value)} placeholder="Venue, dates, scope, references…" />
+        <textarea rows={4} className={fieldCls} value={d.message} onChange={(e) => set("message", e.target.value)} placeholder="Venue, scope, audience, references…" />
       </div>
 
       <div className="flex flex-col gap-2">

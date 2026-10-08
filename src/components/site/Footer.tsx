@@ -25,7 +25,11 @@ export function Footer({ settings }: { settings: SiteSettings }) {
               {settings.description}
             </p>
             <p className="mt-6 text-[11px] uppercase tracking-[0.12em] text-fmmuted">
-              <span className="text-fmaccent">●</span> Available for projects · {settings.location}
+              {/* La ville vient des réglages (« Tunis, Tunisie ») : on n'en garde que la
+                  ville, et on dit que le studio travaille au-delà, ce qui est vrai
+                  (Paris, Nouakchott). */}
+              <span className="text-fmaccent">●</span> Available for projects · Based in{" "}
+              {(settings.location ?? "Tunis").split(",")[0]} · Working internationally
             </p>
           </div>
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
@@ -8,6 +9,17 @@ import { PageHero } from "@/components/site/PageHero";
 // touche. Le contenu vient de Supabase et change souvent, la coherence prime
 // ici sur la mise en cache.
 export const dynamic = "force-dynamic";
+
+// Titre, description et canonical propres : sans eux la page héritait de ceux
+// de l"accueil, canonical "/" compris, et Google la lisait comme un doublon.
+export const metadata: Metadata = {
+  title: "Industries · Culture, telecom, automotive, festivals, brands",
+  description:
+    "How FMRXR Studio works across music, festivals, art and galleries, corporate brands, cultural institutions, telecom, automotive, nightlife, finance and tech.",
+  keywords: ["immersive experiences for brands", "cultural institutions", "festivals", "automotive launch", "telecom activation", "music visuals"],
+  alternates: { canonical: "/industries" },
+  openGraph: { type: "website", url: "/industries", title: "Industries · Culture, telecom, automotive, festivals, brands · FMRXR//", description: "How FMRXR Studio works across music, festivals, art and galleries, corporate brands, cultural institutions, telecom, automotive, nightlife, finance and tech." },
+};
 
 export default async function Industries() {
   const rows = await getPublished("industries");

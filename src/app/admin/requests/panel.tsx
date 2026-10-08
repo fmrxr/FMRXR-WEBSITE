@@ -38,6 +38,11 @@ export function RequestsPanel({ leads }: { leads: any[] }) {
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {[l.company, l.industry, l.service].filter(Boolean).join(" · ")}
                 </p>
+                {(l.budget || l.timeline || l.location) && (
+                  <p className="mt-0.5 text-sm">
+                    {[l.budget, l.timeline, l.location].filter(Boolean).join(" · ")}
+                  </p>
+                )}
               </div>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-wide ${

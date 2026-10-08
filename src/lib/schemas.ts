@@ -142,6 +142,11 @@ export const leadSchema = z.object({
   company: otext(160),
   industry: otext(120),
   service: otext(120),
+  // Qualification : fourchette de budget, échéance, lieu. Facultatifs, une
+  // demande exploratoire reste bienvenue.
+  budget: otext(40),
+  timeline: otext(40),
+  location: otext(160),
   message: otext(2000),
   attachments: arr(z.object({ url: z.string().url(), name: otext(200), type: otext(80) })),
 });

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
@@ -8,6 +9,17 @@ import { PageHero } from "@/components/site/PageHero";
 // touche. Le contenu vient de Supabase et change souvent, la coherence prime
 // ici sur la mise en cache.
 export const dynamic = "force-dynamic";
+
+// Titre, description et canonical propres : sans eux la page héritait de ceux
+// de l"accueil, canonical "/" compris, et Google la lisait comme un doublon.
+export const metadata: Metadata = {
+  title: "Services · Immersive systems, projection mapping, live A/V",
+  description:
+    "Creative direction, projection mapping, generative art, interactive installations, real-time systems, XR, live A/V, motion design and web. One studio, from brief to opening night.",
+  keywords: ["creative technology services", "projection mapping", "interactive installation", "generative art", "real-time systems", "live A/V", "XR", "motion design", "brand activation"],
+  alternates: { canonical: "/services" },
+  openGraph: { type: "website", url: "/services", title: "Services · Immersive systems, projection mapping, live A/V · FMRXR//", description: "Creative direction, projection mapping, generative art, interactive installations, real-time systems, XR, live A/V, motion design and web. One studio, from brief to opening night." },
+};
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
