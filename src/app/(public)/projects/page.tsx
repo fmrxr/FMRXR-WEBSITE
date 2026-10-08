@@ -44,7 +44,7 @@ function Card({ p, i }: { p: any; i: number }) {
           // carte n'est pas à l'écran, et la boucle s'arrête quand elle en sort.
           <CardFilm
             src={film}
-            poster={p.cover_url || film.replace(/\.mp4$/, ".jpg")}
+            poster={p.cover_url || film.replace(".mp4", ".jpg")}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         ) : p.cover_url ? (
