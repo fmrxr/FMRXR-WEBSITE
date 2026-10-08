@@ -1,0 +1,162 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Semantic Search: Beyond exact matches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:5/4;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#fdfdfb 0%,#eae5e0 72%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .tiny{font-size:9px;letter-spacing:.08em;text-transform:uppercase;fill:#5c5248}
+  .node{fill:#fdfdfb;stroke:#7865aa;stroke-width:1.5}
+  .node.dark{fill:#3e245e;stroke:#3e245e}
+  #s2-center{fill:url(#centerSphereDark)}
+  .connector{stroke:#7865aa;stroke-width:1.3;fill:none}
+  .semantic-orbit{fill:none;stroke:#ddd8e9;stroke-width:1;stroke-dasharray:2 5;animation:orbitspin 30s linear infinite;transform-origin:center}
+  @keyframes orbitspin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion: reduce){.semantic-orbit{animation:none}}
+  .paper{fill:#fdfdfb;stroke:#dbd5cb;stroke-width:1}
+  .paper-line{stroke:#dbd5cb;stroke-width:2;stroke-linecap:round}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -35 500 400" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="centerSphereDark" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#9384bb"/>
+        <stop offset="35%" stop-color="#7865aa"/>
+        <stop offset="70%" stop-color="#3e245e"/>
+        <stop offset="100%" stop-color="#1f122f"/>
+      </radialGradient>
+    </defs>
+    <text id="s2-mode" x="250" y="34" text-anchor="middle" font-size="10" letter-spacing="1.5" fill="#5c5248">EXACT KEYWORD MATCH</text>
+    <g transform="translate(250 165)">
+      <circle id="s2-boundary" class="semantic-orbit" cx="0" cy="0" r="72" fill="none"/>
+      <g id="s2-lines">
+        <path class="connector s2-line-inner" d="M0 0 L58.9 -41.3"/>
+        <path class="connector s2-line-inner" d="M0 0 L-65.2 30.4"/>
+        <path class="connector s2-line-outer" d="M0 0 L-113 -53"/>
+        <path class="connector s2-line-outer" d="M0 0 L120.7 -32.3"/>
+        <path class="connector s2-line-outer" d="M0 0 L67 67"/>
+        <path class="connector s2-line-outer" d="M0 0 L-123.1 21.7"/>
+      </g>
+      <circle id="s2-center" r="32" class="node dark"/>
+      <text id="s2-count" x="0" y="0" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="14" font-weight="700" fill="#fdfdfb">80M</text>
+      <text id="s2-count-cap" x="0" y="13" text-anchor="middle" font-size="7" letter-spacing="1.5" fill="#ddd8e9">PAPERS</text>
+      <g id="s2-nodes">
+        <circle id="s2-n1" class="node" cx="58.9" cy="-41.3" r="12"/>
+        <circle id="s2-n4" class="node" cx="-65.2" cy="30.4" r="9"/>
+        <circle id="s2-n2" class="node" cx="-113" cy="-53" r="7"/>
+        <circle id="s2-n3" class="node" cx="120.7" cy="-32.3" r="9"/>
+        <circle id="s2-n5" class="node" cx="67" cy="67" r="8"/>
+        <circle id="s2-n6" class="node" cx="-123.1" cy="21.7" r="10"/>
+      </g>
+      <g id="s2-papers">
+        <g transform="translate(80,-75) rotate(-20)"><rect class="paper" width="18" height="24" rx="3"/><path class="paper-line" d="M3.5 7h11M3.5 11.5h8M3.5 16h11" stroke-width="1.1"/></g>
+        <g transform="translate(-105,33) rotate(18)"><rect class="paper" width="18" height="24" rx="3"/><path class="paper-line" d="M3.5 7h11M3.5 11.5h8M3.5 16h11" stroke-width="1.1"/></g>
+        <g transform="translate(-151,-78) rotate(-15)"><rect class="paper" width="18" height="24" rx="3"/><path class="paper-line" d="M3.5 7h11M3.5 11.5h8M3.5 16h11" stroke-width="1.1"/></g>
+        <g transform="translate(145,-53) rotate(15)"><rect class="paper" width="18" height="24" rx="3"/><path class="paper-line" d="M3.5 7h11M3.5 11.5h8M3.5 16h11" stroke-width="1.1"/></g>
+        <g transform="translate(81,78) rotate(-25)"><rect class="paper" width="18" height="24" rx="3"/><path class="paper-line" d="M3.5 7h11M3.5 11.5h8M3.5 16h11" stroke-width="1.1"/></g>
+        <g transform="translate(-167,16) rotate(6)"><rect class="paper" width="18" height="24" rx="3"/><path class="paper-line" d="M3.5 7h11M3.5 11.5h8M3.5 16h11" stroke-width="1.1"/></g>
+      </g>
+    </g>
+    <text id="s2-caption" class="tiny" x="250" y="305" text-anchor="middle">100 papers, matched exactly</text>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(DrawSVGPlugin, ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+  });
+
+  var tl = gsap.timeline({
+    repeat:-1, yoyo:true, repeatDelay:1.1,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+  var exact = ["#s2-n1","#s2-n4"];
+  var rest = ["#s2-n2","#s2-n3","#s2-n5","#s2-n6"];
+  var exactPapers = ["#s2-papers > g:nth-child(1)","#s2-papers > g:nth-child(2)"];
+  var restPapers = ["#s2-papers > g:nth-child(3)","#s2-papers > g:nth-child(4)","#s2-papers > g:nth-child(5)","#s2-papers > g:nth-child(6)"];
+  var s2CountEl = document.getElementById("s2-count");
+  function fmtCount(n){
+    n = Math.round(n);
+    if(n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,"") + "M";
+    if(n >= 1000) return Math.round(n/1000) + "K";
+    return String(n);
+  }
+  var s2Counter = {n:80000000};
+
+  tl.set("#s2-lines path", {drawSVG:"0%"})
+    .set(["#s2-nodes circle"], {opacity:0})
+    .set([exactPapers, restPapers].flat(), {opacity:0, scale:.4, transformOrigin:"center"})
+    .set("#s2-boundary", {attr:{r:72}})
+    // 1 — exact keyword match filters the 80M corpus down to 100
+    .to(".s2-line-inner", {drawSVG:"100%", duration:.5, stagger:.15, ease:"power2.inOut"})
+    .to(exact, {opacity:1, duration:.5, stagger:.15}, "-=.3")
+    .to(s2Counter, {
+      n:100, duration:1, ease:"power2.out",
+      onUpdate:function(){ s2CountEl.textContent = fmtCount(s2Counter.n); }
+    }, "-=.4")
+    .to(exactPapers, {opacity:1, scale:1, duration:.3, stagger:.1, ease:"back.out(2)"}, "-=.2")
+    .to({}, {duration:.4})
+    // 2 — semantic expansion surfaces the most relevant matches beyond exact keywords
+    .to("#s2-mode", {opacity:0, duration:.3})
+    .call(function(){
+      var reversed = this.reversed();
+      document.getElementById("s2-mode").textContent = reversed ? "EXACT KEYWORD MATCH" : "SEMANTIC EXPANSION";
+      document.getElementById("s2-caption").textContent = reversed ? "100 papers, matched exactly" : "the most relevant papers, beyond exact keywords";
+    }, null, ">")
+    .to("#s2-mode", {opacity:1, duration:.3})
+    .to("#s2-boundary", {attr:{r:136}, duration:.9, ease:"power2.inOut"}, "-=.2")
+    .to(".s2-line-outer", {drawSVG:"100%", duration:.6, stagger:.08, ease:"power2.inOut"}, "-=.7")
+    .to(rest, {opacity:1, duration:.35, stagger:.1, ease:"back.out(2)"}, "-=.5")
+    .to(restPapers, {opacity:1, scale:1, duration:.3, stagger:.08, ease:"back.out(2)"}, "-=.3")
+    .to({}, {duration:1.3});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

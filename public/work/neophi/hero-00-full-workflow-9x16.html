@@ -1,0 +1,501 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system — 9:16 vertical export -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Hero: Full Workflow (9:16)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:min(500px,90vw,51.6vh);
+    aspect-ratio:9/16;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#3e245e 0%,#1f122f 70%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .tiny{font-size:11px;letter-spacing:.16em;text-transform:uppercase;fill:#ddd8e9}
+  .connector{stroke:#9384bb;stroke-width:1.3;stroke-linecap:round;fill:none}
+  .hub circle{fill:url(#centerSphereDark);stroke:#9384bb;stroke-width:2}
+  .paper{fill:#3e245e;stroke:#9384bb;stroke-width:1}
+  .paper-line{stroke:#ddd8e9;stroke-width:2;stroke-linecap:round}
+  .node{fill:#7865aa;stroke:#9384bb;stroke-width:1.3}
+  .pill-tag{filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
+  .breathe{animation:breathe 3.6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.28;transform:scale(.88)}50%{opacity:.75;transform:scale(1.08)}}
+  .wf-trace{stroke-dasharray:4 5;animation:wftracemarch 1.1s linear infinite}
+  @keyframes wftracemarch{to{stroke-dashoffset:-18}}
+  .semantic-orbit{fill:none;stroke:#ddd8e9;stroke-width:1;stroke-dasharray:2 6;opacity:.4;animation:wforbit 28s linear infinite;transform-origin:250px 190px}
+  @keyframes wforbit{to{transform:rotate(360deg)}}
+  .filter-ring{fill:none;stroke:#9384bb;stroke-width:1;stroke-dasharray:3 6;opacity:.35;animation:wfspin 24s linear infinite reverse;transform-origin:250px 400px}
+  @keyframes wfspin{to{transform:rotate(360deg)}}
+  #hero-parallax{transform:translate(calc(var(--px,0) * 14px), calc(var(--py,0) * 14px));transition:transform .35s ease-out}
+  @media(prefers-reduced-motion: reduce){.breathe{animation:none}.wf-trace{animation:none}.semantic-orbit{animation:none}.filter-ring{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 0 500 889" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="glow2">
+        <stop offset="0%" stop-color="#9384bb" stop-opacity=".4"/>
+        <stop offset="100%" stop-color="#9384bb" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="centerSphereDark" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#9384bb"/>
+        <stop offset="35%" stop-color="#7865aa"/>
+        <stop offset="70%" stop-color="#3e245e"/>
+        <stop offset="100%" stop-color="#1f122f"/>
+      </radialGradient>
+      <linearGradient id="pillGradDark" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7865aa"/>
+        <stop offset="100%" stop-color="#3e245e"/>
+      </linearGradient>
+    </defs>
+    <g id="hero-parallax">
+      <circle class="breathe" cx="250" cy="400" r="220" fill="url(#glow2)"/>
+      <ellipse id="wf-ask-ring" class="semantic-orbit" cx="250" cy="400" rx="210" ry="100" opacity="0"/>
+
+      <!-- 1 — ask your research question -->
+      <g id="wf-ask">
+        <rect x="40" y="350" width="420" height="58" rx="14" fill="#150c20" fill-opacity=".6" stroke="#9384bb" stroke-opacity=".4"/>
+        <text x="62" y="384" font-family="'Noto Serif', Georgia, serif" font-style="italic" font-size="15" fill="#9384bb">Ask your research question…</text>
+        <g class="pill-tag">
+          <rect x="40" y="420" width="420" height="30" rx="15" fill="url(#pillGradDark)"/>
+          <text x="250" y="440" text-anchor="middle" font-size="10" letter-spacing="1" fill="#fdfdfb">SEARCH THE MOST RELEVANT PAPERS</text>
+        </g>
+      </g>
+
+      <g id="wf-scene">
+        <ellipse id="wf-graph-ring" class="filter-ring" cx="250" cy="400" rx="190" ry="155" opacity="0"/>
+
+        <path id="wf-trace1" class="connector wf-trace" d="M192 395 Q130 340 100 310" opacity="0"/>
+        <path id="wf-trace2" class="connector wf-trace" d="M240 395 Q150 398 100 400" opacity="0"/>
+        <path id="wf-trace3" class="connector wf-trace" d="M288 395 Q170 450 100 490" opacity="0"/>
+        <path id="wf-trace4" class="connector wf-trace" d="M192 413 Q320 340 400 310" opacity="0"/>
+        <path id="wf-trace5" class="connector wf-trace" d="M240 413 Q330 398 400 400" opacity="0"/>
+        <path id="wf-trace6" class="connector wf-trace" d="M288 413 Q330 450 400 490" opacity="0"/>
+        <path id="wf-trace7" class="connector wf-trace" d="M192 431 Q220 250 250 160" opacity="0"/>
+        <path id="wf-trace8" class="connector wf-trace" d="M240 431 Q250 600 250 690" opacity="0"/>
+        <g id="wf-midnodes">
+          <circle class="node" cx="132" cy="338" r="6"/>
+          <circle class="node" cx="150" cy="398" r="6"/>
+          <circle class="node" cx="175" cy="448" r="6"/>
+          <circle class="node" cx="330" cy="338" r="6"/>
+          <circle class="node" cx="330" cy="398" r="6"/>
+          <circle class="node" cx="330" cy="448" r="6"/>
+        </g>
+
+        <g id="wf-papers">
+          <g id="wf-src1" class="wf-src" data-tx="-70" data-ty="-70"><rect class="paper" x="48" y="257" width="58" height="76" rx="5"/><path class="paper-line" d="M60 278h34M60 290h28M60 302h34"/></g>
+          <g id="wf-src2" class="wf-src" data-tx="-85" data-ty="0"><rect class="paper" x="48" y="362" width="58" height="76" rx="5"/><path class="paper-line" d="M60 383h34M60 395h28M60 407h34"/></g>
+          <g id="wf-src3" class="wf-src" data-tx="-70" data-ty="70"><rect class="paper" x="48" y="467" width="58" height="76" rx="5"/><path class="paper-line" d="M60 488h34M60 500h28M60 512h34"/></g>
+          <g id="wf-src4" class="wf-src" data-tx="70" data-ty="-70"><rect class="paper" x="394" y="257" width="58" height="76" rx="5"/><path class="paper-line" d="M406 278h34M406 290h28M406 302h34"/></g>
+          <g id="wf-src5" class="wf-src" data-tx="85" data-ty="0"><rect class="paper" x="394" y="362" width="58" height="76" rx="5"/><path class="paper-line" d="M406 383h34M406 395h28M406 407h34"/></g>
+          <g id="wf-src6" class="wf-src" data-tx="70" data-ty="70"><rect class="paper" x="394" y="467" width="58" height="76" rx="5"/><path class="paper-line" d="M406 488h34M406 500h28M406 512h34"/></g>
+          <g id="wf-src7" class="wf-src2" data-tx="0" data-ty="-70"><rect class="paper" x="221" y="90" width="58" height="76" rx="5"/><path class="paper-line" d="M233 111h34M233 123h28M233 135h34"/></g>
+          <g id="wf-src8" class="wf-src2" data-tx="0" data-ty="70"><rect class="paper" x="221" y="710" width="58" height="76" rx="5"/><path class="paper-line" d="M233 731h34M233 743h28M233 755h34"/></g>
+        </g>
+
+        <g id="wf-btn-graph" class="pill-tag">
+          <rect id="wf-btn-pulse" x="165" y="570" width="170" height="30" rx="15" fill="none" stroke="#ddd8e9" stroke-width="2" opacity="0"/>
+          <rect x="165" y="570" width="170" height="30" rx="15" fill="url(#pillGradDark)"/>
+          <text x="250" y="590" text-anchor="middle" font-size="10" letter-spacing="1" fill="#fdfdfb">KNOWLEDGE GRAPH →</text>
+        </g>
+
+        <g id="wf-hub" class="hub" transform="translate(250,400)">
+          <circle r="46"/>
+          <text id="wf-counter" x="0" y="-4" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="17" font-weight="700" fill="#fdfdfb" opacity="0">80,000,000</text>
+          <text id="wf-counter-cap" x="0" y="18" text-anchor="middle" font-size="9" letter-spacing="2" fill="#ddd8e9" opacity="0">PAPERS</text>
+        </g>
+
+        <g id="wf-card" opacity="0" transform="translate(0,0)">
+          <rect x="160" y="265" width="180" height="270" rx="14" fill="#3e245e" stroke="#9384bb"/>
+          <text x="250" y="295" text-anchor="middle" font-size="10" letter-spacing="1.5" fill="#ddd8e9">EVIDENCE-BASED ANSWER</text>
+          <rect id="wf-l1" x="182" y="315" width="136" height="6" rx="3" fill="#9384bb" style="transform-origin:182px 318px"/>
+          <rect id="wf-l2" x="182" y="333" width="112" height="6" rx="3" fill="#9384bb" style="transform-origin:182px 336px"/>
+          <rect id="wf-l3" x="182" y="351" width="126" height="6" rx="3" fill="#9384bb" style="transform-origin:182px 354px"/>
+          <text id="wf-m1" x="192" y="395" font-size="11" fill="#9384bb" opacity="0">[1]</text>
+          <text id="wf-m2" x="240" y="395" font-size="11" fill="#9384bb" opacity="0">[2]</text>
+          <text id="wf-m3" x="288" y="395" font-size="11" fill="#9384bb" opacity="0">[3]</text>
+          <text id="wf-m4" x="192" y="413" font-size="11" fill="#9384bb" opacity="0">[4]</text>
+          <text id="wf-m5" x="240" y="413" font-size="11" fill="#9384bb" opacity="0">[5]</text>
+          <text id="wf-m6" x="288" y="413" font-size="11" fill="#9384bb" opacity="0">[6]</text>
+          <text id="wf-m7" x="192" y="431" font-size="11" fill="#9384bb" opacity="0">[7]</text>
+          <text id="wf-m8" x="240" y="431" font-size="11" fill="#9384bb" opacity="0">[8]</text>
+          <g id="wf-btn-synth" class="pill-tag" opacity="0">
+            <rect id="wf-btn-synth-pulse" x="174" y="453" width="152" height="24" rx="12" fill="none" stroke="#ddd8e9" stroke-width="1.6" opacity="0"/>
+            <rect x="174" y="453" width="152" height="24" rx="12" fill="url(#pillGradDark)"/>
+            <text x="250" y="469" text-anchor="middle" font-size="8.5" letter-spacing="1" fill="#fdfdfb">SOURCED SYNTHESIS</text>
+          </g>
+          <text id="wf-dl" class="tiny" x="250" y="513" text-anchor="middle" opacity="0" font-size="8.5" fill="#ddd8e9">PDF · DOCX</text>
+        </g>
+
+        <!-- closing loop — golden spiral track, translated + uniformly scaled (final = 0.85*orig + (-132.5, 213))
+             from the original so its true spiral geometry (not an oval) is preserved exactly, just recentred -->
+        <g id="wf-loop" opacity="0">
+          <path id="wf-loop-track" class="connector wf-trace" fill="none" d="M296.2 394.5 L296.5 395.2 L296.6 396.1 L296.6 397.0 L296.5 397.8 L296.8 398.7 L296.0 399.6 L295.6 400.5 L295.1 401.4 L294.5 402.2 L293.7 403.0 L292.8 403.7 L291.9 404.3 L290.8 404.9 L289.7 405.4 L288.4 405.7 L287.1 406.0 L285.7 406.0 L284.3 405.9 L282.8 405.6 L281.4 405.2 L279.9 404.5 L278.5 403.7 L277.1 402.7 L275.8 401.5 L274.65 400.2 L273.5 398.6 L272.6 396.9 L271.8 395.1 L271.3 393.1 L270.9 391.0 L270.8 388.8 L270.9 386.5 L271.3 384.1 L272.0 381.7 L272.95 379.4 L274.2 377.1 L275.75 374.8 L277.6 372.7 L279.75 370.8 L282.2 369.0 L284.9 367.4 L287.9 366.2 L291.1 365.2 L294.5 364.6 L298.0 364.3 L301.8 364.4 L305.5 365.0 L309.3 366.0 L313.2 367.4 L317.0 369.4 L320.6 371.9 L324.0 374.8 L327.3 378.2 L330.2 382.1 L332.8 386.4 L334.9 391.1 L336.6 396.2 L337.7 401.7 L338.2 407.4 L338.1 413.3 L337.4 419.5 L335.9 425.6 L333.6 431.8 L330.5 437.9 L326.8 443.9 L322.6 449.5 L317.7 454.8 L311.6 459.6 L304.7 463.8 L297.2 467.5 L289.0 470.3 L280.3 472.3 L271.1 473.2 L261.5 473.2 L251.7 472.3 L241.65 471.0 L231.6 466.5 L221.8 461.8 L212.1 455.8 L202.4 448.6 L193.7 440.1 L185.7 430.3 L178.2 419.5 L172.2 407.4 L167.4 394.3 L163.98 380.4 L162.0 365.6 L161.8 350.2 L163.2 334.4 L166.4 318.2"/>
+          <circle id="wf-loop-cursor" r="5" fill="#ddd8e9"/>
+          <g id="wf-loop-points">
+            <circle id="wlp-1" cx="307.5" cy="365.4" r="10" fill="url(#centerSphereDark)" stroke="#9384bb" stroke-width="1.5"/>
+            <circle id="wlp-2" cx="336.4" cy="423.5" r="12" fill="url(#centerSphereDark)" stroke="#9384bb" stroke-width="1.5"/>
+            <circle id="wlp-3" cx="242.4" cy="470.4" r="14" fill="url(#centerSphereDark)" stroke="#9384bb" stroke-width="1.5"/>
+            <circle id="wlp-4" cx="166.4" cy="318.2" r="16" fill="url(#centerSphereDark)" stroke="#9384bb" stroke-width="1.5"/>
+          </g>
+          <g class="tiny" font-size="9" fill="#ddd8e9">
+            <text x="328" y="358" text-anchor="start">RESEARCH QUESTION</text>
+            <text x="360" y="426" text-anchor="start">RELEVANT PAPERS</text>
+            <text x="242" y="500" text-anchor="middle">KNOWLEDGE GRAPH</text>
+            <text x="182" y="303" text-anchor="end">SOURCED SYNTHESIS</text>
+          </g>
+          <text class="tiny" x="250" y="399" text-anchor="middle" font-size="8.5" fill="#ddd8e9">WORKFLOW</text>
+          <g id="wf-repeat" class="pill-tag" opacity="0">
+            <rect x="212" y="204.5" width="76.5" height="22.1" rx="11" fill="url(#pillGradDark)"/>
+            <text x="250" y="219" text-anchor="middle" font-size="9.5" letter-spacing="1.5" fill="#fdfdfb">REPEAT</text>
+          </g>
+        </g>
+
+        <g id="wf-quote" opacity="0">
+          <image href="data:image/webp;base64,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" x="130" y="280" width="240" height="240" preserveAspectRatio="xMidYMid meet"/>
+        </g>
+
+        <g id="wf-overlay">
+          <rect id="wf-ov-scrim" x="0" y="0" width="500" height="889" fill="#0d0714" opacity="0"/>
+          <g id="wf-ov-modal" style="transform-origin:250px 410px">
+            <rect x="20" y="40" width="460" height="740" rx="20" fill="#170d22" fill-opacity=".97" stroke="#9384bb" stroke-opacity=".35"/>
+            <text x="48" y="76" font-family="'Noto Serif', Georgia, serif" font-size="15" fill="#ddd8e9">Graphe de connaissances</text>
+            <text x="48" y="94" font-size="9" fill="#9384bb">Cliquez sur les nœuds pour plus de détails</text>
+            <g stroke="#9384bb" stroke-width="1.6" stroke-linecap="round" opacity=".8">
+              <path d="M438 68 L458 88"/>
+              <path d="M458 68 L438 88"/>
+            </g>
+            <path d="M40 108h420" stroke="#9384bb" stroke-opacity=".25" stroke-width="1"/>
+
+            <g id="wf-ov-graph" transform="translate(22.5,66.76) scale(.91)">
+              <circle id="wf-ov-boundaryA" class="filter-ring" cx="236.5" cy="220.7" r="81.7" opacity="0"/>
+              <circle id="wf-ov-boundaryD" class="filter-ring" cx="321.5" cy="573.5" r="85.8" opacity="0"/>
+
+              <g id="wf-ov-zoneA-lines">
+                <path class="connector" d="M236.5 220.7 L156.1 229.3"/>
+                <path class="connector" d="M156.1 229.3 L134.4 194.9"/>
+                <path class="connector" d="M236.5 220.7 L236.5 143.3"/>
+                <path class="connector" d="M236.5 143.3 L236.5 78.7"/>
+                <path class="connector" d="M236.5 78.7 L268.9 64.1"/>
+                <path class="connector" d="M236.5 220.7 L294.4 255.1"/>
+                <path class="connector" d="M294.4 255.1 L344.7 229.3"/>
+                <path class="connector" d="M294.4 255.1 L333.1 194.9"/>
+              </g>
+              <g id="wf-ov-zoneBCl-lines">
+                <path class="connector" d="M294.4 255.1 L307.6 299.9"/>
+                <path class="connector" d="M307.6 299.9 L315.3 384.2"/>
+                <path class="connector" d="M315.3 384.2 L300.0 422.9"/>
+                <path class="connector" d="M300.0 422.9 L320.1 461.6"/>
+                <path class="connector" d="M320.1 461.6 L321.5 573.5"/>
+              </g>
+              <g id="wf-ov-zoneBCu-lines">
+                <path class="connector" d="M236.5 220.7 L230.3 299.9"/>
+                <path class="connector" d="M230.3 299.9 L230.3 341.2"/>
+                <path class="connector" d="M230.3 341.2 L214.8 377.4"/>
+                <path class="connector" d="M214.8 377.4 L171.5 427.2"/>
+                <path class="connector" d="M171.5 427.2 L166.9 474.6"/>
+                <path class="connector" d="M166.9 474.6 L211.7 494.4"/>
+                <path class="connector" d="M211.7 494.4 L240.3 461.6"/>
+                <path class="connector" d="M166.9 474.6 L213.3 540.7"/>
+                <path class="connector" d="M213.3 540.7 L321.5 573.5"/>
+              </g>
+              <g id="wf-ov-zoneD-lines">
+                <path class="connector" d="M321.5 573.5 L267.4 625.1"/>
+                <path class="connector" d="M267.4 625.1 L250.5 651.0"/>
+                <path class="connector" d="M321.5 573.5 L333.1 662.8"/>
+                <path class="connector" d="M333.1 662.8 L294.4 689.7"/>
+                <path class="connector" d="M294.4 689.7 L271.3 721.6"/>
+                <path class="connector" d="M294.4 689.7 L340.8 715.5"/>
+                <path class="connector" d="M321.5 573.5 L387.2 558.0"/>
+                <path class="connector" d="M387.2 558.0 L418.1 582.1"/>
+                <path class="connector" d="M418.1 582.1 L418.1 612.2"/>
+              </g>
+
+              <g id="wf-ov-hub1" class="hub" transform="translate(236.5 220.7)"><circle r="34.3"/><text y="-4" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="11" letter-spacing=".5" fill="#fdfdfb">CONCEPT</text><text y="12" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="11" fill="#fdfdfb">1</text></g>
+              <g id="wf-ov-hub2" class="hub" transform="translate(321.5 573.5)"><circle r="36"/><text y="-4" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="11" letter-spacing=".5" fill="#fdfdfb">CONCEPT</text><text y="12" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="11" fill="#fdfdfb">2</text></g>
+
+              <g id="wf-ov-zoneA-nodes">
+                <g class="node" transform="translate(156.1,229.3)"><circle r="13.1"/></g>
+                <g class="node" transform="translate(134.4,194.9)"><circle r="10.6"/></g>
+                <g class="node" transform="translate(236.5,143.3)"><circle r="19.6"/></g>
+                <g class="node" transform="translate(236.5,78.7)"><circle r="15.5"/></g>
+                <g class="node" transform="translate(268.9,64.1)"><circle r="11.4"/></g>
+                <g class="node" transform="translate(294.4,255.1)"><circle r="21.2"/></g>
+                <g class="node" transform="translate(344.7,229.3)"><circle r="16.3"/></g>
+                <g class="node" transform="translate(333.1,194.9)"><circle r="11.4"/></g>
+              </g>
+              <g id="wf-ov-zoneBCl-nodes">
+                <g class="node" transform="translate(307.6,299.9)"><circle r="9.8"/></g>
+                <g class="node" transform="translate(315.3,384.2)"><circle r="11.4"/></g>
+                <g class="node" transform="translate(300.0,422.9)"><circle r="15.5"/></g>
+                <g class="node" transform="translate(320.1,461.6)"><circle r="18.8"/></g>
+              </g>
+              <g id="wf-ov-zoneBCu-nodes">
+                <g class="node" transform="translate(230.3,299.9)"><circle r="9.8"/></g>
+                <g class="node" transform="translate(230.3,341.2)"><circle r="15.5"/></g>
+                <g class="node" transform="translate(214.8,377.4)"><circle r="13.1"/></g>
+                <g class="node" transform="translate(171.5,427.2)"><circle r="21.2"/></g>
+                <g id="wf-hl-target" class="node" transform="translate(166.9,474.6)"><circle r="13.1"/></g>
+                <g class="node" transform="translate(211.7,494.4)"><circle r="13.1"/></g>
+                <g class="node" transform="translate(240.3,461.6)"><circle r="10.6"/></g>
+                <g class="node" transform="translate(213.3,540.7)"><circle r="27.0"/></g>
+              </g>
+              <g id="wf-ov-zoneD-nodes">
+                <g class="node" transform="translate(267.4,625.1)"><circle r="13.1"/></g>
+                <g class="node" transform="translate(250.5,651.0)"><circle r="10.6"/></g>
+                <g class="node" transform="translate(333.1,662.8)"><circle r="15.5"/></g>
+                <g class="node" transform="translate(294.4,689.7)"><circle r="11.4"/></g>
+                <g class="node" transform="translate(271.3,721.6)"><circle r="10.6"/></g>
+                <g class="node" transform="translate(340.8,715.5)"><circle r="13.1"/></g>
+                <g class="node" transform="translate(387.2,558.0)"><circle r="19.6"/></g>
+                <g class="node" transform="translate(418.1,582.1)"><circle r="11.4"/></g>
+                <g class="node" transform="translate(418.1,612.2)"><circle r="10.6"/></g>
+              </g>
+
+              <g id="wf-ov-papers">
+                <g transform="translate(236.5,108.8) scale(.85)"><rect class="paper" x="-8" y="-11" width="16" height="21" rx="3"/><path class="paper-line" d="M-4.5 -5h9M-4.5 -0.5h6.5M-4.5 4h9" stroke-width="1"/></g>
+                <g transform="translate(311.5,342.1) rotate(4) scale(.85)"><rect class="paper" x="-8" y="-11" width="16" height="21" rx="3"/><path class="paper-line" d="M-4.5 -5h9M-4.5 -0.5h6.5M-4.5 4h9" stroke-width="1"/></g>
+                <g transform="translate(232.6,273.2) rotate(-5) scale(.85)"><rect class="paper" x="-8" y="-11" width="16" height="21" rx="3"/><path class="paper-line" d="M-4.5 -5h9M-4.5 -0.5h6.5M-4.5 4h9" stroke-width="1"/></g>
+                <g transform="translate(328.4,628.7) rotate(4) scale(.85)"><rect class="paper" x="-8" y="-11" width="16" height="21" rx="3"/><path class="paper-line" d="M-4.5 -5h9M-4.5 -0.5h6.5M-4.5 4h9" stroke-width="1"/></g>
+              </g>
+
+              <circle id="wf-hl-pulse" cx="166.9" cy="474.6" r="13" fill="#9384bb" opacity="0"/>
+              <circle id="wf-hl-glow" cx="166.9" cy="474.6" r="13" fill="url(#centerSphereDark)" opacity="0"/>
+              <path id="wf-hl-connector" class="connector wf-trace" d="M158 483 L85 489" opacity="0"/>
+              <g id="wf-hl-panel" opacity="0">
+                <rect x="20" y="489" width="125" height="118" rx="10" fill="#150c20" stroke="#9384bb" stroke-opacity=".6"/>
+                <text x="82" y="513" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="12" font-weight="700" fill="#ddd8e9">MORE</text>
+                <text class="tiny" x="82" y="526" text-anchor="middle" font-size="7.5" opacity="1">related papers</text>
+                <path d="M28 535h108" stroke="#9384bb" stroke-opacity=".3" stroke-width="1"/>
+                <g id="wf-hl-row1"><rect class="paper" x="26" y="541" width="12" height="15" rx="2"/><path class="paper-line" d="M28.5 547h6.5M28.5 551.5h4.5" stroke-width="1"/><rect x="45" y="544" width="58" height="2.5" rx="1.25" fill="#9384bb"/><rect x="45" y="550" width="42" height="2.5" rx="1.25" fill="#9384bb"/></g>
+                <g id="wf-hl-row2"><rect class="paper" x="26" y="563" width="12" height="15" rx="2"/><path class="paper-line" d="M28.5 569h6.5M28.5 573.5h4.5" stroke-width="1"/><rect x="45" y="566" width="58" height="2.5" rx="1.25" fill="#9384bb"/><rect x="45" y="572" width="44" height="2.5" rx="1.25" fill="#9384bb"/></g>
+                <g id="wf-hl-row3"><rect class="paper" x="26" y="585" width="12" height="15" rx="2"/><path class="paper-line" d="M28.5 591h6.5M28.5 595.5h4.5" stroke-width="1"/><rect x="45" y="588" width="58" height="2.5" rx="1.25" fill="#9384bb"/><rect x="45" y="594" width="34" height="2.5" rx="1.25" fill="#9384bb"/></g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/MotionPathPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(DrawSVGPlugin, MotionPathPlugin, ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--px", (((e.clientX-r.left)/r.width)-0.5).toFixed(3));
+    stageEl.style.setProperty("--py", (((e.clientY-r.top)/r.height)-0.5).toFixed(3));
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+    stageEl.style.setProperty("--px",0);
+    stageEl.style.setProperty("--py",0);
+  });
+
+  var srcs = gsap.utils.toArray(".wf-src");
+  var srcsExtra = gsap.utils.toArray(".wf-src2");
+  var traceIds = ["#wf-trace1","#wf-trace2","#wf-trace3","#wf-trace4","#wf-trace5","#wf-trace6"];
+  var traceIdsExtra = ["#wf-trace7","#wf-trace8"];
+  var markerIds = ["#wf-m1","#wf-m2","#wf-m3","#wf-m4","#wf-m5","#wf-m6"];
+  var markerIdsExtra = ["#wf-m7","#wf-m8"];
+  var midNodes = "#wf-midnodes .node";
+
+  var ovZoneALines = "#wf-ov-zoneA-lines path";
+  var ovZoneDLines = "#wf-ov-zoneD-lines path";
+  var ovZoneBClLines = "#wf-ov-zoneBCl-lines path";
+  var ovZoneBCuLines = "#wf-ov-zoneBCu-lines path";
+  var ovZoneANodes = "#wf-ov-zoneA-nodes .node";
+  var ovZoneDNodes = "#wf-ov-zoneD-nodes .node";
+  var ovZoneBClNodes = "#wf-ov-zoneBCl-nodes .node";
+  var ovZoneBCuNodes = "#wf-ov-zoneBCu-nodes .node";
+  var ovPapers = "#wf-ov-papers > g";
+  var ovHlRows = ["#wf-hl-row1","#wf-hl-row2","#wf-hl-row3"];
+
+  var tl = gsap.timeline({
+    repeat:-1, repeatDelay:1.6,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+  var counterEl = document.getElementById("wf-counter");
+  var counterCapEl = document.getElementById("wf-counter-cap");
+  function fmtCount(n){
+    n = Math.round(n);
+    if(n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,"") + "M";
+    if(n >= 1000) return Math.round(n/1000) + "K";
+    return String(n);
+  }
+  var counter = {n:80000000};
+
+  tl.set("#wf-ask", {opacity:0})
+    .set("#wf-ask-ring", {opacity:0})
+    .set("#wf-scene", {scale:1, opacity:1, svgOrigin:"250 400"})
+    .set("#wf-graph-ring", {opacity:0})
+    .set(srcs, {x:function(i,t){return t.dataset.tx;}, y:function(i,t){return t.dataset.ty;}, opacity:0, scale:.6, transformOrigin:"center"})
+    .set(srcsExtra, {x:function(i,t){return t.dataset.tx;}, y:function(i,t){return t.dataset.ty;}, opacity:0, scale:.6, transformOrigin:"center"})
+    .set(traceIds, {opacity:0})
+    .set(traceIdsExtra, {opacity:0})
+    .set(midNodes, {opacity:0, scale:0, transformOrigin:"center"})
+    .set("#wf-hub", {scale:0, transformOrigin:"center"})
+    .set(["#wf-counter","#wf-counter-cap"], {opacity:0})
+    .call(function(){
+      counterEl.textContent = "80,000,000";
+      counterCapEl.textContent = "PAPERS";
+      counterCapEl.setAttribute("letter-spacing", "2");
+      counterCapEl.setAttribute("font-size", "9");
+    })
+    .set("#wf-card", {opacity:0, scale:.85, transformOrigin:"center"})
+    .set(["#wf-l1","#wf-l2","#wf-l3"], {scaleX:0})
+    .set(markerIds, {opacity:0})
+    .set(markerIdsExtra, {opacity:0})
+    .set("#wf-dl", {opacity:0})
+    .set("#wf-btn-graph", {opacity:0, scale:.9, transformOrigin:"center"})
+    .set("#wf-btn-pulse", {opacity:0, scale:1, transformOrigin:"center"})
+    .set("#wf-btn-synth", {opacity:0, scale:.9, transformOrigin:"center"})
+    .set("#wf-btn-synth-pulse", {opacity:0, scale:1, transformOrigin:"center"})
+    .set("#wf-loop", {opacity:0})
+    .set("#wf-loop-cursor", {motionPath:{path:"#wf-loop-track", align:"#wf-loop-track", alignOrigin:[.5,.5], start:0, end:0}})
+    .set("#wf-loop-points circle", {scale:1, transformOrigin:"center"})
+    .set("#wf-repeat", {opacity:0, scale:.85, transformOrigin:"center"})
+    .set("#wf-quote", {opacity:0, scale:.94, transformOrigin:"center"})
+    .set("#wf-ov-scrim", {opacity:0})
+    .set("#wf-ov-modal", {opacity:0, scale:.94})
+    .set([ovZoneALines, ovZoneDLines, ovZoneBClLines, ovZoneBCuLines], {drawSVG:"0%"})
+    .set([ovZoneANodes, ovZoneDNodes, ovZoneBClNodes, ovZoneBCuNodes], {opacity:0, scale:0, transformOrigin:"center"})
+    .set(["#wf-ov-hub1","#wf-ov-hub2"], {scale:0, transformOrigin:"center"})
+    .set(ovPapers, {opacity:0, scale:0, transformOrigin:"center"})
+    .set(["#wf-ov-boundaryA","#wf-ov-boundaryD"], {opacity:0})
+    .set(["#wf-hl-pulse","#wf-hl-glow","#wf-hl-connector","#wf-hl-panel"], {opacity:0})
+    .set(ovHlRows, {opacity:0, x:8})
+
+    .to("#wf-ask-ring", {opacity:1, duration:.7})
+    .to("#wf-ask", {opacity:1, duration:.7}, "-=.3")
+    .to({}, {duration:1.0})
+    .to(["#wf-ask","#wf-ask-ring"], {opacity:0, duration:.5})
+
+    .to("#wf-graph-ring", {opacity:1, duration:.6}, "-=.1")
+    .to("#wf-hub", {scale:1, duration:.6, ease:"back.out(2)"}, "-=.45")
+    .to(["#wf-counter","#wf-counter-cap"], {opacity:1, duration:.35}, "-=.25")
+    .to(counter, {
+      n:100, duration:1.8, ease:"power2.out",
+      onUpdate:function(){ counterEl.textContent = fmtCount(counter.n); },
+      onComplete:function(){
+        counterEl.textContent = "MOST";
+        counterCapEl.textContent = "RELEVANT PAPERS";
+        counterCapEl.setAttribute("letter-spacing", ".5");
+        counterCapEl.setAttribute("font-size", "7.5");
+      }
+    }, "-=.15")
+    .to(srcs, {x:0, y:0, opacity:1, scale:1, duration:.4, stagger:.11, ease:"back.out(2)"}, "-=1.45")
+    .to({}, {duration:.4})
+    .to("#wf-btn-graph", {opacity:1, scale:1, duration:.4, ease:"back.out(2)"})
+    .to("#wf-btn-pulse", {opacity:.9, scale:1.22, duration:.4, ease:"power2.out"}, "-=.05")
+    .to("#wf-btn-pulse", {opacity:0, duration:.3})
+    .to({}, {duration:.7})
+
+    .to("#wf-btn-graph", {opacity:0, duration:.15})
+    .to("#wf-ov-scrim", {opacity:.85, duration:.2}, "<")
+    .to("#wf-ov-modal", {opacity:1, scale:1, duration:.22, ease:"power2.out"}, "<")
+    .to(["#wf-ov-hub1","#wf-ov-hub2"], {scale:1, duration:.55, stagger:.06, ease:"back.out(2)"}, "-=.02")
+    .addLabel("ovgrow", "-=.15")
+    .to(ovZoneALines, {drawSVG:"100%", duration:.5, stagger:.12, ease:"power2.inOut"}, "ovgrow")
+    .to(ovZoneDLines, {drawSVG:"100%", duration:.5, stagger:.12, ease:"power2.inOut"}, "ovgrow")
+    .to(ovZoneBClLines, {drawSVG:"100%", duration:.45, stagger:.12, ease:"power2.inOut"}, "ovgrow")
+    .to(ovZoneBCuLines, {drawSVG:"100%", duration:.45, stagger:.11, ease:"power2.inOut"}, "ovgrow")
+    .to(["#wf-ov-boundaryA","#wf-ov-boundaryD"], {opacity:1, duration:.6}, "ovgrow")
+    .to(ovZoneANodes, {opacity:1, scale:1, duration:.35, stagger:.12, ease:"back.out(2)"}, "ovgrow+=.3")
+    .to(ovZoneDNodes, {opacity:1, scale:1, duration:.35, stagger:.12, ease:"back.out(2)"}, "ovgrow+=.3")
+    .to(ovZoneBClNodes, {opacity:1, scale:1, duration:.35, stagger:.12, ease:"back.out(2)"}, "ovgrow+=.25")
+    .to(ovZoneBCuNodes, {opacity:1, scale:1, duration:.35, stagger:.11, ease:"back.out(2)"}, "ovgrow+=.25")
+    .to(ovPapers, {opacity:1, scale:1, duration:.35, stagger:.12, ease:"back.out(2)"}, "ovgrow+=.9")
+    .to({}, {duration:.45})
+    .to("#wf-hl-pulse", {opacity:.6, scale:1.7, duration:.6, transformOrigin:"center"})
+    .to("#wf-hl-pulse", {opacity:0, duration:.45})
+    .to("#wf-hl-pulse", {opacity:.4, scale:1.5, duration:.5, transformOrigin:"center"}, "-=.15")
+    .to("#wf-hl-pulse", {opacity:0, duration:.45})
+    .to("#wf-hl-glow", {opacity:1, duration:.35}, "-=.85")
+    .to("#wf-hl-connector", {opacity:1, duration:.5, ease:"power2.inOut"}, "-=.3")
+    .to("#wf-hl-panel", {opacity:1, duration:.4}, "-=.1")
+    .to(ovHlRows, {opacity:1, x:0, duration:.35, stagger:.12, ease:"power2.out"}, "-=.25")
+    .to({}, {duration:1.0})
+    .to("#wf-ov-modal", {opacity:0, scale:.95, duration:.32, ease:"power2.in"})
+    .to("#wf-ov-scrim", {opacity:0, duration:.4}, "-=.12")
+
+    .to({}, {duration:.2})
+    .to(srcs, {opacity:.5, scale:.93, duration:.3, ease:"power1.inOut"})
+    .to(srcs, {opacity:1, scale:1, duration:.45, stagger:.05, ease:"back.out(1.6)"}, "-=.05")
+    .to(srcsExtra, {x:0, y:0, opacity:1, scale:1, duration:.45, stagger:.15, ease:"back.out(2)"}, "-=.35")
+    .to({}, {duration:.3})
+
+    .to({}, {duration:.15})
+    .to("#wf-hub", {opacity:0, scale:.6, duration:.35})
+    .to("#wf-card", {opacity:1, scale:1, duration:.6, ease:"back.out(1.6)"}, "-=.2")
+    .to(["#wf-l1","#wf-l2","#wf-l3"], {scaleX:1, duration:.45, stagger:.14}, "-=.2")
+    .to({}, {duration:.15})
+    .to(traceIds.concat(traceIdsExtra), {opacity:1, duration:.4, stagger:.1, ease:"power1.inOut"})
+    .to(midNodes, {opacity:1, scale:1, duration:.3, stagger:.1, ease:"back.out(2)"}, "-=.6")
+    .to(markerIds.concat(markerIdsExtra), {opacity:1, duration:.35, stagger:.1}, "-=.5")
+    .to("#wf-btn-synth", {opacity:1, scale:1, duration:.35, ease:"back.out(2)"}, "-=.15")
+    .to({}, {duration:.35})
+    .to("#wf-btn-synth-pulse", {opacity:.9, scale:1.2, duration:.4, ease:"power2.out"})
+    .to("#wf-btn-synth-pulse", {opacity:0, duration:.3})
+    .to("#wf-dl", {opacity:1, duration:.3}, "-=.1")
+    .to({}, {duration:1.1})
+
+    .to([midNodes].concat(traceIds).concat(traceIdsExtra), {opacity:0, duration:.4, ease:"power1.in"})
+    .to("#wf-papers", {opacity:0, scale:.92, duration:.55, ease:"power1.in", transformOrigin:"center"}, "-=.25")
+    .to("#wf-graph-ring", {opacity:0, duration:.55}, "-=.45")
+    .to("#wf-card", {opacity:0, scale:.9, duration:.6, ease:"power2.in", transformOrigin:"center"}, "-=.35")
+    .addLabel("loopEnter", "-=.4")
+    .set("#wf-loop", {scale:.88, transformOrigin:"center"}, "loopEnter")
+    .to("#wf-loop", {opacity:1, scale:1, duration:.75, ease:"power2.out"}, "loopEnter")
+    .addLabel("loopring", "-=.1")
+    .to("#wf-loop-cursor", {motionPath:{path:"#wf-loop-track", align:"#wf-loop-track", alignOrigin:[.5,.5], start:0, end:1}, duration:2.6, ease:"none"}, "loopring")
+    .to("#wf-loop-points circle", {scale:1.25, duration:.22, yoyo:true, repeat:1, stagger:.56, transformOrigin:"center", ease:"power2.out"}, "loopring")
+    .to({}, {duration:.3})
+    .to("#wf-repeat", {opacity:1, scale:1, duration:.35, ease:"back.out(2)"})
+    .to({}, {duration:.55})
+    .to("#wf-loop", {opacity:0, duration:.4})
+    .to("#wf-quote", {opacity:1, scale:1, duration:.6, ease:"power2.out"}, "-=.15")
+    .to({}, {duration:1.9})
+    .to("#wf-quote", {opacity:0, duration:.35})
+
+    .to("#wf-scene", {scale:0, opacity:0, duration:.7, ease:"power2.in", svgOrigin:"250 400"});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

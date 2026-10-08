@@ -1,0 +1,250 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Hero: Knowledge Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:960px;
+    aspect-ratio:4/3;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#3e245e 0%,#1f122f 70%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .connector{stroke:#9384bb;stroke-width:1.5;stroke-linecap:round;fill:none}
+  .node circle{fill:#7865aa;stroke:#9384bb;stroke-width:1.5}
+  .node-bar{fill:rgba(255,255,255,.5)}
+  .hub circle{fill:url(#centerSphereDark);stroke:#9384bb;stroke-width:2}
+  .hub text{fill:#fdfdfb;font-weight:700;text-anchor:middle}
+  .boundary{fill:none;stroke:#9384bb;stroke-width:1;stroke-dasharray:3 6;opacity:.4}
+  .paper{fill:#fdfdfb;stroke:#dbd5cb;stroke-width:1}
+  .paper-line{stroke:#dbd5cb;stroke-width:2;stroke-linecap:round}
+  .breathe{animation:breathe 3.6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.28;transform:scale(.88)}50%{opacity:.75;transform:scale(1.08)}}
+  #hero-parallax{transform:translate(calc(var(--px,0) * 14px), calc(var(--py,0) * 14px));transition:transform .35s ease-out}
+  @media(prefers-reduced-motion: reduce){.breathe{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -117.5 900 675" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="glow2">
+        <stop offset="0%" stop-color="#9384bb" stop-opacity=".4"/>
+        <stop offset="100%" stop-color="#9384bb" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="centerSphereDark" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#9384bb"/>
+        <stop offset="35%" stop-color="#7865aa"/>
+        <stop offset="70%" stop-color="#3e245e"/>
+        <stop offset="100%" stop-color="#1f122f"/>
+      </radialGradient>
+    </defs>
+
+    <g id="hero-parallax">
+      <circle class="breathe" cx="450" cy="240" r="300" fill="url(#glow2)"/>
+      <circle class="boundary" cx="230" cy="180" r="100"/>
+      <circle class="boundary" cx="640" cy="290" r="105"/>
+
+      <!-- zone A: hub1's own branches -->
+      <g id="zoneA-lines">
+        <path class="connector" d="M230 180 L240 76"/>
+        <path class="connector" d="M240 76 L200 48"/>
+        <path class="connector" d="M230 180 L140 180"/>
+        <path class="connector" d="M140 180 L65 180"/>
+        <path class="connector" d="M65 180 L25 225"/>
+        <path class="connector" d="M230 180 L270 255"/>
+        <path class="connector" d="M270 255 L240 320"/>
+        <path class="connector" d="M270 255 L200 305"/>
+      </g>
+
+      <!-- zone B/C: the two chains linking hub1 to hub2, split so each grows outward from hub1 in true hop order -->
+      <g id="zoneBC-lower-lines">
+        <path class="connector" d="M270 255 L322 272"/>
+        <path class="connector" d="M322 272 L420 282"/>
+        <path class="connector" d="M420 282 L465 262"/>
+        <path class="connector" d="M465 262 L510 288"/>
+        <path class="connector" d="M510 288 L640 290"/>
+      </g>
+      <g id="zoneBC-upper-lines">
+        <path class="connector" d="M230 180 L322 172"/>
+        <path class="connector" d="M322 172 L370 172"/>
+        <path class="connector" d="M370 172 L412 152"/>
+        <path class="connector" d="M412 152 L470 96"/>
+        <path class="connector" d="M470 96 L525 90"/>
+        <path class="connector" d="M525 90 L548 148"/>
+        <path class="connector" d="M548 148 L510 185"/>
+        <path class="connector" d="M525 90 L602 150"/>
+        <path class="connector" d="M602 150 L640 290"/>
+      </g>
+
+      <!-- zone D: hub2's own branches -->
+      <g id="zoneD-lines">
+        <path class="connector" d="M640 290 L700 220"/>
+        <path class="connector" d="M700 220 L730 198"/>
+        <path class="connector" d="M640 290 L744 305"/>
+        <path class="connector" d="M744 305 L775 255"/>
+        <path class="connector" d="M775 255 L812 225"/>
+        <path class="connector" d="M775 255 L805 315"/>
+        <path class="connector" d="M640 290 L622 375"/>
+        <path class="connector" d="M622 375 L650 415"/>
+        <path class="connector" d="M650 415 L685 415"/>
+      </g>
+
+      <g id="hub1" class="hub" transform="translate(230 180)"><circle r="42"/><text y="-4" font-family="'Noto Serif', Georgia, serif" font-size="12" letter-spacing=".5">CONCEPT</text><text y="14" font-family="'Noto Serif', Georgia, serif" font-size="12">1</text></g>
+      <g id="hub2" class="hub" transform="translate(640 290)"><circle r="44"/><text y="-4" font-family="'Noto Serif', Georgia, serif" font-size="12" letter-spacing=".5">CONCEPT</text><text y="14" font-family="'Noto Serif', Georgia, serif" font-size="12">2</text></g>
+
+      <g id="zoneA-nodes">
+        <g class="node" transform="translate(240,76)"><circle r="16"/></g>
+        <g class="node" transform="translate(200,48)"><circle r="13"/></g>
+        <g class="node" transform="translate(140,180)"><circle r="24"/></g>
+        <g class="node" transform="translate(65,180)"><circle r="19"/></g>
+        <g class="node" transform="translate(25,225)"><circle r="14"/></g>
+        <g class="node" transform="translate(270,255)"><circle r="26"/></g>
+        <g class="node" transform="translate(240,320)"><circle r="20"/></g>
+        <g class="node" transform="translate(200,305)"><circle r="14"/></g>
+      </g>
+
+      <g id="zoneBC-lower-nodes">
+        <g class="node" transform="translate(322,272)"><circle r="12"/></g>
+        <g class="node" transform="translate(420,282)"><circle r="14"/></g>
+        <g class="node" transform="translate(465,262)"><circle r="19"/></g>
+        <g class="node" transform="translate(510,288)"><circle r="23"/></g>
+      </g>
+      <g id="zoneBC-upper-nodes">
+        <g class="node" transform="translate(322,172)"><circle r="12"/></g>
+        <g class="node" transform="translate(370,172)"><circle r="19"/></g>
+        <g class="node" transform="translate(412,152)"><circle r="16"/></g>
+        <g class="node" transform="translate(470,96)"><circle r="26"/></g>
+        <g class="node" transform="translate(525,90)"><circle r="16"/></g>
+        <g class="node" transform="translate(548,148)"><circle r="16"/></g>
+        <g class="node" transform="translate(510,185)"><circle r="13"/></g>
+        <g class="node" transform="translate(602,150)"><circle r="33"/></g>
+      </g>
+
+      <g id="zoneD-nodes">
+        <g class="node" transform="translate(700,220)"><circle r="16"/></g>
+        <g class="node" transform="translate(730,198)"><circle r="13"/></g>
+        <g class="node" transform="translate(744,305)"><circle r="19"/></g>
+        <g class="node" transform="translate(775,255)"><circle r="14"/></g>
+        <g class="node" transform="translate(812,225)"><circle r="13"/></g>
+        <g class="node" transform="translate(805,315)"><circle r="16"/></g>
+        <g class="node" transform="translate(622,375)"><circle r="24"/></g>
+        <g class="node" transform="translate(650,415)"><circle r="14"/></g>
+        <g class="node" transform="translate(685,415)"><circle r="13"/></g>
+      </g>
+
+      <g id="papersA">
+        <g id="paperA1" transform="translate(100,180) rotate(0)"><rect class="paper" x="-8" y="-11" width="16" height="21" rx="3"/><path class="paper-line" d="M-4.5 -5h9M-4.5 -0.5h6.5M-4.5 4h9" stroke-width="1"/></g>
+      </g>
+      <g id="papersBC">
+        <g id="paperB" transform="translate(371,277) rotate(4)"><rect class="paper" x="-8" y="-11" width="16" height="21" rx="3"/><path class="paper-line" d="M-4.5 -5h9M-4.5 -0.5h6.5M-4.5 4h9" stroke-width="1"/></g>
+        <g id="paperC" transform="translate(291,175) rotate(-5)"><rect class="paper" x="-8" y="-11" width="16" height="21" rx="3"/><path class="paper-line" d="M-4.5 -5h9M-4.5 -0.5h6.5M-4.5 4h9" stroke-width="1"/></g>
+      </g>
+      <g id="papersD">
+        <g id="paperD" transform="translate(704,299) rotate(4)"><rect class="paper" x="-8" y="-11" width="16" height="21" rx="3"/><path class="paper-line" d="M-4.5 -5h9M-4.5 -0.5h6.5M-4.5 4h9" stroke-width="1"/></g>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(DrawSVGPlugin, ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--px", (((e.clientX-r.left)/r.width)-0.5).toFixed(3));
+    stageEl.style.setProperty("--py", (((e.clientY-r.top)/r.height)-0.5).toFixed(3));
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+    stageEl.style.setProperty("--px",0);
+    stageEl.style.setProperty("--py",0);
+  });
+
+  var svgns = "http://www.w3.org/2000/svg";
+  document.querySelectorAll("#zoneA-nodes .node, #zoneBC-lower-nodes .node, #zoneBC-upper-nodes .node, #zoneD-nodes .node").forEach(function(g){
+    var r = +g.querySelector("circle").getAttribute("r");
+    var w1 = Math.max(10, r*.78), w2 = w1*.65;
+    [[-4,w1],[3,w2]].forEach(function(row){
+      var rect = document.createElementNS(svgns, "rect");
+      rect.setAttribute("class", "node-bar");
+      rect.setAttribute("x", -row[1]/2);
+      rect.setAttribute("y", row[0]);
+      rect.setAttribute("width", row[1]);
+      rect.setAttribute("height", 3);
+      rect.setAttribute("rx", 1.5);
+      g.appendChild(rect);
+    });
+  });
+
+  var tl = gsap.timeline({
+    repeat:-1, yoyo:true, repeatDelay:1.1,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+
+  var zoneALines = "#zoneA-lines path";
+  var zoneDLines = "#zoneD-lines path";
+  var zoneBClLines = "#zoneBC-lower-lines path";
+  var zoneBCuLines = "#zoneBC-upper-lines path";
+  var zoneANodes = "#zoneA-nodes .node";
+  var zoneDNodes = "#zoneD-nodes .node";
+  var zoneBClNodes = "#zoneBC-lower-nodes .node";
+  var zoneBCuNodes = "#zoneBC-upper-nodes .node";
+
+  tl.set([zoneALines, zoneDLines, zoneBClLines, zoneBCuLines], {drawSVG:"0%"})
+    .set([zoneANodes, zoneDNodes, zoneBClNodes, zoneBCuNodes], {opacity:0, scale:0, transformOrigin:"center"})
+    .set(["#hub1","#hub2"], {scale:0, transformOrigin:"center"})
+    .set(["#paperA1","#paperB","#paperC","#paperD"], {opacity:0, scale:0, transformOrigin:"center"})
+    // 1 — both concepts form together
+    .to(["#hub1","#hub2"], {scale:1, duration:.5, stagger:.05, ease:"back.out(2)"})
+    // 2 — every connection grows outward from its own hub center, all four paths at once
+    .addLabel("grow", "-=.15")
+    .to(zoneALines, {drawSVG:"100%", duration:.45, stagger:.32, ease:"power2.inOut"}, "grow")
+    .to(zoneDLines, {drawSVG:"100%", duration:.45, stagger:.32, ease:"power2.inOut"}, "grow")
+    .to(zoneBClLines, {drawSVG:"100%", duration:.4, stagger:.3, ease:"power2.inOut"}, "grow")
+    .to(zoneBCuLines, {drawSVG:"100%", duration:.4, stagger:.28, ease:"power2.inOut"}, "grow")
+    .to(zoneANodes, {opacity:1, scale:1, duration:.3, stagger:.32, ease:"back.out(2)"}, "grow+=.3")
+    .to(zoneDNodes, {opacity:1, scale:1, duration:.3, stagger:.32, ease:"back.out(2)"}, "grow+=.3")
+    .to(zoneBClNodes, {opacity:1, scale:1, duration:.3, stagger:.3, ease:"back.out(2)"}, "grow+=.25")
+    .to(zoneBCuNodes, {opacity:1, scale:1, duration:.3, stagger:.28, ease:"back.out(2)"}, "grow+=.25")
+    .to(["#paperA1","#paperB","#paperC","#paperD"], {opacity:1, scale:1, duration:.25, stagger:.15, ease:"back.out(2)"}, "grow+=2.2")
+    .to({}, {duration:1.6});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

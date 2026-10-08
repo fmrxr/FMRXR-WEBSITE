@@ -1,0 +1,106 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Synthesis: Verify the evidence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:5/4;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#fdfdfb 0%,#eae5e0 72%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .paper{fill:#fdfdfb;stroke:#dbd5cb;stroke-width:1}
+  .paper-line{stroke:#dbd5cb;stroke-width:2;stroke-linecap:round}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -35 500 400" preserveAspectRatio="xMidYMid meet">
+    <g id="ct-claim">
+      <rect x="55" y="46" width="390" height="80" rx="10" fill="#fdfdfb" stroke="#dbd5cb"/>
+      <text x="76" y="70" font-size="9" fill="#5c5248">EVIDENCE-BASED CLAIM</text>
+      <text x="76" y="92" font-family="'Noto Serif', Georgia, serif" font-size="12" fill="#3e245e">Research finding, cross-checked</text>
+      <text x="76" y="110" font-family="'Noto Serif', Georgia, serif" font-size="12" fill="#3e245e">across independent sources</text>
+      <text id="ct-m1" class="ct-mark" x="330" y="92" font-size="11" fill="#7865aa" opacity="0">[1]</text>
+      <text id="ct-m2" class="ct-mark" x="360" y="92" font-size="11" fill="#7865aa" opacity="0">[2]</text>
+      <text id="ct-m3" class="ct-mark" x="390" y="92" font-size="11" fill="#7865aa" opacity="0">[3]</text>
+    </g>
+    <path id="ct-trace1" d="M330 126 L120 210" fill="none" stroke="#7865aa" stroke-width="1.3" opacity="0"/>
+    <path id="ct-trace2" d="M360 126 L250 210" fill="none" stroke="#7865aa" stroke-width="1.3" opacity="0"/>
+    <path id="ct-trace3" d="M390 126 L380 210" fill="none" stroke="#7865aa" stroke-width="1.3" opacity="0"/>
+    <g id="ct-sources">
+      <g id="ct-src-1" class="ct-src" opacity="0"><rect class="paper" x="55" y="212" width="130" height="58" rx="7"/><text x="68" y="230" font-size="8" fill="#5c5248">SOURCE [1]</text><path class="paper-line" d="M68 242h100M68 251h80"/></g>
+      <g id="ct-src-2" class="ct-src" opacity="0"><rect class="paper" x="188" y="212" width="130" height="58" rx="7"/><text x="201" y="230" font-size="8" fill="#5c5248">SOURCE [2]</text><path class="paper-line" d="M201 242h100M201 251h80"/></g>
+      <g id="ct-src-3" class="ct-src" opacity="0"><rect class="paper" x="321" y="212" width="124" height="58" rx="7"/><text x="334" y="230" font-size="8" fill="#5c5248">SOURCE [3]</text><path class="paper-line" d="M334 242h95M334 251h75"/></g>
+    </g>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(DrawSVGPlugin, ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+  });
+
+  var tl = gsap.timeline({
+    repeat:-1, yoyo:true, repeatDelay:1.1,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+  tl.set(["#ct-m1","#ct-m2","#ct-m3"], {opacity:0})
+    .set(["#ct-trace1","#ct-trace2","#ct-trace3"], {drawSVG:"0%", opacity:1})
+    .set(".ct-src", {opacity:0, y:-6})
+    .to({}, {duration:.4})
+    .to("#ct-m1", {opacity:1, duration:.3})
+    .to("#ct-trace1", {drawSVG:"100%", duration:.5, ease:"power2.inOut"})
+    .to("#ct-src-1", {opacity:1, y:0, duration:.4}, "-=.15")
+    .to("#ct-m2", {opacity:1, duration:.3}, "+=.15")
+    .to("#ct-trace2", {drawSVG:"100%", duration:.5, ease:"power2.inOut"})
+    .to("#ct-src-2", {opacity:1, y:0, duration:.4}, "-=.15")
+    .to("#ct-m3", {opacity:1, duration:.3}, "+=.15")
+    .to("#ct-trace3", {drawSVG:"100%", duration:.5, ease:"power2.inOut"})
+    .to("#ct-src-3", {opacity:1, y:0, duration:.4}, "-=.15")
+    .to({}, {duration:1.3});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

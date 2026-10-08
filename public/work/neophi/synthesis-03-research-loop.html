@@ -1,0 +1,108 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Synthesis: Continue your workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:5/4;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#fdfdfb 0%,#eae5e0 72%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .node{fill:#fdfdfb;stroke:#7865aa;stroke-width:1.5}
+  .node.dark{fill:#3e245e;stroke:#3e245e}
+  #wp-1{fill:url(#centerSphereDark)}
+  .workflow-ring{fill:none;stroke:#dbd5cb;stroke-width:1}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -35 500 400" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="centerSphereDark" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#9384bb"/>
+        <stop offset="35%" stop-color="#7865aa"/>
+        <stop offset="70%" stop-color="#3e245e"/>
+        <stop offset="100%" stop-color="#1f122f"/>
+      </radialGradient>
+    </defs>
+    <circle class="workflow-ring" cx="250" cy="165" r="92"/>
+    <path id="wf-track" fill="none" stroke="none" d="M250 73 A92 92 0 1 1 249.99 73"/>
+    <circle id="wf-progress" fill="none" stroke="#7865aa" stroke-width="2" stroke-linecap="round" cx="250" cy="165" r="92" transform="rotate(-90 250 165)" stroke-dasharray="578" stroke-dashoffset="578"/>
+    <circle id="wf-cursor" r="5" fill="#9384bb"/>
+    <g id="wf-points">
+      <circle id="wp-1" class="node dark" cx="250" cy="73" r="12"/>
+      <circle id="wp-2" class="node" cx="337" cy="135" r="10"/>
+      <circle id="wp-3" class="node" cx="304" cy="238" r="10"/>
+      <circle id="wp-4" class="node" cx="196" cy="238" r="10"/>
+      <circle id="wp-5" class="node" cx="163" cy="135" r="10"/>
+    </g>
+    <g font-size="9" fill="#5c5248" text-anchor="middle">
+      <text x="250" y="45">SEARCH</text>
+      <text x="380" y="133">REFINE</text>
+      <text x="337" y="270">REVIEW</text>
+      <text x="163" y="270">SYNTHESIS</text>
+      <text x="120" y="133">EXPORT</text>
+    </g>
+    <circle cx="250" cy="165" r="31" fill="#3e245e"/>
+    <text x="250" y="169" text-anchor="middle" font-size="9" letter-spacing=".2" fill="#fdfdfb">WORKFLOW</text>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/MotionPathPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+  });
+
+  // a true one-way loop, not a build/reverse story — repeat forward only, no yoyo
+  var tl = gsap.timeline({ repeat:-1, defaults:{ease:"none"}, paused: reduced });
+  var pts = ["#wp-1","#wp-2","#wp-3","#wp-4","#wp-5"];
+  tl.set("#wf-progress", {strokeDashoffset:578})
+    .set("#wf-cursor", {motionPath:{path:"#wf-track", align:"#wf-track", alignOrigin:[.5,.5], start:0, end:0}})
+    .to("#wf-progress", {strokeDashoffset:0, duration:2.6})
+    .to("#wf-cursor", {motionPath:{path:"#wf-track", align:"#wf-track", alignOrigin:[.5,.5], start:0, end:1}, duration:2.6}, "<")
+    .to(pts, {scale:1.2, duration:.24, yoyo:true, repeat:1, stagger:.48, transformOrigin:"center", ease:"power2.out"}, "<");
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

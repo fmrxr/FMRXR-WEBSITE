@@ -1,0 +1,178 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Knowledge Graph: See the connections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:5/4;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#fdfdfb 0%,#eae5e0 72%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .tiny{font-size:9px;letter-spacing:.08em;text-transform:uppercase;fill:#5c5248}
+  .node{fill:#fdfdfb;stroke:#7865aa;stroke-width:1.5}
+  .connector{stroke:#7865aa;stroke-width:1.3;fill:none}
+  .paper{fill:#fdfdfb;stroke:#dbd5cb;stroke-width:1}
+  .paper-line{stroke:#dbd5cb;stroke-width:2;stroke-linecap:round}
+  .list-bar{fill:#dbd5cb}
+  .list-panel-bg{fill:#fdfdfb;stroke:#dbd5cb;stroke-width:1}
+  .pulse{fill:#9384bb}
+  .node2-dash{stroke-dasharray:3 4;animation:node2march 1s linear infinite}
+  @keyframes node2march{to{stroke-dashoffset:-14}}
+  @media(prefers-reduced-motion: reduce){.node2-dash{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -35 500 400" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="centerSphereDark" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#9384bb"/>
+        <stop offset="35%" stop-color="#7865aa"/>
+        <stop offset="70%" stop-color="#3e245e"/>
+        <stop offset="100%" stop-color="#1f122f"/>
+      </radialGradient>
+    </defs>
+    <g transform="translate(150 165)">
+      <g id="gx-lines">
+        <path class="connector" d="M0 0 L45 -54"/>
+        <path class="connector" d="M0 0 L58 48"/>
+        <path class="connector" d="M0 0 L-64 11"/>
+        <path class="connector" d="M0 0 L-55 -46"/>
+        <path class="connector" d="M0 0 L-12 67"/>
+      </g>
+      <circle id="gx-pulse" class="pulse" cx="0" cy="0" r="45" opacity="0"/>
+      <circle id="gx-center" cx="0" cy="0" r="30" fill="url(#centerSphereDark)"/>
+      <text x="0" y="-2" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="8" font-weight="700" letter-spacing=".3" fill="#fdfdfb">CONCEPT</text>
+      <text x="0" y="8" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="8" font-weight="700" fill="#fdfdfb">1</text>
+      <g id="gx-nodes">
+        <circle id="gx-node2" class="node" cx="45" cy="-54" r="10"/>
+        <circle class="node" cx="58" cy="48" r="8"/>
+        <circle class="node" cx="-64" cy="11" r="9"/>
+        <circle class="node" cx="-55" cy="-46" r="7"/>
+        <circle class="node" cx="-12" cy="67" r="11"/>
+      </g>
+      <circle id="gx-node2-glow" cx="45" cy="-54" r="10" fill="url(#centerSphereDark)" opacity="0"/>
+      <text id="gx-node2-num" x="45" y="-51" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="7" font-weight="700" fill="#fdfdfb" opacity="0">2</text>
+      <text id="gx-node2-label" class="tiny" x="45" y="-72" text-anchor="middle" opacity="0">CONCEPT</text>
+    </g>
+    <path id="gx-node2-connector" class="connector node2-dash" d="M206 106 L272 78"/>
+    <g id="gx-list" opacity="0">
+      <rect class="list-panel-bg" x="265" y="55" width="150" height="198" rx="10"/>
+      <text id="gx-more" x="340" y="90" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="18" font-weight="700" fill="#3e245e">MORE</text>
+      <text class="tiny" x="340" y="105" text-anchor="middle">related papers</text>
+      <path d="M281 117h118" stroke="#dbd5cb" stroke-width="1"/>
+      <g id="gx-list-row1">
+        <rect class="paper" x="279" y="126" width="15" height="19" rx="2"/>
+        <path class="paper-line" d="M282 133h9M282 138h6" stroke-width="1"/>
+        <rect class="list-bar" x="300" y="130" width="80" height="3" rx="1.5"/>
+        <rect class="list-bar" x="300" y="137" width="55" height="3" rx="1.5"/>
+      </g>
+      <g id="gx-list-row2">
+        <rect class="paper" x="279" y="159" width="15" height="19" rx="2"/>
+        <path class="paper-line" d="M282 166h9M282 171h6" stroke-width="1"/>
+        <rect class="list-bar" x="300" y="163" width="80" height="3" rx="1.5"/>
+        <rect class="list-bar" x="300" y="170" width="60" height="3" rx="1.5"/>
+      </g>
+      <g id="gx-list-row3">
+        <rect class="paper" x="279" y="192" width="15" height="19" rx="2"/>
+        <path class="paper-line" d="M282 199h9M282 204h6" stroke-width="1"/>
+        <rect class="list-bar" x="300" y="196" width="80" height="3" rx="1.5"/>
+        <rect class="list-bar" x="300" y="203" width="46" height="3" rx="1.5"/>
+      </g>
+      <g id="gx-list-row4">
+        <rect class="paper" x="279" y="225" width="15" height="19" rx="2"/>
+        <path class="paper-line" d="M282 232h9M282 237h6" stroke-width="1"/>
+        <rect class="list-bar" x="300" y="229" width="80" height="3" rx="1.5"/>
+        <rect class="list-bar" x="300" y="236" width="65" height="3" rx="1.5"/>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(DrawSVGPlugin, ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+  });
+
+  var tl = gsap.timeline({
+    repeat:-1, yoyo:true, repeatDelay:1.1,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+  var rows = ["#gx-list-row1","#gx-list-row2","#gx-list-row3","#gx-list-row4"];
+
+  tl.set("#gx-lines path", {drawSVG:"0%"})
+    .set("#gx-nodes circle", {opacity:0, scale:0, transformOrigin:"center"})
+    .set("#gx-center", {scale:0, transformOrigin:"center"})
+    .set("#gx-pulse", {opacity:0})
+    .set("#gx-node2-glow", {opacity:0, scale:0, transformOrigin:"center"})
+    .set("#gx-node2-num", {opacity:0})
+    .set("#gx-node2-label", {opacity:0})
+    .set("#gx-node2-connector", {opacity:0})
+    .set("#gx-list", {opacity:0})
+    .set("#gx-more", {scale:0, transformOrigin:"center"})
+    .set(rows, {opacity:0, x:12})
+    // 1 — the concept and its immediate connections
+    .to("#gx-center", {scale:1, duration:.5, ease:"back.out(2)"})
+    .to("#gx-lines path", {drawSVG:"100%", duration:.6, stagger:.1, ease:"power2.inOut"}, "-=.1")
+    .to("#gx-nodes circle", {opacity:1, scale:1, duration:.35, stagger:.1, ease:"back.out(2)"}, "-=.45")
+    .to({}, {duration:.3})
+    // 2 — the concept activates
+    .to("#gx-pulse", {opacity:.5, scale:1.3, duration:.5, transformOrigin:"center"})
+    .to("#gx-pulse", {opacity:0, duration:.4})
+    // 2b — concept 2 is highlighted, and its connection to the papers list is drawn
+    .to("#gx-node2-glow", {opacity:1, scale:1.15, duration:.35, ease:"back.out(2)"})
+    .to("#gx-node2-num", {opacity:1, duration:.25}, "-=.15")
+    .to("#gx-node2-label", {opacity:1, duration:.3}, "-=.1")
+    .to("#gx-node2-connector", {opacity:1, duration:.4, ease:"power2.inOut"})
+    // 3 — its list of related papers slides in
+    .to("#gx-list", {opacity:1, duration:.4}, "-=.1")
+    .to("#gx-more", {scale:1, duration:.5, ease:"back.out(2.4)"}, "-=.2")
+    .to(rows, {opacity:1, x:0, duration:.35, stagger:.12, ease:"power2.out"}, "-=.25")
+    .to("#gx-more", {scale:1.08, duration:.5, yoyo:true, repeat:3, ease:"sine.inOut"})
+    .to({}, {duration:.8});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

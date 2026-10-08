@@ -1,0 +1,68 @@
+<!-- Feature animation asset — FMRXR Studio × NeoPhi visual system — minimal background loop: breathing core -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · BG Loop: Breathing Core</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%}
+  body{
+    background:#0d0716;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .stage{
+    position:relative;width:min(500px,90vw,51.6vh);aspect-ratio:9/16;overflow:hidden;
+    container-type:size;
+    background:
+      radial-gradient(circle at 50% 50%,rgba(147,132,187,.14),transparent 46%),
+      radial-gradient(circle at 50% 50%,#3e245e 0%,#1f122f 70%);
+  }
+  .ring{
+    position:absolute;top:50%;left:50%;border-radius:50%;
+    border:1px dashed rgba(147,132,187,.4);
+    transform:translate(-50%,-50%);
+  }
+  .ring.r1{width:34cqmin;height:34cqmin;animation:spin 40s linear infinite}
+  .ring.r2{width:52cqmin;height:52cqmin;border-color:rgba(221,216,233,.22);animation:spin 65s linear infinite reverse}
+  .ring.r3{width:70cqmin;height:70cqmin;border-style:dotted;border-color:rgba(147,132,187,.16);animation:spin 95s linear infinite}
+  @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+  .core{
+    position:absolute;top:50%;left:50%;width:16cqmin;height:16cqmin;min-width:90px;min-height:90px;
+    transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#9384bb,#7865aa 45%,#3e245e 80%,#1f122f 100%);
+    box-shadow:0 0 60px rgba(147,132,187,.35);
+    animation:breathe 5.5s ease-in-out infinite;
+  }
+  .core:before{
+    content:"";position:absolute;inset:26%;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%,#ffffff,#ddd8e9 45%,#9384bb 85%,#7865aa 100%);
+    box-shadow:0 0 30px rgba(147,132,187,.65);
+    animation:coreglow 5.5s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(.94)}50%{transform:translate(-50%,-50%) scale(1.06)}}
+  @keyframes coreglow{0%,100%{opacity:.75}50%{opacity:1}}
+  .mote{position:absolute;border-radius:50%;background:#9384bb;box-shadow:0 0 12px rgba(147,132,187,.8);animation:drift ease-in-out infinite}
+  .mote.m1{top:22%;left:28%;width:5px;height:5px;animation-duration:9s}
+  .mote.m2{top:68%;left:70%;width:4px;height:4px;animation-duration:11s;animation-delay:1.5s}
+  .mote.m3{top:30%;left:74%;width:3px;height:3px;animation-duration:7.5s;animation-delay:.7s}
+  .mote.m4{top:76%;left:26%;width:4px;height:4px;animation-duration:10s;animation-delay:2.2s}
+  @keyframes drift{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:.85;transform:translateY(-14px)}}
+  @media(prefers-reduced-motion: reduce){.ring,.core,.core:before,.mote{animation:none}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="ring r3"></div>
+  <div class="ring r2"></div>
+  <div class="ring r1"></div>
+  <div class="mote m1"></div>
+  <div class="mote m2"></div>
+  <div class="mote m3"></div>
+  <div class="mote m4"></div>
+  <div class="core"></div>
+</div>
+</body>
+</html>

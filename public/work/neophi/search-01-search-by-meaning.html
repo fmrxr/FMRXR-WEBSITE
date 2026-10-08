@@ -1,0 +1,165 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Semantic Search: Search by meaning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:5/4;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#fdfdfb 0%,#eae5e0 72%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .node{fill:#fdfdfb;stroke:#7865aa;stroke-width:1.5}
+  .connector{stroke:#7865aa;stroke-width:1.3;fill:none}
+  .semantic-orbit{fill:none;stroke:#ddd8e9;stroke-width:1;stroke-dasharray:2 5;animation:orbitspin 30s linear infinite;transform-origin:250px 180px}
+  .paper{fill:#fdfdfb;stroke:#dbd5cb;stroke-width:1}
+  .paper-line{stroke:#dbd5cb;stroke-width:2;stroke-linecap:round}
+  @keyframes orbitspin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion: reduce){.semantic-orbit{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -35 500 400" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="centerSphereDark" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#9384bb"/>
+        <stop offset="35%" stop-color="#7865aa"/>
+        <stop offset="70%" stop-color="#3e245e"/>
+        <stop offset="100%" stop-color="#1f122f"/>
+      </radialGradient>
+    </defs>
+    <text id="s1-title" x="250" y="185" text-anchor="middle" font-size="16" letter-spacing=".3" fill="#1f122f" opacity="0">QUESTION ?</text>
+    <ellipse class="semantic-orbit" cx="250" cy="180" rx="98" ry="98" opacity="0"/>
+    <g id="s1-lines">
+      <path id="s1-l1a" class="connector" d="M250 180 L205 100"/>
+      <path id="s1-l1b" class="connector" d="M205 100 L172 62"/>
+      <path id="s1-l2a" class="connector" d="M250 180 L325 125"/>
+      <path id="s1-l2b" class="connector" d="M325 125 L372 98"/>
+      <path id="s1-l3a" class="connector" d="M250 180 L348 180"/>
+      <path id="s1-l3b" class="connector" d="M348 180 L395 155"/>
+      <path id="s1-l3c" class="connector" d="M348 180 L392 210"/>
+      <path id="s1-l4a" class="connector" d="M250 180 L148 198"/>
+      <path id="s1-l4b" class="connector" d="M148 198 L108 218"/>
+      <path id="s1-l5a" class="connector" d="M250 180 L235 260"/>
+    </g>
+    <circle id="s1-center" cx="250" cy="180" r="45" fill="url(#centerSphereDark)"/>
+    <text id="s1-scale-num" x="250" y="178" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="20" font-weight="700" fill="#fdfdfb" opacity="0">0</text>
+    <text id="s1-scale-cap" x="250" y="196" text-anchor="middle" font-size="9" letter-spacing="2" fill="#ddd8e9" opacity="0">PAPERS</text>
+    <g id="s1-nodes">
+      <circle id="s1-n1a" class="node" cx="205" cy="100" r="10"/>
+      <circle id="s1-n1b" class="node" cx="172" cy="62" r="13"/>
+      <circle id="s1-n2a" class="node" cx="325" cy="125" r="13"/>
+      <circle id="s1-n2b" class="node" cx="372" cy="98" r="9"/>
+      <circle id="s1-n3a" class="node" cx="348" cy="180" r="17"/>
+      <circle id="s1-n3b" class="node" cx="395" cy="155" r="8"/>
+      <circle id="s1-n3c" class="node" cx="392" cy="210" r="9"/>
+      <circle id="s1-n4a" class="node" cx="148" cy="198" r="15"/>
+      <circle id="s1-n4b" class="node" cx="108" cy="218" r="10"/>
+      <circle id="s1-n5a" class="node" cx="235" cy="260" r="8"/>
+    </g>
+    <g id="s1-papers">
+      <g transform="translate(140,15) rotate(-14)"><rect class="paper" width="20" height="26" rx="3"/><path class="paper-line" d="M4 8h12M4 13h9M4 18h12" stroke-width="1.2"/></g>
+      <g transform="translate(390,58) rotate(13)"><rect class="paper" width="20" height="26" rx="3"/><path class="paper-line" d="M4 8h12M4 13h9M4 18h12" stroke-width="1.2"/></g>
+      <g transform="translate(418,130) rotate(9)"><rect class="paper" width="20" height="26" rx="3"/><path class="paper-line" d="M4 8h12M4 13h9M4 18h12" stroke-width="1.2"/></g>
+      <g transform="translate(416,212) rotate(-7)"><rect class="paper" width="20" height="26" rx="3"/><path class="paper-line" d="M4 8h12M4 13h9M4 18h12" stroke-width="1.2"/></g>
+      <g transform="translate(63,220) rotate(11)"><rect class="paper" width="20" height="26" rx="3"/><path class="paper-line" d="M4 8h12M4 13h9M4 18h12" stroke-width="1.2"/></g>
+      <g transform="translate(217,295) rotate(-5)"><rect class="paper" width="20" height="26" rx="3"/><path class="paper-line" d="M4 8h12M4 13h9M4 18h12" stroke-width="1.2"/></g>
+    </g>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(DrawSVGPlugin, ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+  });
+
+  var tl = gsap.timeline({
+    repeat:-1, yoyo:true, repeatDelay:1.1,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+  var firstHop = ["#s1-l1a","#s1-l2a","#s1-l3a","#s1-l4a","#s1-l5a"];
+  var secondHop = ["#s1-l1b","#s1-l2b","#s1-l3b","#s1-l3c","#s1-l4b"];
+  var firstNodes = ["#s1-n1a","#s1-n2a","#s1-n3a","#s1-n4a","#s1-n5a"];
+  var secondNodes = ["#s1-n1b","#s1-n2b","#s1-n3b","#s1-n3c","#s1-n4b"];
+  var s1CountEl = document.getElementById("s1-scale-num");
+  function fmtCount(n){
+    n = Math.round(n);
+    if(n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,"") + "M";
+    if(n >= 1000) return Math.round(n/1000) + "K";
+    return String(n);
+  }
+  var s1Counter = {n:0};
+
+  tl.set([firstHop, secondHop].flat(), {drawSVG:"0%"})
+    .set([firstNodes, secondNodes].flat(), {opacity:0, scale:0, transformOrigin:"center"})
+    .set("#s1-papers > g", {opacity:0, scale:.4, transformOrigin:"center"})
+    .set("#s1-title", {opacity:0})
+    .set("#s1-center", {scale:0, transformOrigin:"50% 50%"})
+    .set(["#s1-scale-num","#s1-scale-cap"], {opacity:0})
+    // 1 — the question triggers the search
+    .to("#s1-title", {opacity:1, duration:.5})
+    .to(".semantic-orbit", {opacity:1, duration:.5}, "-=.2")
+    .to({}, {duration:.4})
+    .to("#s1-title", {opacity:0, duration:.35})
+    // 2 — the question dissolves as the corpus crystallizes in its place, rapidly counting up to 80M
+    .to("#s1-center", {scale:1, duration:.6, ease:"back.out(2)"}, "-=.1")
+    .to(["#s1-scale-num","#s1-scale-cap"], {opacity:1, duration:.4, stagger:.08}, "-=.3")
+    .to(s1Counter, {
+      n:80000000, duration:1.2, ease:"power2.out",
+      onUpdate:function(){ s1CountEl.textContent = fmtCount(s1Counter.n); }
+    }, "-=.2")
+    .to({}, {duration:.3})
+    // 3 — the question opens a first layer of connections
+    .to(firstHop, {drawSVG:"100%", duration:.6, stagger:.08, ease:"power2.inOut"})
+    .to(firstNodes, {opacity:1, scale:1, duration:.35, stagger:.08, ease:"back.out(2)"}, "-=.4")
+    // 4 — and those lead further out to the actual papers
+    .to(secondHop, {drawSVG:"100%", duration:.5, stagger:.08, ease:"power2.inOut"}, "-=.1")
+    .to(secondNodes, {opacity:1, scale:1, duration:.3, stagger:.08, ease:"back.out(2)"}, "-=.3")
+    .to("#s1-papers > g", {opacity:1, scale:1, duration:.35, stagger:.07, ease:"back.out(2)"}, "-=.2")
+    .to({}, {duration:1.6});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

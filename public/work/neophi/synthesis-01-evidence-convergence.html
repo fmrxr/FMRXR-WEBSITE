@@ -1,0 +1,115 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Synthesis: Synthesize across publications</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:5/4;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#fdfdfb 0%,#eae5e0 72%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .connector.active{stroke:#7865aa;stroke-width:1.7;fill:none}
+  .paper{fill:#fdfdfb;stroke:#dbd5cb;stroke-width:1}
+  .paper-line{stroke:#dbd5cb;stroke-width:2;stroke-linecap:round}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -35 500 400" preserveAspectRatio="xMidYMid meet">
+    <g id="cv-papers">
+      <g class="cv-src" data-tx="120" data-ty="85"><rect class="paper" x="45" y="45" width="55" height="70" rx="4"/><path class="paper-line" d="M55 64h34M55 75h28M55 86h34"/></g>
+      <g class="cv-src" data-tx="125" data-ty="0"><rect class="paper" x="45" y="130" width="55" height="70" rx="4"/><path class="paper-line" d="M55 149h34M55 160h28M55 171h34"/></g>
+      <g class="cv-src" data-tx="120" data-ty="-85"><rect class="paper" x="45" y="215" width="55" height="70" rx="4"/><path class="paper-line" d="M55 234h34M55 245h28M55 256h34"/></g>
+      <g class="cv-src" data-tx="-120" data-ty="85"><rect class="paper" x="400" y="45" width="55" height="70" rx="4"/><path class="paper-line" d="M410 64h34M410 75h28M410 86h34"/></g>
+      <g class="cv-src" data-tx="-120" data-ty="0"><rect class="paper" x="400" y="130" width="55" height="70" rx="4"/><path class="paper-line" d="M410 149h34M410 160h28M410 171h34"/></g>
+      <g class="cv-src" data-tx="-120" data-ty="-85"><rect class="paper" x="400" y="215" width="55" height="70" rx="4"/><path class="paper-line" d="M410 234h34M410 245h28M410 256h34"/></g>
+    </g>
+    <g id="cv-fragments" fill="#7865aa" opacity="0">
+      <circle cx="72.5" cy="80" r="3"/><circle cx="72.5" cy="165" r="3"/><circle cx="72.5" cy="250" r="3"/>
+      <circle cx="427.5" cy="80" r="3"/><circle cx="427.5" cy="165" r="3"/><circle cx="427.5" cy="250" r="3"/>
+    </g>
+    <g id="cv-linesw" opacity="0" fill="none" stroke="#7865aa" stroke-width="1.3" stroke-dasharray="4 4">
+      <path d="M100 80 Q160 100 215 140"/>
+      <path d="M100 165 L215 165"/>
+      <path d="M100 250 Q160 230 215 190"/>
+      <path d="M400 80 Q340 100 285 140"/>
+      <path d="M400 165 L285 165"/>
+      <path d="M400 250 Q340 230 285 190"/>
+    </g>
+    <g id="cv-box" opacity="0">
+      <rect x="215" y="125" width="70" height="80" rx="10" fill="#3e245e"/>
+      <text x="250" y="157" text-anchor="middle" font-size="9" fill="#fdfdfb">SYNTHESIS</text>
+      <text x="250" y="173" text-anchor="middle" font-size="8" fill="#ddd8e9">evidence</text>
+      <text x="250" y="188" text-anchor="middle" font-size="8" fill="#ddd8e9">structure</text>
+    </g>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+  });
+
+  var tl = gsap.timeline({
+    repeat:-1, yoyo:true, repeatDelay:1.1,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+  var srcs = gsap.utils.toArray(".cv-src");
+  tl.set(srcs, {x:function(i,t){return t.dataset.tx;}, y:function(i,t){return t.dataset.ty;}, opacity:0})
+    .set(["#cv-fragments","#cv-linesw","#cv-box"], {opacity:0})
+    // 1 — the publications assemble
+    .to(srcs, {x:0, y:0, opacity:1, duration:.7, stagger:.08, ease:"power2.out"})
+    // 2 — each breaks into an evidence fragment that travels from its own paper to the center
+    .to("#cv-fragments", {opacity:1, duration:.3}, "-=.2")
+    .to("#cv-fragments circle", {
+        attr:{cx:250, cy:165}, opacity:0, duration:.75, stagger:.07, ease:"power1.in"
+      }, "-=.1")
+    // 3 — the evidence is linked and settles into one structured answer
+    .to("#cv-linesw", {opacity:1, duration:.5}, "-=.3")
+    .to("#cv-box", {opacity:1, duration:.5, scale:1, transformOrigin:"center", ease:"back.out(1.6)"}, "-=.25")
+    .to({}, {duration:1.6});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

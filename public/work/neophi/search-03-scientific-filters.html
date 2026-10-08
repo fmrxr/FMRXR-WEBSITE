@@ -1,0 +1,125 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Semantic Search: Scientific filters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:5/4;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#fdfdfb 0%,#eae5e0 72%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .paper{fill:#fdfdfb;stroke:#dbd5cb;stroke-width:1}
+  .paper-line{stroke:#dbd5cb;stroke-width:2;stroke-linecap:round}
+  .filter-ring{fill:none;stroke:#9384bb;stroke-width:1;stroke-dasharray:3 5;animation:spin 18s linear infinite;transform-origin:center}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion: reduce){.filter-ring{animation:none}}
+  .pill-tag{filter:drop-shadow(0 2px 3px rgba(31,18,47,.3))}
+  .pill-result{filter:drop-shadow(0 3px 5px rgba(31,18,47,.32))}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -35 500 400" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="pillGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#9384bb"/>
+        <stop offset="100%" stop-color="#7865aa"/>
+      </linearGradient>
+      <linearGradient id="pillGradDark" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7865aa"/>
+        <stop offset="100%" stop-color="#3e245e"/>
+      </linearGradient>
+    </defs>
+    <circle class="filter-ring" cx="250" cy="165" r="118"/>
+    <text id="s3-count" x="250" y="20" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="20" fill="#3e245e">1000</text>
+    <text x="250" y="36" text-anchor="middle" font-size="9" letter-spacing="1.5" fill="#5c5248">PAPERS</text>
+    <g id="s3-papers">
+      <g class="paper" data-batch="1"><rect x="115" y="70" width="52" height="68" rx="4"/><path class="paper-line" d="M125 88h32M125 98h28M125 108h32"/></g>
+      <g class="paper" data-batch="1"><rect x="190" y="55" width="52" height="68" rx="4"/><path class="paper-line" d="M200 73h32M200 83h28M200 93h32"/></g>
+      <g class="paper" data-batch="2"><rect x="270" y="70" width="52" height="68" rx="4"/><path class="paper-line" d="M280 88h32M280 98h28M280 108h32"/></g>
+      <g class="paper" data-batch="2"><rect x="345" y="55" width="52" height="68" rx="4"/><path class="paper-line" d="M355 73h32M355 83h28M355 93h32"/></g>
+      <g class="paper" data-batch="3"><rect x="145" y="180" width="52" height="68" rx="4"/><path class="paper-line" d="M155 198h32M155 208h28M155 218h32"/></g>
+      <g class="paper" data-batch="1"><rect x="220" y="195" width="52" height="68" rx="4"/><path class="paper-line" d="M230 213h32M230 223h28M230 233h32"/></g>
+      <g class="paper" data-batch="2"><rect x="300" y="180" width="52" height="68" rx="4"/><path class="paper-line" d="M310 198h32M310 208h28M310 218h32"/></g>
+    </g>
+    <g id="s3-tags" font-size="9" letter-spacing="1" fill="#fdfdfb" text-anchor="middle">
+      <g id="s3-tag1" class="pill-tag" opacity="0"><rect x="95" y="145" width="60" height="24" rx="12" fill="url(#pillGrad)"/><text x="125" y="161">YEAR</text></g>
+      <g id="s3-tag2" class="pill-tag" opacity="0"><rect x="220" y="271" width="60" height="24" rx="12" fill="url(#pillGrad)"/><text x="250" y="287">FIELD</text></g>
+      <g id="s3-tag3" class="pill-tag" opacity="0"><rect x="345" y="145" width="60" height="24" rx="12" fill="url(#pillGrad)"/><text x="375" y="161">TYPE</text></g>
+    </g>
+    <g id="s3-result" class="pill-result" opacity="0">
+      <rect x="182" y="145" width="136" height="40" rx="20" fill="url(#pillGradDark)"/>
+      <text x="250" y="170" text-anchor="middle" font-size="10" fill="#fdfdfb">FILTERED CORPUS</text>
+    </g>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+  });
+
+  var tl = gsap.timeline({
+    repeat:-1, yoyo:true, repeatDelay:1.1,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+  var counter = {n:1000};
+  tl.set("#s3-papers .paper", {opacity:1, scale:1, transformOrigin:"center"})
+    .set(["#s3-tag1","#s3-tag2","#s3-tag3","#s3-result"], {opacity:0})
+    .to({}, {duration:.5})
+    .to("#s3-tag1", {opacity:1, duration:.3})
+    .to("[data-batch='1']", {opacity:0, scale:.3, duration:.5, stagger:.08}, "-=.1")
+    .to(counter, {n:430, duration:.5, onUpdate:function(){document.getElementById("s3-count").textContent = Math.round(counter.n);}}, "-=.5")
+    .to("#s3-tag2", {opacity:1, duration:.3})
+    .to("[data-batch='2']", {opacity:0, scale:.3, duration:.5, stagger:.08}, "-=.1")
+    .to(counter, {n:120, duration:.5, onUpdate:function(){document.getElementById("s3-count").textContent = Math.round(counter.n);}}, "-=.5")
+    .to("#s3-tag3", {opacity:1, duration:.3})
+    .to("[data-batch='3']", {opacity:0, scale:.3, duration:.5, stagger:.08}, "-=.1")
+    .to(counter, {n:38, duration:.5, onUpdate:function(){document.getElementById("s3-count").textContent = Math.round(counter.n);}}, "-=.5")
+    .to("#s3-result", {opacity:1, duration:.4}, "-=.1")
+    .to({}, {duration:1.3});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

@@ -124,7 +124,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             // joue pas, on regarde une vignette.
             <figure key={i} className={g.embed ? "md:col-span-2" : undefined}>
               {g.embed ? (
-                <GameEmbed url={g.url} poster={g.poster || undefined} title={g.alt || p.title} />
+                // `label` nomme l'action quand l'embed n'est pas un jeu : une
+                // charte se parcourt, des animations se regardent.
+                <GameEmbed url={g.url} poster={g.poster || undefined} title={g.alt || p.title} label={g.label || undefined} />
               ) : youtubeId(g.url) ? (
                 <div className="relative w-full overflow-hidden rounded-xl border border-fmborder pt-[56.25%]">
                   <iframe

@@ -1,0 +1,140 @@
+<!-- Feature animation asset — FMRXR Studio × Neophi visual system -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="FMRXR Studio">
+<title>NeoPhi · Knowledge Graph: Follow research paths</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:transparent;
+    font-family:'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px;
+  }
+  .frame{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:5/4;
+    position:relative;
+    overflow:hidden;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#fdfdfb 0%,#eae5e0 72%);
+  }
+  .frame svg{width:100%;height:100%;display:block}
+  .tiny{font-size:9px;letter-spacing:.08em;text-transform:uppercase;fill:#5c5248}
+  .node{fill:#fdfdfb;stroke:#7865aa;stroke-width:1.5}
+  .connector{stroke:#7865aa;stroke-width:1.3;fill:none}
+  .node-indirect{fill:#fdfdfb;stroke:#c2b9d6;stroke-width:1.3}
+  .connector-indirect{stroke:#d3cbe0;stroke-width:1;fill:none;stroke-dasharray:2 4}
+  .boundary{fill:none;stroke:#ddd8e9;stroke-width:1;stroke-dasharray:2 5;animation:gjspin 40s linear infinite;transform-origin:250px 165px}
+  @keyframes gjspin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion: reduce){.boundary{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="frame" id="stage">
+  <svg viewBox="0 -35 500 400" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="centerSphereDark" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#9384bb"/>
+        <stop offset="35%" stop-color="#7865aa"/>
+        <stop offset="70%" stop-color="#3e245e"/>
+        <stop offset="100%" stop-color="#1f122f"/>
+      </radialGradient>
+    </defs>
+    <circle id="gj-boundary" class="boundary" cx="250" cy="165" r="78"/>
+    <g transform="translate(250 165)">
+      <g id="gj-lines">
+        <path class="connector" d="M0 0 L45 -54"/>
+        <path class="connector" d="M0 0 L58 48"/>
+        <path class="connector" d="M0 0 L-64 11"/>
+        <path class="connector" d="M0 0 L-55 -46"/>
+        <path class="connector" d="M0 0 L-12 67"/>
+      </g>
+      <circle cx="0" cy="0" r="30" fill="url(#centerSphereDark)"/>
+      <text x="0" y="-2" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="8" font-weight="700" letter-spacing=".3" fill="#fdfdfb">CONCEPT</text>
+      <text x="0" y="8" text-anchor="middle" font-family="'Noto Serif', Georgia, serif" font-size="8" font-weight="700" fill="#fdfdfb">1</text>
+      <g id="gj-nodes">
+        <circle class="node" cx="45" cy="-54" r="10"/>
+        <circle class="node" cx="58" cy="48" r="8"/>
+        <circle class="node" cx="-64" cy="11" r="9"/>
+        <circle class="node" cx="-55" cy="-46" r="7"/>
+        <circle class="node" cx="-12" cy="67" r="11"/>
+      </g>
+      <g id="gj-indirect-connectors">
+        <path id="gj-ic1" class="connector-indirect" d="M45 -54 L39 -108"/>
+        <path id="gj-ic2" class="connector-indirect" d="M58 48 L60 104"/>
+        <path id="gj-ic3" class="connector-indirect" d="M-64 11 L-100 47"/>
+        <path id="gj-ic4" class="connector-indirect" d="M-55 -46 L-102 -37"/>
+        <path id="gj-ic5" class="connector-indirect" d="M-12 67 L-64 92"/>
+      </g>
+      <g id="gj-indirect-nodes">
+        <circle id="gj-ind1" class="node-indirect" cx="39" cy="-108" r="6"/>
+        <circle id="gj-ind2" class="node-indirect" cx="60" cy="104" r="5"/>
+        <circle id="gj-ind3" class="node-indirect" cx="-100" cy="47" r="6"/>
+        <circle id="gj-ind4" class="node-indirect" cx="-102" cy="-37" r="5"/>
+        <circle id="gj-ind5" class="node-indirect" cx="-64" cy="92" r="6"/>
+      </g>
+    </g>
+    <text id="gj-caption" class="tiny" x="250" y="330" text-anchor="middle">+ indirectly linked papers</text>
+  </svg>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  gsap.registerPlugin(ScrollTrigger);
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("mousemove", function(e){
+    var r = stageEl.getBoundingClientRect();
+    stageEl.style.setProperty("--mx", ((e.clientX-r.left)/r.width*100).toFixed(1)+"%");
+    stageEl.style.setProperty("--my", ((e.clientY-r.top)/r.height*100).toFixed(1)+"%");
+  });
+  stageEl.addEventListener("mouseleave", function(){
+    stageEl.style.setProperty("--mx","50%");
+    stageEl.style.setProperty("--my","50%");
+  });
+
+  var tl = gsap.timeline({
+    repeat:-1, yoyo:true, repeatDelay:1.1,
+    defaults:{ease:"power2.out", duration:.6},
+    paused: reduced
+  });
+  var indirectNodes = ["#gj-ind1","#gj-ind2","#gj-ind3","#gj-ind4","#gj-ind5"];
+  var indirectConn = ["#gj-ic1","#gj-ic2","#gj-ic3","#gj-ic4","#gj-ic5"];
+
+  tl.set("#gj-boundary", {attr:{r:78}, opacity:0})
+    .set(indirectNodes, {opacity:0, scale:0, transformOrigin:"center"})
+    .set(indirectConn, {opacity:0})
+    .set("#gj-caption", {opacity:0})
+    // 1 — the graph is already open, settled on its concept and direct connections
+    .to({}, {duration:.5})
+    // 2 — the search field expands
+    .to("#gj-boundary", {opacity:1, duration:.3})
+    .to("#gj-boundary", {attr:{r:138}, duration:1, ease:"power2.inOut"}, "-=.1")
+    // 3 — indirectly linked papers appear as the field widens
+    .to(indirectConn, {opacity:1, duration:.4, stagger:.1}, "-=.65")
+    .to(indirectNodes, {opacity:1, scale:1, duration:.35, stagger:.1, ease:"back.out(2)"}, "-=.5")
+    .to("#gj-caption", {opacity:1, duration:.4}, "-=.15")
+    .to({}, {duration:1.4});
+
+  if(!reduced){
+    ScrollTrigger.create({
+      trigger: "#stage", start: "top bottom", end: "bottom top",
+      onEnter:function(){tl.play();}, onEnterBack:function(){tl.play();},
+      onLeave:function(){tl.pause();}, onLeaveBack:function(){tl.pause();}
+    });
+  }
+})();
+</script>
+</body>
+</html>

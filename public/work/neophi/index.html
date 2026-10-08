@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NeoPhi · Live animations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&family=Noto+Serif:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:#150c20;color:#ddd8e9;
+    font-family:'Noto Sans',ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    padding:32px 16px 64px;
+  }
+  .wrap{max-width:1100px;margin:0 auto}
+  header{margin-bottom:28px}
+  .kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#b3a7d4;margin-bottom:10px}
+  h1{font:400 clamp(26px,4vw,36px)/1.15 'Noto Serif',Georgia,serif;color:#fdfdfb;margin:0 0 10px;letter-spacing:-.01em}
+  header p{max-width:640px;color:#c3b8dd;font-size:14px;line-height:1.6;margin:0}
+  nav{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0}
+  nav a{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:#ddd8e9;
+    border:1px solid rgba(147,132,187,.35);border-radius:999px;padding:7px 13px}
+  nav a:hover{background:rgba(147,132,187,.16)}
+  section{margin-top:44px;scroll-margin-top:16px}
+  h2{font:400 22px/1.2 'Noto Serif',Georgia,serif;color:#fdfdfb;margin:0 0 4px}
+  .note{font-size:13px;color:#c3b8dd;margin:0 0 18px;line-height:1.6;max-width:680px}
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .grid.two{grid-template-columns:repeat(auto-fill,minmax(min(440px,100%),1fr))}
+  .grid.pair{grid-template-columns:1fr}
+  @media(min-width:700px){.grid.pair{grid-template-columns:2.4fr 1fr;align-items:start}}
+  .grid.tall{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+  .card{background:rgba(62,36,94,.28);border:1px solid rgba(147,132,187,.22);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .box{position:relative;background:#0d0714;overflow:hidden}
+  .r-169{aspect-ratio:16/9}.r-32{aspect-ratio:3/2}.r-43{aspect-ratio:4/3}.r-54{aspect-ratio:5/4}.r-916{aspect-ratio:9/16}
+  /* Each animation renders at its design size, then the whole frame is scaled
+     to the card. The fluid heroes were built for a full-width slot: squeezed
+     into a 300 px card they reflow and break, scaled they read as on the site. */
+  .box iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0}
+  .meta{padding:11px 14px 13px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .name{font-size:13px;font-weight:500;color:#fdfdfb;line-height:1.35}
+  .meta a{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#b3a7d4;text-decoration:none;white-space:nowrap}
+  .meta a:hover{color:#fdfdfb}
+  .feature{display:grid;gap:16px;grid-template-columns:1fr}
+  .subs{display:grid;gap:16px}
+  @media(min-width:700px){.subs{grid-template-columns:repeat(3,1fr)}}
+  footer{margin-top:56px;padding-top:18px;border-top:1px solid rgba(147,132,187,.22);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#b3a7d4}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">FMRXR Studio × NeoPhi</div>
+  <h1>The animations, running live</h1>
+  <p>Every piece below is the delivered HTML file itself, not a recording: the same code that runs on the NeoPhi website, in the browser, in real time. Hover the frames, some of them follow the cursor.</p>
+  <nav>
+    <a href="#features">Feature system</a>
+    <a href="#secure">Secure workflow</a>
+    <a href="#workflow">Full workflow</a>
+    <a href="#loops">Ambient loops</a>
+  </nav>
+</header>
+
+<section id="features">
+  <h2>Feature system</h2>
+  <p class="note">Three platform features, each with a hero in 4:3 and three sub-sections in 5:4, matching the slots of the live site. One visual grammar across all twelve: the hub sphere, dashed orbits, document cards and traced citations.</p>
+
+  <h2 style="font-size:16px;margin:26px 0 12px">01 · Semantic search</h2>
+  <div class="feature">
+    <div class="card"><div class="box r-43"><iframe loading="lazy" scrolling="no" src="hero-01-semantic-search.html" title="Semantic search, hero"></iframe></div>
+      <div class="meta"><span class="name">Living research landscape</span><a href="hero-01-semantic-search.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="subs">
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="search-01-search-by-meaning.html" title="Search by meaning"></iframe></div><div class="meta"><span class="name">Search by meaning</span><a href="search-01-search-by-meaning.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="search-02-beyond-exact-matches.html" title="Beyond exact matches"></iframe></div><div class="meta"><span class="name">Beyond exact matches</span><a href="search-02-beyond-exact-matches.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="search-03-scientific-filters.html" title="Scientific filters"></iframe></div><div class="meta"><span class="name">Scientific filters</span><a href="search-03-scientific-filters.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    </div>
+  </div>
+
+  <h2 style="font-size:16px;margin:30px 0 12px">02 · Knowledge graph</h2>
+  <div class="feature">
+    <div class="card"><div class="box r-43"><iframe loading="lazy" scrolling="no" src="hero-02-knowledge-graph.html" title="Knowledge graph, hero"></iframe></div>
+      <div class="meta"><span class="name">Knowledge as a connected graph</span><a href="hero-02-knowledge-graph.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="subs">
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="graph-01-research-galaxy.html" title="See the connections"></iframe></div><div class="meta"><span class="name">See the connections</span><a href="graph-01-research-galaxy.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="graph-02-semantic-journey.html" title="Follow research paths"></iframe></div><div class="meta"><span class="name">Follow research paths</span><a href="graph-02-semantic-journey.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="graph-03-emerging-structures.html" title="Identify patterns"></iframe></div><div class="meta"><span class="name">Identify patterns</span><a href="graph-03-emerging-structures.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    </div>
+  </div>
+
+  <h2 style="font-size:16px;margin:30px 0 12px">03 · Synthesis with sources</h2>
+  <div class="feature">
+    <div class="card"><div class="box r-43"><iframe loading="lazy" scrolling="no" src="hero-03-synthesis-with-sources.html" title="Synthesis with sources, hero"></iframe></div>
+      <div class="meta"><span class="name">Literature with verifiable sources</span><a href="hero-03-synthesis-with-sources.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="subs">
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="synthesis-01-evidence-convergence.html" title="Synthesize across publications"></iframe></div><div class="meta"><span class="name">Synthesize across publications</span><a href="synthesis-01-evidence-convergence.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="synthesis-02-citation-trace.html" title="Verify the evidence"></iframe></div><div class="meta"><span class="name">Verify the evidence</span><a href="synthesis-02-citation-trace.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+      <div class="card"><div class="box r-54"><iframe loading="lazy" scrolling="no" src="synthesis-03-research-loop.html" title="Continue your workflow"></iframe></div><div class="meta"><span class="name">Continue your workflow</span><a href="synthesis-03-research-loop.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="secure">
+  <h2>Secure research workflow</h2>
+  <p class="note">The trust layer of the product, told as a flow: documents enter, stay inside a protected perimeter, and come out as answers. Fluid versions for the site, a 4:3 cut and a certifications panel.</p>
+  <div class="grid two">
+    <div class="card"><div class="box r-32"><iframe loading="lazy" scrolling="no" src="hero-secure-workflow.html" title="Secure research workflow"></iframe></div><div class="meta"><span class="name">Secure workflow</span><a href="hero-secure-workflow.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="card"><div class="box r-32"><iframe loading="lazy" scrolling="no" src="hero-secure-workflow-dashboard.html" title="Secure workflow, dashboard"></iframe></div><div class="meta"><span class="name">Dashboard</span><a href="hero-secure-workflow-dashboard.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="card"><div class="box r-43"><iframe loading="lazy" scrolling="no" src="hero-secure-workflow-dashboard-4x3.html" title="Secure workflow, dashboard 4:3"></iframe></div><div class="meta"><span class="name">Dashboard, 4:3</span><a href="hero-secure-workflow-dashboard-4x3.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="card"><div class="box r-32"><iframe loading="lazy" scrolling="no" src="hero-secure-workflow-certifications.html" title="Certifications"></iframe></div><div class="meta"><span class="name">Certifications</span><a href="hero-secure-workflow-certifications.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+  </div>
+</section>
+
+<section id="workflow">
+  <h2>Full workflow</h2>
+  <p class="note">The whole research loop in one choreographed sequence, from question to cited synthesis, with its vertical recomposition for social. The 9:16 is a coordinate transpose of the 4:3, not a crop.</p>
+  <div class="grid pair">
+    <div class="card"><div class="box r-43"><iframe loading="lazy" scrolling="no" src="hero-00-full-workflow.html" title="Full workflow"></iframe></div><div class="meta"><span class="name">Full workflow, 4:3</span><a href="hero-00-full-workflow.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="card"><div class="box r-916"><iframe loading="lazy" scrolling="no" src="hero-00-full-workflow-9x16.html" title="Full workflow 9:16"></iframe></div><div class="meta"><span class="name">Full workflow, 9:16</span><a href="hero-00-full-workflow-9x16.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+  </div>
+</section>
+
+<section id="loops">
+  <h2>Ambient loops</h2>
+  <p class="note">Section backgrounds in pure CSS: slow, breathing, nothing to read. They sit behind copy without competing with it.</p>
+  <div class="grid tall">
+    <div class="card"><div class="box r-916"><iframe loading="lazy" scrolling="no" src="bg-loop-01-breathing-core.html" title="Breathing core"></iframe></div><div class="meta"><span class="name">Breathing core</span><a href="bg-loop-01-breathing-core.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="card"><div class="box r-916"><iframe loading="lazy" scrolling="no" src="bg-loop-02-drifting-nodes.html" title="Drifting nodes"></iframe></div><div class="meta"><span class="name">Drifting nodes</span><a href="bg-loop-02-drifting-nodes.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+    <div class="card"><div class="box r-916"><iframe loading="lazy" scrolling="no" src="bg-loop-03-brandmark-glow.html" title="Brand mark glow"></iframe></div><div class="meta"><span class="name">Brand mark glow</span><a href="bg-loop-03-brandmark-glow.html" target="_blank" rel="noopener">Open ↗</a></div></div>
+  </div>
+</section>
+
+<footer>FMRXR// · Motion design for NeoPhi · 2026</footer>
+</div>
+<script>
+  // Design size per ratio: the slot each file was authored for.
+  const DESIGN = { 'r-169': [1440, 810], 'r-32': [1440, 960], 'r-43': [1120, 840], 'r-54': [640, 512], 'r-916': [540, 960] };
+  const fit = (box) => {
+    const f = box.querySelector('iframe');
+    const key = Object.keys(DESIGN).find((k) => box.classList.contains(k));
+    if (!f || !key) return;
+    const [w, h] = DESIGN[key];
+    f.style.width = w + 'px';
+    f.style.height = h + 'px';
+    f.style.transform = 'scale(' + box.clientWidth / w + ')';
+  };
+  const ro = new ResizeObserver((entries) => entries.forEach((e) => fit(e.target)));
+  document.querySelectorAll('.box').forEach((b) => { fit(b); ro.observe(b); });
+</script>
+</body>
+</html>
