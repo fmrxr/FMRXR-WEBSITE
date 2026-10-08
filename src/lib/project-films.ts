@@ -10,7 +10,7 @@ const FILMS = new Set([
   "vigilance-zero", "between-frequencies", "classz-manifesto", "100-violons", "cinesthesia",
   "crk-cgi", "entangled-tatwin", "spectrum-birth-of-light", "don-pac-fashion-weak",
   "morninglory-content", "hide-and-seek", "ala-listening-party", "access-protocol", "spicy-sofi",
-  "neophi",
+  "neophi", "phenix-business", "dolphin-surf", "dreaming-again", "mapping-oudhna",
 ]);
 
 export function projectFilm(slug: string): string | null {
