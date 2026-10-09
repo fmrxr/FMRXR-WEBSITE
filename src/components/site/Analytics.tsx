@@ -4,7 +4,7 @@ import Script from "next/script";
 // de chaque page. On le code en valeur par defaut pour ne pas dependre d'une
 // variable d'environnement a poser sur l'hebergeur, tout en laissant la
 // possibilite de le surcharger.
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? "G-7VP6557ZL4";
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "G-7VP6557ZL4";
 
 // Mode Consentement, tout refuse par defaut. Le site n'a pas de banniere, donc
 // rien ne pourrait recueillir un consentement a transmettre. GA4 bascule alors
