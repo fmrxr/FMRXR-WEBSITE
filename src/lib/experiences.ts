@@ -1,4 +1,4 @@
-// Catalogue des expériences web jouables sur /experiential. Une entrée par
+// Catalogue des expériences web jouables sur /experiences. Une entrée par
 // expérience, ses fichiers dans public/experiences/<slug>/ (préparés par
 // scripts/experiences/prepare.py). La fiche et ses fichiers partent dans le
 // même déploiement : pas de table Supabase, sinon une fiche publiée avant son

@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
       },
       // « TouchDesigner / GLSL » nommait un outil, pas un service. Le service est
       // devenu Real-Time Systems, les outils restent cités dans sa fiche.
+      // La page d'attente /experiential est devenue le catalogue /experiences.
+      {
+        source: "/experiential",
+        destination: "/experiences",
+        permanent: true,
+      },
       {
         source: "/services/touchdesigner",
         destination: "/services/real-time-systems",

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FMRXR// Labs</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #0d0c14; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: #1c5247; overflow: hidden; }
   canvas { display: block; width: 100%; height: 100%; }
   #tag, #err {
     position: fixed; left: 16px; bottom: 14px; margin: 0;
@@ -33,7 +33,38 @@ const SHADERS = {
   tox4_bouncing_bars: "Bouncing bars",
   tox8_lightpos_noise: "Light field",
 };
-const id = new URLSearchParams(location.search).get("s");
+// Palette 2027-2028 de WGSN × Coloro, appliquée après le shader : ses
+// fichiers restent ceux du mixer. Valeurs écran lues sur les échantillons
+// officiels de coloro.com/key-colors (aplat de chaque image de swatch) :
+//   Luminous Blue 125-28-38 = #193F8F (couleur de l'année 2027)
+//   Radiant Earth 017-42-31 = #BA4433 (couleur de l'année 2028)
+//   Deep Green    082-30-14 = #1C5247 (couleur clé A/H 27-28)
+//   0 map      luminance → Deep Green, Luminous Blue, Radiant Earth, Cream
+//   1 invert   idem, luminance inversée d'abord (fond clair → fond sombre)
+//   2 channels rouge → Radiant Earth, vert → Signal FMRXR, bleu → Luminous Blue
+const GRADE = { phyllotaxis_grid: 1, tox13_depth_tunnel: 0, tox4_bouncing_bars: 0, tox8_lightpos_noise: 2 };
+const GRADE_GLSL = `
+const vec3 P_DG = vec3(0.110, 0.322, 0.278); // #1C5247
+const vec3 P_LB = vec3(0.098, 0.247, 0.561); // #193F8F
+const vec3 P_RE = vec3(0.729, 0.267, 0.200); // #BA4433
+const vec3 P_CR = vec3(0.949, 0.929, 0.894); // #F2EDE4, crème FMRXR, pas une couleur WGSN
+const vec3 P_SG = vec3(0.482, 0.937, 0.482); // #7BEF7B, vert signal FMRXR
+uniform int uGradeMode;
+vec3 ramp2028(float t) {
+  t = clamp(t, 0.0, 1.0);
+  if (t < 0.35) return mix(P_DG, P_LB, t / 0.35);
+  if (t < 0.72) return mix(P_LB, P_RE, (t - 0.35) / 0.37);
+  return mix(P_RE, P_CR, (t - 0.72) / 0.28);
+}
+void main() {
+  fx_main();
+  vec3 c = clamp(fragColor.rgb, 0.0, 1.0);
+  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  if (uGradeMode == 2) c = P_DG * (1.0 - max(max(c.r, c.g), c.b)) + c.r * P_RE + c.g * P_SG + c.b * P_LB * 1.6;
+  else c = ramp2028(uGradeMode == 1 ? 1.0 - l : l);
+  fragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+}`;
+const id =new URLSearchParams(location.search).get("s");
 const name = SHADERS[id] ? id : "phyllotaxis_grid";
 document.getElementById("name").textContent = SHADERS[name];
 
@@ -74,7 +105,9 @@ async function start() {
     if (!r.ok) throw new Error(`${name}.glsl: ${r.status}`);
     return r.text();
   });
-  const frag = `#version 300 es\nprecision highp float;\nin vec3 vUV;\n${src}`;
+  const main = /void\s+main\s*\(\s*\)/;
+  if (!main.test(src)) throw new Error("main() not found");
+  const frag = `#version 300 es\nprecision highp float;\nin vec3 vUV;\n${src.replace(main, "void fx_main()")}${GRADE_GLSL}`;
   const prog = gl.createProgram();
   gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
   gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, frag));
@@ -92,6 +125,7 @@ async function start() {
     const loc = gl.getUniformLocation(prog, u);
     if (loc) gl.uniform4fv(loc, v);
   }
+  gl.uniform1i(gl.getUniformLocation(prog, "uGradeMode"), GRADE[name]);
   const uTime = gl.getUniformLocation(prog, "u_time");
   const uAspect = gl.getUniformLocation(prog, "u_aspect");
 

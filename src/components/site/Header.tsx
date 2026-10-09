@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 const NAV: [string, string][] = [
   ["Work", "/projects"],
+  ["Experiences", "/experiences"],
   ["Services", "/services"],
   ["Industries", "/industries"],
   ["Journal", "/journal"],
