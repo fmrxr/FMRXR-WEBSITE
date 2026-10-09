@@ -17,5 +17,5 @@ const FILMS = new Set([
 export function projectFilm(slug: string): string | null {
   // ?v= : les fichiers sont servis avec un cache long, monter la version
   // quand on remplace un aperçu.
-  return FILMS.has(slug) ? `${MEDIA}/card-${slug}.mp4?v=2` : null;
+  return FILMS.has(slug) ? `${MEDIA}/card-${slug}.mp4?v=3` : null;
 }
