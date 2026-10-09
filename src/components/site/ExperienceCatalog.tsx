@@ -37,24 +37,19 @@ function useSmallScreen() {
 export function ExperienceCatalog() {
   const params = useSearchParams();
   const router = useRouter();
-  const [current, setCurrent] = useState<Experience>(() => findExperience(params.get("play")) ?? featuredExperience());
-  const [playing, setPlaying] = useState(false);
+  // L'URL fait foi (?play=slug) : lien partagé, retour arrière et clic sur une
+  // carte passent tous par elle. « En lecture » veut dire que l'expérience
+  // lancée est celle affichée : en changer arrête donc la précédente.
+  const current = findExperience(params.get("play")) ?? featuredExperience();
+  const [launched, setLaunched] = useState<string | null>(null);
+  const playing = launched === current.slug;
+  const setPlaying = (on: boolean) => setLaunched(on ? current.slug : null);
   const frame = useRef<HTMLDivElement>(null);
   const small = useSmallScreen();
   const blocked = !!current.desktopOnly && small;
 
-  // Retour arrière du navigateur : l'URL fait foi.
-  useEffect(() => {
-    const e = findExperience(params.get("play"));
-    if (e && e.slug !== current.slug) {
-      setCurrent(e);
-      setPlaying(false);
-    }
-  }, [params]); // eslint-disable-line react-hooks/exhaustive-deps
-
   function select(e: Experience) {
-    setCurrent(e);
-    setPlaying(false);
+    setLaunched(null);
     router.replace(`?play=${e.slug}`, { scroll: false });
     frame.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     track("experience_select", { experience: e.slug });
