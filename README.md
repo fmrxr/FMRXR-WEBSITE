@@ -68,10 +68,12 @@ npx dotenv -e .env.local -- npm test       # includes DB tests (RLS / write-guar
      Without them, briefs are still saved, just not e-mailed.
    - `OS_AGENT_TOKEN` (agent API), `ANTHROPIC_API_KEY` (OS Brain).
 
-   Optional, not set on Hostinger:
+   Optional, not set on Hostinger (absent or empty both mean "use the default"):
    - `LEAD_NOTIFY_TO`: defaults to `SMTP_USER`.
-   - `NEXT_PUBLIC_GA_ID`: defaults to `G-7VP6557ZL4` in `Analytics.tsx`.
-   - `GOOGLE_SITE_VERIFICATION`: only needed to verify Search Console by meta tag.
+   - `NEXT_PUBLIC_GA_ID`: defaults to `G-7VP6557ZL4` in `Analytics.tsx`. Being `NEXT_PUBLIC_`,
+     it is inlined at build time, so changing it on Hostinger needs a rebuild.
+   - `GOOGLE_SITE_VERIFICATION`: adds the Search Console meta tag; only needed if the
+     property is verified by meta tag rather than DNS.
 
    The `OS_*_PATH` / `OS_ASSETS_ROOT` / `*_LAUNCH_BAT_PATH` variables are local Windows paths, dev only.
 5. On a fresh install, claim the admin account at `/auth`.
