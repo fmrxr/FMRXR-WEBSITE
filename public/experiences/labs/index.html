@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMRXR// Labs</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0d0c14; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #tag, #err {
+    position: fixed; left: 16px; bottom: 14px; margin: 0;
+    font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: .15em; text-transform: uppercase; color: #f5f5f8;
+    text-shadow: 0 0 8px rgba(0,0,0,.8); pointer-events: none;
+  }
+  #tag b { color: #7bef7b; font-weight: 700; }
+  #err { display: none; top: 16px; right: 16px; bottom: auto; white-space: pre-wrap; text-transform: none; letter-spacing: 0; color: #ff5a5f; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<p id="tag">FMRXR<b>//</b> LABS · <span id="name"></span></p>
+<pre id="err"></pre>
+<script>
+// Lecteur des shaders du mixer EFFET MÈRE, écrits pour un GLSL TOP de
+// TouchDesigner. Le fichier .glsl est chargé tel quel : on lui ajoute l'en-tête
+// WebGL2 et la variable vUV que TouchDesigner fournit, et ses valeurs par
+// défaut sont lues dans le tableau « VALEURS » de son propre en-tête, pour
+// qu'une seule source fasse foi.
+const SHADERS = {
+  phyllotaxis_grid: "Phyllotaxis",
+  tox13_depth_tunnel: "Depth tunnel",
+  tox4_bouncing_bars: "Bouncing bars",
+  tox8_lightpos_noise: "Light field",
+};
+const id = new URLSearchParams(location.search).get("s");
+const name = SHADERS[id] ? id : "phyllotaxis_grid";
+document.getElementById("name").textContent = SHADERS[name];
+
+const fail = (msg) => {
+  const e = document.getElementById("err");
+  e.textContent = msg;
+  e.style.display = "block";
+};
+
+const canvas = document.getElementById("c");
+const gl = canvas.getContext("webgl2", { antialias: false, preserveDrawingBuffer: false });
+
+const VERT = `#version 300 es
+in vec2 aPos;
+out vec3 vUV;
+void main() { vUV = vec3(aPos * 0.5 + 0.5, 0.0); gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+function defaults(src) {
+  const out = {};
+  for (const m of src.matchAll(/^\/\/\s+(u\w+)\s+\|\s+([-\d.eE\s]+)$/gm)) {
+    const v = m[2].trim().split(/\s+/).map(Number);
+    if (v.length === 4 && v.every(Number.isFinite)) out[m[1]] = v;
+  }
+  return out;
+}
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+
+async function start() {
+  if (!gl) return fail("This experience needs WebGL2. Try a recent Chrome, Edge, Firefox or Safari.");
+  const src = await fetch(`${name}.glsl`).then((r) => {
+    if (!r.ok) throw new Error(`${name}.glsl: ${r.status}`);
+    return r.text();
+  });
+  const frag = `#version 300 es\nprecision highp float;\nin vec3 vUV;\n${src}`;
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, frag));
+  gl.bindAttribLocation(prog, 0, "aPos");
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  for (const [u, v] of Object.entries(defaults(src))) {
+    const loc = gl.getUniformLocation(prog, u);
+    if (loc) gl.uniform4fv(loc, v);
+  }
+  const uTime = gl.getUniformLocation(prog, "u_time");
+  const uAspect = gl.getUniformLocation(prog, "u_aspect");
+
+  // Résolution plafonnée : ces shaders sont faits pour un mixer en direct, pas
+  // pour un écran 4K à 2x. Le rendu reste net et la carte graphique respire.
+  const resize = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    gl.viewport(0, 0, w, h);
+    if (uAspect) gl.uniform1f(uAspect, w / h);
+  };
+
+  const t0 = performance.now();
+  const frame = (now) => {
+    resize();
+    if (uTime) gl.uniform1f(uTime, (now - t0) / 1000);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+start().catch((e) => fail(`Shader failed to start.\n${e.message}`));
+</script>
+</body>
+</html>

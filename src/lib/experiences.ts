@@ -75,7 +75,7 @@ export const EXPERIENCES: Experience[] = [
   lab("lab-phyllotaxis", "phyllotaxis_grid", "PHYLLOTAXIS", "A sunflower's growth rule laid out as a breathing grid."),
   lab("lab-depth-tunnel", "tox13_depth_tunnel", "DEPTH TUNNEL", "Noise folded into an endless corridor of depth."),
   lab("lab-bouncing-bars", "tox4_bouncing_bars", "BOUNCING BARS", "Bars that fall, bounce and settle like a rhythm section."),
-  lab("lab-lightpos-noise", "tox8_lightpos_noise", "LIGHT FIELD", "A moving light combing through a noise field."),
+  lab("lab-lightpos-noise", "tox8_lightpos_noise", "LIGHT FIELD", "Rails of coloured light drifting through a noise field."),
 ];
 
 export function findExperience(slug: string | null | undefined): Experience | undefined {
