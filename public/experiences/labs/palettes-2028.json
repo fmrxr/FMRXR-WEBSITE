@@ -1,0 +1,265 @@
+{
+ "source": "coloro.com/key-colors, WGSN x Coloro Key Colors S/S 28 and A/W 27/28, read 2026-10-09",
+ "palettes": {
+  "Radiant Earth": {
+   "season": "S/S 28",
+   "coloro": "017-42-31",
+   "hex": "#BA4433",
+   "oklch": [
+    0.5469,
+    0.1558,
+    30.84
+   ],
+   "ramp": [
+    "#6B1E12",
+    "#8A1E14",
+    "#9D2517",
+    "#AF1C14",
+    "#B42C18",
+    "#C72415",
+    "#DF3B1B"
+   ],
+   "ramp_pixels": 91996,
+   "accent": {
+    "name": "Offline Blue",
+    "coloro": "123-52-27",
+    "hex": "#5C85BD",
+    "hue_from_complement": 45.6
+   }
+  },
+  "Serene Green": {
+   "season": "S/S 28",
+   "coloro": "076-86-07",
+   "hex": "#CEE2D7",
+   "oklch": [
+    0.8948,
+    0.026,
+    161.88
+   ],
+   "ramp": [
+    "#708A7B",
+    "#8CA495",
+    "#99BAA6",
+    "#ACC7B7",
+    "#BBD4C4",
+    "#CAE1D4",
+    "#DCEEE3"
+   ],
+   "ramp_pixels": 92000,
+   "accent": {
+    "name": "Flourish Pink",
+    "coloro": "012-65-24",
+    "hex": "#F18D85",
+    "hue_from_complement": 43.4
+   }
+  },
+  "Positively Yellow": {
+   "season": "S/S 28",
+   "coloro": "043-85-34",
+   "hex": "#FFDB39",
+   "oklch": [
+    0.8963,
+    0.1699,
+    95.69
+   ],
+   "ramp": [
+    "#B29C29",
+    "#C3AC1C",
+    "#D4BC3B",
+    "#D8C85C",
+    "#E6D670",
+    "#F9E972",
+    "#FFF8BC"
+   ],
+   "ramp_pixels": 92000,
+   "accent": {
+    "name": "Offline Blue",
+    "coloro": "123-52-27",
+    "hex": "#5C85BD",
+    "hue_from_complement": 19.3
+   }
+  },
+  "Flourish Pink": {
+   "season": "S/S 28",
+   "coloro": "012-65-24",
+   "hex": "#F18D85",
+   "oklch": [
+    0.7475,
+    0.1229,
+    25.28
+   ],
+   "ramp": [
+    "#78372F",
+    "#A04C42",
+    "#B4625A",
+    "#C7746D",
+    "#D5857D",
+    "#EB958B",
+    "#FEB4AC"
+   ],
+   "ramp_pixels": 92000,
+   "accent": {
+    "name": "Serene Green",
+    "coloro": "076-86-07",
+    "hex": "#CEE2D7",
+    "hue_from_complement": 43.4
+   }
+  },
+  "Offline Blue": {
+   "season": "S/S 28",
+   "coloro": "123-52-27",
+   "hex": "#5C85BD",
+   "oklch": [
+    0.6104,
+    0.0972,
+    256.42
+   ],
+   "ramp": [
+    "#182E66",
+    "#3D538B",
+    "#667BB5",
+    "#849BD4",
+    "#9BB0E7",
+    "#B4C7FA",
+    "#CEDBFE"
+   ],
+   "ramp_pixels": 91998,
+   "accent": {
+    "name": "Positively Yellow",
+    "coloro": "043-85-34",
+    "hex": "#FFDB39",
+    "hue_from_complement": 19.3
+   }
+  },
+  "Luminous Blue": {
+   "season": "A/W 27/28",
+   "coloro": "125-28-38",
+   "hex": "#193F8F",
+   "oklch": [
+    0.3921,
+    0.1398,
+    262.66
+   ],
+   "ramp": [
+    "#040A64",
+    "#0F1676",
+    "#070D8C",
+    "#0F1790",
+    "#121B9F",
+    "#1C2AAC",
+    "#1A22F0"
+   ],
+   "ramp_pixels": 48798,
+   "accent": {
+    "name": "Maize",
+    "coloro": "036-65-23",
+    "hex": "#CFA15B",
+    "hue_from_complement": 6.2
+   }
+  },
+  "Russet": {
+   "season": "A/W 27/28",
+   "coloro": "013-30-24",
+   "hex": "#7C3330",
+   "oklch": [
+    0.4216,
+    0.1026,
+    24.81
+   ],
+   "ramp": [
+    "#1A0A0A",
+    "#3B0609",
+    "#3E1918",
+    "#511719",
+    "#601D1E",
+    "#7B2224",
+    "#86574E"
+   ],
+   "ramp_pixels": 48778,
+   "accent": {
+    "name": "Deep Green",
+    "coloro": "082-30-14",
+    "hex": "#1C5247",
+    "hue_from_complement": 27.5
+   }
+  },
+  "Peaceful Lilac": {
+   "season": "A/W 27/28",
+   "coloro": "135-78-11",
+   "hex": "#C9C5DF",
+   "oklch": [
+    0.8348,
+    0.0362,
+    292.66
+   ],
+   "ramp": [
+    "#B59DC4",
+    "#BEA4CF",
+    "#C4ADD3",
+    "#C9B7E4",
+    "#CFC1E7",
+    "#D3C9EF",
+    "#E0D3FC"
+   ],
+   "ramp_pixels": 41165,
+   "accent": {
+    "name": "Maize",
+    "coloro": "036-65-23",
+    "hex": "#CFA15B",
+    "hue_from_complement": 36.2
+   }
+  },
+  "Maize": {
+   "season": "A/W 27/28",
+   "coloro": "036-65-23",
+   "hex": "#CFA15B",
+   "oklch": [
+    0.7371,
+    0.1035,
+    76.49
+   ],
+   "ramp": [
+    "#A66423",
+    "#B6762F",
+    "#C08136",
+    "#C78E3A",
+    "#D69A47",
+    "#E9A943",
+    "#FFE88A"
+   ],
+   "ramp_pixels": 48226,
+   "accent": {
+    "name": "Luminous Blue",
+    "coloro": "125-28-38",
+    "hex": "#193F8F",
+    "hue_from_complement": 6.2
+   }
+  },
+  "Deep Green": {
+   "season": "A/W 27/28",
+   "coloro": "082-30-14",
+   "hex": "#1C5247",
+   "oklch": [
+    0.3993,
+    0.0598,
+    177.27
+   ],
+   "ramp": [
+    "#041107",
+    "#041E13",
+    "#102B23",
+    "#134E35",
+    "#3A5D62",
+    "#4C8371",
+    "#73BFA5"
+   ],
+   "ramp_pixels": 48333,
+   "accent": {
+    "name": "Russet",
+    "coloro": "013-30-24",
+    "hex": "#7C3330",
+    "hue_from_complement": 27.5
+   }
+  }
+ }
+}
