@@ -38,7 +38,7 @@ describe("experiencesByRow", () => {
   it("returns rows in ROWS order, skipping empty rows", () => {
     const rows = experiencesByRow();
     expect(rows.map((r) => r.id)).toEqual(ROWS.map((r) => r.id).filter((id) => EXPERIENCES.some((e) => e.row === id)));
-    expect(rows.find((r) => r.id === "labs")!.items.length).toBe(5);
+    expect(rows.find((r) => r.id === "labs")!.items.length).toBe(7);
   });
 });
 

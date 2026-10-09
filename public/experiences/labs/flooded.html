@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMRXR// Labs · Flooded</title>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+// FLOODED, tel que monté dans le projet TouchDesigner de l'écran central
+// (base3) : bufferA (océan en raymarching) → image (vignette + lens flare).
+// Les deux pixel shaders sont chargés tels quels depuis leur fichier .glsl ;
+// seuls les noms TouchDesigner sont traduits (sTD2DInputs, uTD2DInfos, vUV).
+// D'après le shader Shadertoy « flooded » de zguerrero, comme l'indique
+// l'en-tête du fichier.
+//
+// Ce qui vient du fichier : iTime = absTime.seconds (départ à 210.5, la valeur
+// enregistrée), réglages des trois Noise TOP d'entrée, enchaînement des passes.
+// Les uniforms audio du TOP (wavesSize, rot2, groundColor…) ne sont déclarés
+// nulle part dans le shader : sans effet dans TouchDesigner, donc ignorés ici.
+// Seule recréation : le bruit des trois entrées. L'algorithme « Sparse » de
+// TouchDesigner n'est pas public ; on génère un fBm avec les mêmes période,
+// harmoniques, rugosité, exposant, amplitude et décalage.
+import { GRADE_GLSL, loadPalettes, applyPalette, fail, panel, chrome, program, FULLSCREEN_VERT, fullscreen, target, wheelZoom } from "./labs-ui.js";
+
+chrome("Flooded");
+const canvas = document.getElementById("c");
+const gl = canvas.getContext("webgl2", { antialias: false });
+
+// Réglages des Noise TOP du fichier (noise2 → entrée 0, noise3 → 1, noise4 → 2).
+// Offset non réglé : 0.5 (centre de la plage 0..1).
+const NOISES = [
+  { period: 0.67, harmon: 3, rough: 0.5, exp: 1.0, amp: 1.19, offset: 0.5, mono: 0, seed: 11 },
+  { period: 0.01, harmon: 6, rough: 0.186, exp: 1.27, amp: 0.29, offset: 0.242, mono: 0, seed: 23 },
+  { period: 0.66, harmon: 1, rough: 0.5, exp: 1.12, amp: 0.05, offset: 0.5, mono: 0, seed: 37 },
+];
+
+const NOISE_FRAG = `#version 300 es
+precision highp float;
+in vec3 vUV;
+uniform float uPeriod, uHarmon, uRough, uExp, uAmp, uOffset, uSeed;
+uniform vec2 uAspect;
+out vec4 fragColor;
+vec2 h2(vec2 p) { p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))) + uSeed; return -1.0 + 2.0 * fract(sin(p) * 43758.5453); }
+float gnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(dot(h2(i), f), dot(h2(i + vec2(1, 0)), f - vec2(1, 0)), u.x),
+             mix(dot(h2(i + vec2(0, 1)), f - vec2(0, 1)), dot(h2(i + vec2(1, 1)), f - vec2(1, 1)), u.x), u.y) * 1.6;
+}
+float fbm(vec2 p, float s) {
+  float v = 0.0, a = 1.0, n = 0.0;
+  for (int i = 0; i < 8; i++) {
+    if (float(i) > uHarmon) break;
+    v += a * gnoise(p + s); n += a; a *= uRough; p *= 2.0;
+  }
+  return v / n;
+}
+void main() {
+  vec2 p = vUV.xy * uAspect / uPeriod;
+  vec3 n = vec3(fbm(p, 0.0), fbm(p, 17.3), fbm(p, 41.9));
+  n = sign(n) * pow(abs(n), vec3(uExp));
+  fragColor = vec4(clamp(uOffset + uAmp * 0.5 * n, 0.0, 1.0), 1.0);
+}`;
+
+const td = (src) => src
+  .replace(/sTD2DInputs\[(\d)\]/g, "sIn$1")
+  .replace(/uTD2DInfos\[0\]\.res\.zw/g, "uRes");
+const HEAD = `#version 300 es
+precision highp float;
+in vec3 vUV;
+uniform sampler2D sIn0, sIn1, sIn2;
+uniform vec2 uRes;
+`;
+
+const state = { speed: 1, palette: "Luminous Blue", scale: 0.75, zoom: 1 };
+
+async function start() {
+  if (!gl) return fail("This experience needs WebGL2. Try a recent Chrome, Edge, Firefox or Safari.");
+  const float = !!gl.getExtension("EXT_color_buffer_float");
+  const [bufA, image, palettes] = await Promise.all([
+    fetch("flooded_bufferA.glsl").then((r) => r.text()),
+    fetch("flooded_image.glsl").then((r) => r.text()),
+    loadPalettes(),
+  ]);
+  const draw = fullscreen(gl);
+
+  // 1. Les trois entrées de bruit, une fois, à la résolution des Noise TOP (1280×720).
+  const noiseProg = program(gl, FULLSCREEN_VERT, NOISE_FRAG);
+  const noises = NOISES.map((n) => {
+    const t = target(gl, 1280, 720, false);
+    gl.useProgram(noiseProg);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, t.fb);
+    gl.viewport(0, 0, 1280, 720);
+    const u = (k) => gl.getUniformLocation(noiseProg, k);
+    gl.uniform1f(u("uPeriod"), n.period); gl.uniform1f(u("uHarmon"), n.harmon); gl.uniform1f(u("uRough"), n.rough);
+    gl.uniform1f(u("uExp"), n.exp); gl.uniform1f(u("uAmp"), n.amp); gl.uniform1f(u("uOffset"), n.offset);
+    gl.uniform1f(u("uSeed"), n.seed); gl.uniform2f(u("uAspect"), 1280 / 720, 1); gl.uniform1f(u("uZoom"), 1);
+    draw();
+    gl.bindTexture(gl.TEXTURE_2D, t.tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    return t;
+  });
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  // 2. Les deux passes du fichier.
+  const progA = program(gl, FULLSCREEN_VERT, HEAD + td(bufA));
+  const imgSrc = td(image).replace(/void\s+main\s*\(\s*\)/, "void fx_main()") + GRADE_GLSL +
+    `\nvoid main() { fx_main(); fragColor = vec4(grade2028(fragColor.rgb), 1.0); }`;
+  const progI = program(gl, FULLSCREEN_VERT, HEAD + imgSrc);
+  applyPalette(gl, progI, palettes, state.palette);
+
+  let buf = null, time = 210.5, last = performance.now();
+  const frame = (now) => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1);
+    const cw = Math.round(canvas.clientWidth * dpr), ch = Math.round(canvas.clientHeight * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+    const w = Math.max(64, Math.round(cw * state.scale)), h = Math.max(36, Math.round(ch * state.scale));
+    if (!buf || buf.w !== w || buf.h !== h) buf = target(gl, w, h, float);
+    time += (now - last) / 1000 * state.speed; last = now;
+
+    gl.useProgram(progA);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buf.fb);
+    gl.viewport(0, 0, w, h);
+    noises.forEach((t, i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t.tex); gl.uniform1i(gl.getUniformLocation(progA, "sIn" + i), i); });
+    gl.uniform2f(gl.getUniformLocation(progA, "uRes"), w, h);
+    gl.uniform1f(gl.getUniformLocation(progA, "iTime"), time);
+    gl.uniform1f(gl.getUniformLocation(progA, "uZoom"), state.zoom);
+    draw();
+
+    gl.useProgram(progI);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, cw, ch);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, buf.tex);
+    gl.uniform1i(gl.getUniformLocation(progI, "sIn0"), 0);
+    gl.uniform1f(gl.getUniformLocation(progI, "uZoom"), 1);
+    gl.uniform2f(gl.getUniformLocation(progI, "uRes"), w, h);
+    draw();
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+
+  wheelZoom(canvas, () => state.zoom, (v) => (state.zoom = v));
+  panel({
+    palettes, current: state.palette,
+    onPalette: (k) => { state.palette = k; applyPalette(gl, progI, palettes, k); },
+    sliders: [
+      { group: "Time" },
+      { label: "speed", min: 0, max: 3, step: 0.01, initial: 1, get: () => state.speed, set: (v) => (state.speed = v) },
+      { group: "View" },
+      { label: "zoom", min: 0.25, max: 4, step: 0.01, initial: 1, get: () => state.zoom, set: (v) => (state.zoom = v) },
+      { group: "Render" },
+      { label: "resolution", min: 0.35, max: 1, step: 0.05, initial: 0.75, get: () => state.scale, set: (v) => (state.scale = v) },
+    ],
+    note: "Scroll to zoom. After the Shadertoy shader \"flooded\" by zguerrero, adapted in TouchDesigner. Input noises recreated with the original Noise TOP settings.",
+  });
+}
+
+start().catch((e) => fail(`Shader failed to start.\n${e.message}`));
+</script>
+</body>
+</html>

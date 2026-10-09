@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMRXR// Labs · Stormy torus</title>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+// STORMY TORUS, version caméra (base6/glsl2) du projet TouchDesigner de
+// l'écran central, adaptation d'un shader Shadertoy comme l'indique son
+// en-tête. Le pixel shader est chargé tel quel depuis stormy_torus.glsl.
+//
+// Valeurs du fichier : uFov 495.6, uCamPos (6.8, 0.64, 1), uCamTarget
+// (−352, 438.5, 1), uCamUp (5.5, 1, 1), uRes = (largeur, largeur), sortie
+// 1280×720. Dans TouchDesigner, uTime, uCamPos.y et uCamUp étaient pilotés par
+// l'analyse audio (spectralCentroid, fmsd, smsd) : ici le temps avance avec
+// l'horloge, à la vitesse réglable, et les autres gardent leur valeur
+// enregistrée. Le Mirror TOP placé après (mirror2) n'est pas reproduit : la
+// documentation de TouchDesigner ne décrit pas son repli exact.
+import { GRADE_GLSL, loadPalettes, applyPalette, fail, panel, chrome, program, wheelZoom } from "./labs-ui.js";
+
+chrome("Stormy torus");
+const canvas = document.getElementById("c");
+const gl = canvas.getContext("webgl2", { antialias: false });
+
+const VERT = `#version 300 es
+in vec2 aPos;
+void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+const state = { speed: 0.35, palette: "Russet", scale: 0.75, zoom: 1 };
+
+async function start() {
+  if (!gl) return fail("This experience needs WebGL2. Try a recent Chrome, Edge, Firefox or Safari.");
+  const [src, palettes] = await Promise.all([fetch("stormy_torus.glsl").then((r) => r.text()), loadPalettes()]);
+  // Zoom : gl_FragCoord remplacé par une coordonnée rapprochée du centre.
+  const frag = "#version 300 es\nprecision highp float;\nuniform float uViewZoom;\nuniform vec2 uCanvas;\n" +
+    "vec4 zFC() { return vec4((gl_FragCoord.xy - 0.5 * uCanvas) / max(uViewZoom, 1e-3) + 0.5 * uCanvas, gl_FragCoord.zw); }\n" +
+    src.replace(/gl_FragCoord/g, "zFC()").replace(/void\s+main\s*\(\s*\)/, "void fx_main()") + GRADE_GLSL +
+    "\nvoid main() { fx_main(); fragColor = vec4(grade2028(fragColor.rgb), 1.0); }";
+  const prog = program(gl, VERT, frag);
+  gl.useProgram(prog);
+  gl.bindVertexArray(gl.createVertexArray());
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  const u = (k) => gl.getUniformLocation(prog, k);
+  gl.uniform1f(u("uFov"), 495.6);
+  gl.uniform3f(u("uCamPos"), 6.8, 0.64, 1);
+  gl.uniform3f(u("uCamTarget"), -352, 438.5, 1);
+  gl.uniform3f(u("uCamUp"), 5.5, 1, 1);
+  applyPalette(gl, prog, palettes, state.palette);
+
+  let time = 0, last = performance.now();
+  const frame = (now) => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1);
+    const w = Math.max(64, Math.round(canvas.clientWidth * dpr * state.scale));
+    const h = Math.max(36, Math.round(canvas.clientHeight * dpr * state.scale));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    gl.viewport(0, 0, w, h);
+    time += (now - last) / 1000 * state.speed; last = now;
+    gl.useProgram(prog);
+    gl.uniform2f(u("uRes"), w, w);
+    gl.uniform1f(u("uTime"), time);
+    gl.uniform1f(u("uViewZoom"), state.zoom);
+    gl.uniform2f(u("uCanvas"), w, h);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+
+  wheelZoom(canvas, () => state.zoom, (v) => (state.zoom = v));
+  panel({
+    palettes, current: state.palette,
+    onPalette: (k) => { state.palette = k; applyPalette(gl, prog, palettes, k); },
+    sliders: [
+      { group: "Time" },
+      { label: "speed", min: 0, max: 2, step: 0.01, initial: 0.35, get: () => state.speed, set: (v) => (state.speed = v) },
+      { group: "View" },
+      { label: "zoom", min: 0.25, max: 4, step: 0.01, initial: 1, get: () => state.zoom, set: (v) => (state.zoom = v) },
+      { group: "Render" },
+      { label: "resolution", min: 0.35, max: 1, step: 0.05, initial: 0.75, get: () => state.scale, set: (v) => (state.scale = v) },
+    ],
+    note: "Scroll to zoom. Camera and shader from the original TouchDesigner file. Audio-driven in the show, clock-driven here.",
+  });
+}
+
+start().catch((e) => fail(`Shader failed to start.\n${e.message}`));
+</script>
+</body>
+</html>

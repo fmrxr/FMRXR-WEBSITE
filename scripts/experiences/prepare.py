@@ -137,6 +137,11 @@ def labs():
     write(keep, saved)
     shutil.copy(os.path.join(ROOT, "scripts", "experiences", "labs.html"), os.path.join(d, "index.html"))
     shutil.copy(os.path.join(ROOT, "scripts", "experiences", "storm.html"), os.path.join(d, "storm.html"))
+    for f in ["flooded.html", "torus.html", "labs-ui.js"]:
+        shutil.copy(os.path.join(ROOT, "scripts", "experiences", f), os.path.join(d, f))
+    # Shaders FLOODED et Stormy Torus, extraits tels quels du projet TouchDesigner.
+    for f in os.listdir(os.path.join(ROOT, "scripts", "experiences", "shaders")):
+        shutil.copy(os.path.join(ROOT, "scripts", "experiences", "shaders", f), os.path.join(d, f))
     # palettes-2028.json est produit par palettes.py depuis les images officielles
     # Coloro ; on le conserve d'une préparation à l'autre.
     for name, rel in LABS:

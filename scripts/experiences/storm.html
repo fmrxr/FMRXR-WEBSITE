@@ -320,7 +320,7 @@ function interaction() {
   head("View");
   const r2 = slider("orbit", "orbitX", -25, 25, 0.1);
   const r3 = slider("tilt", "orbitY", -15, 15, 0.1);
-  const r4 = slider("distance", "zoom", 0.4, 1.6, 0.01);
+  const r4 = slider("zoom", "zoom", 0.4, 1.6, 0.01);
   head("Palette 2028");
   const sel = document.createElement("select");
   sel.style.cssText = "width:100%;padding:6px;background:#14121d;color:#f5f5f8;border:1px solid rgba(245,245,248,.2);border-radius:6px;font:inherit";
@@ -336,7 +336,7 @@ function interaction() {
   const reset = Object.assign(document.createElement("button"), { type: "button", textContent: "Reset" });
   reset.addEventListener("click", () => { Object.assign(state, { speed: 1, orbitX: 0, orbitY: 0, zoom: 1 }); [r1, r2, r3, r4].forEach((f) => f()); });
   const note = document.createElement("p"); note.className = "note";
-  note.textContent = "Drag to orbit, scroll to move closer. Camera, object and shader from the original TouchDesigner file.";
+  note.textContent = "Drag to orbit, scroll to zoom. Camera, object and shader from the original TouchDesigner file.";
   panel.append(reset, note);
   toggle.addEventListener("click", () => {
     const open = panel.classList.toggle("open");
