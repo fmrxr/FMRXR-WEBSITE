@@ -61,11 +61,19 @@ npx dotenv -e .env.local -- npm test       # includes DB tests (RLS / write-guar
    a few minutes. Never assume a push is live: check the real page before relying on it.
 3. Project pages read Supabase live (`force-dynamic`), so publishing content is instant.
    **Deploy the code first, publish the content that depends on it second.**
-4. Environment variables live in the Hostinger app settings: the three Supabase values,
-   plus `NEXT_PUBLIC_GA_ID`, `GOOGLE_SITE_VERIFICATION`, `OS_AGENT_TOKEN`, `ANTHROPIC_API_KEY`
-   and, for lead e-mails, `SMTP_USER` / `SMTP_PASS` (Google app password) / `LEAD_NOTIFY_TO`.
-   Without the SMTP pair, briefs are still saved, just not e-mailed.
-   The `OS_*_PATH` / `*_LAUNCH_BAT_PATH` variables are local Windows paths, dev only.
+4. Environment variables live in the Hostinger app settings (**Websites → fmrxr.com →
+   Environment variables**). Set on Hostinger as of 09/10/2026:
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`: required.
+   - `SMTP_USER` / `SMTP_PASS` (Google app password, not the account password): lead e-mails.
+     Without them, briefs are still saved, just not e-mailed.
+   - `OS_AGENT_TOKEN` (agent API), `ANTHROPIC_API_KEY` (OS Brain).
+
+   Optional, not set on Hostinger:
+   - `LEAD_NOTIFY_TO`: defaults to `SMTP_USER`.
+   - `NEXT_PUBLIC_GA_ID`: defaults to `G-7VP6557ZL4` in `Analytics.tsx`.
+   - `GOOGLE_SITE_VERIFICATION`: only needed to verify Search Console by meta tag.
+
+   The `OS_*_PATH` / `OS_ASSETS_ROOT` / `*_LAUNCH_BAT_PATH` variables are local Windows paths, dev only.
 5. On a fresh install, claim the admin account at `/auth`.
 
 `netlify.toml` no longer deploys the site: the old Netlify site
