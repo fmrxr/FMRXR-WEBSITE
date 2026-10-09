@@ -115,3 +115,10 @@ Fiche détaillée par expérience, comptes visiteurs, favoris, commentaires, tab
 ## Libellés des rangées
 
 En anglais, langue du site : « Body & camera », « Games », « 3D spaces », « Labs · live shaders ».
+
+## Révision du 09/10/2026 · fiches détaillées
+
+- **La fiche détaillée d'une expérience est sa fiche projet** `/projects/<slug>` (Supabase, éditable dans l'admin). Pas de page `/experiential/<slug>` : une œuvre, une seule page. Le champ `project` du registre devient obligatoire, et le lecteur affiche un lien « View the project → ».
+- Fiches : `access-protocol` (existe déjà), `radiance`, `spicy-airport`, `le-son-de-la-terre`, `fmrxr-labs` (une fiche pour les quatre shaders). Les quatre nouvelles sont créées **non publiées**, puis publiées après le déploiement du code, jamais avant.
+- Chaque fiche embarque son expérience via un élément de galerie `embed: true` qui pointe vers `https://fmrxr.com/experiences/<slug>/…`. `GameEmbed` délègue `camera; microphone` seulement aux URL de `fmrxr.com/experiences/`.
+- **ACCESS PROTOCOL reste dans le catalogue**, en démo. La fiche `/projects/access-protocol` passe aussi à la démo (elle embarquait le vrai jeu avec les vrais codes Shotgun). Le changement d'URL se fait après le déploiement.
