@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMRXR// Labs · Storm tunnel</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  canvas.drag { cursor: grabbing; }
+  #tag, #err {
+    position: fixed; left: 16px; bottom: 14px; margin: 0;
+    font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: .15em; text-transform: uppercase; color: #f5f5f8;
+    text-shadow: 0 0 8px rgba(0,0,0,.8); pointer-events: none;
+  }
+  #tag b { color: #7bef7b; font-weight: 700; }
+  #err { display: none; top: 16px; right: 16px; bottom: auto; white-space: pre-wrap; text-transform: none; letter-spacing: 0; color: #ff5a5f; }
+  #toggle {
+    position: fixed; top: 12px; right: 12px; z-index: 3; cursor: pointer;
+    font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .15em;
+    color: #f5f5f8; background: rgba(13,12,20,.72); border: 1px solid rgba(245,245,248,.18);
+    border-radius: 999px; padding: 8px 12px; backdrop-filter: blur(6px);
+  }
+  #toggle:hover { border-color: #7bef7b; color: #7bef7b; }
+  #panel {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 2; width: 270px; max-width: 86vw;
+    overflow-y: auto; padding: 48px 14px 24px; box-sizing: border-box;
+    background: rgba(13,12,20,.86); border-left: 1px solid rgba(245,245,248,.12); backdrop-filter: blur(8px);
+    font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #c9c9d2;
+    transform: translateX(100%); transition: transform .25s ease;
+  }
+  #panel.open { transform: none; }
+  #panel h4 { margin: 14px 0 4px; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: #7b7a8e; font-weight: 600; }
+  #panel .row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 5px 0; }
+  #panel .row span:last-child { color: #f5f5f8; font-variant-numeric: tabular-nums; }
+  #panel input[type=range] { grid-column: 1 / 3; width: 100%; margin: 0; accent-color: #7bef7b; }
+  #panel button {
+    width: 100%; margin-top: 10px; padding: 8px; cursor: pointer; border-radius: 6px;
+    font: inherit; letter-spacing: .15em; text-transform: uppercase;
+    color: #f5f5f8; background: transparent; border: 1px solid rgba(245,245,248,.2);
+  }
+  #panel button:hover, #panel button[aria-pressed=true] { border-color: #7bef7b; color: #7bef7b; }
+  #panel .note { margin-top: 12px; color: #7b7a8e; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<p id="tag">FMRXR<b>//</b> LABS · Storm tunnel</p>
+<button id="toggle" type="button" aria-expanded="false" aria-controls="panel">PARAMETERS</button>
+<aside id="panel" aria-label="Shader parameters"></aside>
+<pre id="err"></pre>
+<script>
+// « Rectangular Storm Tunnel », matériau GLSL du projet TouchDesigner de l'écran
+// central (base4/glsl2). Le vertex et le pixel shader sont repris tels quels ;
+// seules les fonctions TouchDesigner sont remplacées par leur équivalent
+// WebGL : P → aPos, TDDeform → matrice de geo1, TDWorldToProj → caméra.
+//
+// Valeurs lues dans le .toe : caméra cam1 (t 4.12943 3.57489 47.8717,
+// r −172.702 −174.056 0.000252, pivot −4.98683 −6.11019 −95.9797), geo1
+// (ty −0.6, échelle 3.2), rendu 1280×720, uTime = absTime.seconds.
+// Géométrie : sphere1 du même réseau (rayon 1.7, 1000 × 1000). Le réseau
+// sauvegardé branche grid1, dont les valeurs par défaut ne sont pas lisibles
+// hors de TouchDesigner ; sphere1 est la seule géométrie paramétrée du réseau.
+
+const fail = (m) => { const e = document.getElementById("err"); e.textContent = m; e.style.display = "block"; };
+const canvas = document.getElementById("c");
+const gl = canvas.getContext("webgl2", { antialias: true });
+
+const VERT = `#version 300 es
+in vec3 aPos;
+uniform mat4 uModel, uView, uProj;
+uniform float uTime;
+out vec3 vColor;
+out float vFog;
+
+vec2 rotate(vec2 p, float a)
+{
+    float c = cos(a);
+    float s = sin(a);
+    return mat2(c,-s,s,c)*p;
+}
+
+void main()
+{
+    vec3 p = aPos;
+    float t = uTime;
+
+    float z = p.y * 20.0;
+    vec2 uv = p.xz * 8.0;
+    vec2 rect = sign(uv) * vec2(3.0,2.5);
+    vec2 wall = mix(uv, rect, 0.85);
+    vec3 pos = vec3(wall.x, wall.y, z);
+
+    vec3 q = pos * 0.15;
+    float storm = 0.0;
+    float amp = 1.0;
+    for(int i=0;i<5;i++)
+    {
+        q.xy = rotate(q.xy, 0.4);
+        float n =
+            sin(q.x*3.0 + t)
+          + sin(q.y*4.0 - t*1.2)
+          + sin(q.z*2.0 + t*0.7);
+        storm += n * amp;
+        q *= 5.7;
+        amp *= 0.55;
+    }
+
+    vec2 normalDir = normalize(wall);
+    pos.xy += normalDir * storm * 0.4;
+    pos.z += storm * 0.8;
+    pos.xy = rotate(pos.xy, sin(z*0.05 + t)*0.2);
+
+    vec4 worldPos = uModel * vec4(pos,1.0);
+    gl_Position = uProj * uView * worldPos;
+
+    vColor =
+        0.5 +
+        0.5*sin(
+            vec3(1.0,2.0,3.0)
+            + storm*2.0
+            + z*0.05
+        );
+    vFog = exp(-abs(z)*0.03);
+}`;
+
+// Pixel shader d'origine, plus la palette 2027-2028 de WGSN × Coloro
+// (valeurs écran des échantillons officiels coloro.com/key-colors) :
+// Luminous Blue 125-28-38 #193F8F, Radiant Earth 017-42-31 #BA4433,
+// Deep Green 082-30-14 #1C5247, plus la crème FMRXR #F2EDE4 en haut du
+// dégradé. uPalette = 0 : couleurs d'origine.
+const FRAG = `#version 300 es
+precision highp float;
+in vec3 vColor;
+in float vFog;
+uniform int uPalette;
+out vec4 fragColor;
+const vec3 P_DG = vec3(0.110, 0.322, 0.278);
+const vec3 P_LB = vec3(0.098, 0.247, 0.561);
+const vec3 P_RE = vec3(0.729, 0.267, 0.200);
+const vec3 P_CR = vec3(0.949, 0.929, 0.894);
+vec3 ramp2028(float t) {
+  t = clamp(t, 0.0, 1.0);
+  if (t < 0.35) return mix(P_DG, P_LB, t / 0.35);
+  if (t < 0.72) return mix(P_LB, P_RE, (t - 0.35) / 0.37);
+  return mix(P_RE, P_CR, (t - 0.72) / 0.28);
+}
+void main()
+{
+    vec3 col = vColor;
+    if (uPalette == 1) col = ramp2028(dot(col, vec3(0.2126, 0.7152, 0.0722)));
+    col *= vFog;
+    fragColor = vec4(col,1.0);
+}`;
+
+// ---------- matrices (colonnes, comme WebGL)
+const I = () => [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+function mul(a, b) {
+  const o = new Array(16).fill(0);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++)
+    for (let k = 0; k < 4; k++) o[c*4+r] += a[k*4+r] * b[c*4+k];
+  return o;
+}
+const T = (x,y,z) => [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1];
+const S = (x,y,z) => [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1];
+const RX = (d) => { const a=d*Math.PI/180, c=Math.cos(a), s=Math.sin(a); return [1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1]; };
+const RY = (d) => { const a=d*Math.PI/180, c=Math.cos(a), s=Math.sin(a); return [c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1]; };
+const RZ = (d) => { const a=d*Math.PI/180, c=Math.cos(a), s=Math.sin(a); return [c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1]; };
+function invert(m) {
+  const inv = new Array(16);
+  inv[0]=m[5]*m[10]*m[15]-m[5]*m[11]*m[14]-m[9]*m[6]*m[15]+m[9]*m[7]*m[14]+m[13]*m[6]*m[11]-m[13]*m[7]*m[10];
+  inv[4]=-m[4]*m[10]*m[15]+m[4]*m[11]*m[14]+m[8]*m[6]*m[15]-m[8]*m[7]*m[14]-m[12]*m[6]*m[11]+m[12]*m[7]*m[10];
+  inv[8]=m[4]*m[9]*m[15]-m[4]*m[11]*m[13]-m[8]*m[5]*m[15]+m[8]*m[7]*m[13]+m[12]*m[5]*m[11]-m[12]*m[7]*m[9];
+  inv[12]=-m[4]*m[9]*m[14]+m[4]*m[10]*m[13]+m[8]*m[5]*m[14]-m[8]*m[6]*m[13]-m[12]*m[5]*m[10]+m[12]*m[6]*m[9];
+  inv[1]=-m[1]*m[10]*m[15]+m[1]*m[11]*m[14]+m[9]*m[2]*m[15]-m[9]*m[3]*m[14]-m[13]*m[2]*m[11]+m[13]*m[3]*m[10];
+  inv[5]=m[0]*m[10]*m[15]-m[0]*m[11]*m[14]-m[8]*m[2]*m[15]+m[8]*m[3]*m[14]+m[12]*m[2]*m[11]-m[12]*m[3]*m[10];
+  inv[9]=-m[0]*m[9]*m[15]+m[0]*m[11]*m[13]+m[8]*m[1]*m[15]-m[8]*m[3]*m[13]-m[12]*m[1]*m[11]+m[12]*m[3]*m[9];
+  inv[13]=m[0]*m[9]*m[14]-m[0]*m[10]*m[13]-m[8]*m[1]*m[14]+m[8]*m[2]*m[13]+m[12]*m[1]*m[10]-m[12]*m[2]*m[9];
+  inv[2]=m[1]*m[6]*m[15]-m[1]*m[7]*m[14]-m[5]*m[2]*m[15]+m[5]*m[3]*m[14]+m[13]*m[2]*m[7]-m[13]*m[3]*m[6];
+  inv[6]=-m[0]*m[6]*m[15]+m[0]*m[7]*m[14]+m[4]*m[2]*m[15]-m[4]*m[3]*m[14]-m[12]*m[2]*m[7]+m[12]*m[3]*m[6];
+  inv[10]=m[0]*m[5]*m[15]-m[0]*m[7]*m[13]-m[4]*m[1]*m[15]+m[4]*m[3]*m[13]+m[12]*m[1]*m[7]-m[12]*m[3]*m[5];
+  inv[14]=-m[0]*m[5]*m[14]+m[0]*m[6]*m[13]+m[4]*m[1]*m[14]-m[4]*m[2]*m[13]-m[12]*m[1]*m[6]+m[12]*m[2]*m[5];
+  inv[3]=-m[1]*m[6]*m[11]+m[1]*m[7]*m[10]+m[5]*m[2]*m[11]-m[5]*m[3]*m[10]-m[9]*m[2]*m[7]+m[9]*m[3]*m[6];
+  inv[7]=m[0]*m[6]*m[11]-m[0]*m[7]*m[10]-m[4]*m[2]*m[11]+m[4]*m[3]*m[10]+m[8]*m[2]*m[7]-m[8]*m[3]*m[6];
+  inv[11]=-m[0]*m[5]*m[11]+m[0]*m[7]*m[9]+m[4]*m[1]*m[11]-m[4]*m[3]*m[9]-m[8]*m[1]*m[7]+m[8]*m[3]*m[5];
+  inv[15]=m[0]*m[5]*m[10]-m[0]*m[6]*m[9]-m[4]*m[1]*m[10]+m[4]*m[2]*m[9]+m[8]*m[1]*m[6]-m[8]*m[2]*m[5];
+  const det = m[0]*inv[0]+m[1]*inv[4]+m[2]*inv[8]+m[3]*inv[12];
+  return inv.map((v) => v / det);
+}
+// Transformation TouchDesigner par défaut : Scale Rotate Translate, rotation
+// Rx Ry Rz, autour du pivot : T(t) · T(p) · Rz · Ry · Rx · S · T(−p).
+const tdXform = (t, r, s, p) =>
+  [T(...t), T(...p), RZ(r[2]), RY(r[1]), RX(r[0]), S(...s), T(-p[0], -p[1], -p[2])].reduce(mul);
+
+const CAM = { t: [4.12943, 3.57489, 47.8717], r: [-172.702, -174.056, 0.000252286], p: [-4.98683, -6.11019, -95.9797] };
+const MODEL = tdXform([0, -0.6, 0], [0, 0, 0], [3.2, 3.2, 3.2], [0, 0, 0]);
+
+// Projection : angle de vue horizontal de 45° (valeur par défaut d'une caméra
+// TouchDesigner, cam1 ne la modifie pas). Plans proche/lointain resserrés par
+// rapport à 0.01 / 100000 pour la précision du tampon de profondeur web.
+function perspective(aspect) {
+  const f = 1 / Math.tan((45 * Math.PI / 180) / 2), n = 0.1, fa = 5000;
+  return [f,0,0,0, 0,f*aspect,0,0, 0,0,(fa+n)/(n-fa),-1, 0,0,2*fa*n/(n-fa),0];
+}
+
+// Sphère SOP, rayon 1.7, 1000 rangées × 1000 colonnes, en polygones.
+function sphere(r, rows, cols) {
+  const pos = new Float32Array(rows * cols * 3);
+  let k = 0;
+  for (let i = 0; i < rows; i++) {
+    const th = Math.PI * i / (rows - 1), y = r * Math.cos(th), s = r * Math.sin(th);
+    for (let j = 0; j < cols; j++) {
+      const ph = 2 * Math.PI * j / cols;
+      pos[k++] = s * Math.cos(ph); pos[k++] = y; pos[k++] = s * Math.sin(ph);
+    }
+  }
+  const idx = new Uint32Array((rows - 1) * cols * 6);
+  k = 0;
+  for (let i = 0; i < rows - 1; i++) for (let j = 0; j < cols; j++) {
+    const a = i * cols + j, b = i * cols + (j + 1) % cols, c = a + cols, d = b + cols;
+    idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d;
+  }
+  return { pos, idx };
+}
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+
+const state = { speed: 1, orbitX: 0, orbitY: 0, zoom: 1, palette: 1 };
+
+function start() {
+  if (!gl) return fail("This experience needs WebGL2. Try a recent Chrome, Edge, Firefox or Safari.");
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+  gl.bindAttribLocation(prog, 0, "aPos");
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+
+  const geo = sphere(1.7, 1000, 1000);
+  gl.bindVertexArray(gl.createVertexArray());
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, geo.pos, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, geo.idx, gl.STATIC_DRAW);
+  const count = geo.idx.length;
+
+  const u = (n) => gl.getUniformLocation(prog, n);
+  const uModel = u("uModel"), uView = u("uView"), uProj = u("uProj"), uTime = u("uTime"), uPal = u("uPalette");
+  gl.uniformMatrix4fv(uModel, false, MODEL);
+  gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(0, 0, 0, 1);
+
+  let time = 0, last = performance.now();
+  const frame = (now) => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    gl.viewport(0, 0, w, h);
+    time += (now - last) / 1000 * state.speed; last = now;
+
+    // Regard de cam1, plus le petit orbite au glisser autour de son pivot.
+    const cam = tdXform(CAM.t.map((v, i) => i === 2 ? v * state.zoom : v),
+      [CAM.r[0] + state.orbitY, CAM.r[1] + state.orbitX, CAM.r[2]], [1, 1, 1], CAM.p);
+    gl.uniformMatrix4fv(uView, false, invert(cam));
+    gl.uniformMatrix4fv(uProj, false, perspective(w / h));
+    gl.uniform1f(uTime, time);
+    gl.uniform1i(uPal, state.palette);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  interaction();
+}
+
+function interaction() {
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, ox: state.orbitX, oy: state.orbitY }; canvas.classList.add("drag"); canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    state.orbitX = Math.max(-25, Math.min(25, drag.ox - (e.clientX - drag.x) * 0.08));
+    state.orbitY = Math.max(-15, Math.min(15, drag.oy - (e.clientY - drag.y) * 0.08));
+  });
+  const up = () => { drag = null; canvas.classList.remove("drag"); };
+  canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
+  canvas.addEventListener("wheel", (e) => { e.preventDefault(); state.zoom = Math.max(0.4, Math.min(1.6, state.zoom * (1 + e.deltaY * 0.001))); }, { passive: false });
+
+  const panel = document.getElementById("panel"), toggle = document.getElementById("toggle");
+  const slider = (label, key, min, max, step) => {
+    const row = document.createElement("label"); row.className = "row";
+    const name = document.createElement("span"); name.textContent = label;
+    const val = document.createElement("span"); val.textContent = state[key].toFixed(2);
+    const input = Object.assign(document.createElement("input"), { type: "range", min, max, step, value: state[key] });
+    input.addEventListener("input", () => { state[key] = parseFloat(input.value); val.textContent = state[key].toFixed(2); });
+    row.append(name, val, input); panel.append(row);
+    return () => { input.value = state[key]; val.textContent = state[key].toFixed(2); };
+  };
+  const head = (t) => { const h = document.createElement("h4"); h.textContent = t; panel.append(h); };
+  head("Time");
+  const r1 = slider("speed", "speed", 0, 3, 0.01);
+  head("View");
+  const r2 = slider("orbit", "orbitX", -25, 25, 0.1);
+  const r3 = slider("tilt", "orbitY", -15, 15, 0.1);
+  const r4 = slider("distance", "zoom", 0.4, 1.6, 0.01);
+  head("Colour");
+  const pal = Object.assign(document.createElement("button"), { type: "button", textContent: "2028 palette" });
+  pal.setAttribute("aria-pressed", "true");
+  pal.addEventListener("click", () => {
+    state.palette = state.palette ? 0 : 1;
+    pal.setAttribute("aria-pressed", String(!!state.palette));
+    pal.textContent = state.palette ? "2028 palette" : "Original colours";
+  });
+  const reset = Object.assign(document.createElement("button"), { type: "button", textContent: "Reset" });
+  reset.addEventListener("click", () => { Object.assign(state, { speed: 1, orbitX: 0, orbitY: 0, zoom: 1 }); [r1, r2, r3, r4].forEach((f) => f()); });
+  const note = document.createElement("p"); note.className = "note";
+  note.textContent = "Drag to orbit, scroll to move closer. Camera, object and shader from the original TouchDesigner file.";
+  panel.append(pal, reset, note);
+  toggle.addEventListener("click", () => {
+    const open = panel.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.textContent = open ? "CLOSE" : "PARAMETERS";
+  });
+}
+
+try { start(); } catch (e) { fail(`Shader failed to start.\n${e.message}`); }
+</script>
+</body>
+</html>

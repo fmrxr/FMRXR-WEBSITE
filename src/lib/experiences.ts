@@ -72,6 +72,13 @@ export const EXPERIENCES: Experience[] = [
     entry: "/experiences/le-son-de-la-terre/index.html", ...media("le-son-de-la-terre"),
     requires: [], project: "le-son-de-la-terre",
   },
+  {
+    slug: "lab-storm-tunnel", title: "STORM TUNNEL", row: "labs", year: 2026,
+    pitch: "A rectangular tunnel torn open by a five-octave storm field, drawn on a million-vertex sphere.",
+    credits: ["FMRXR Labs", "GLSL material from a TouchDesigner show file, ported to WebGL"],
+    entry: "/experiences/labs/storm.html", ...media("lab-storm-tunnel"),
+    requires: [], desktopOnly: true, project: "fmrxr-labs",
+  },
   lab("lab-phyllotaxis", "phyllotaxis_grid", "PHYLLOTAXIS", "A sunflower's growth rule laid out as a breathing grid."),
   lab("lab-depth-tunnel", "tox13_depth_tunnel", "DEPTH TUNNEL", "Noise folded into an endless corridor of depth."),
   lab("lab-bouncing-bars", "tox4_bouncing_bars", "BOUNCING BARS", "Bars that fall, bounce and settle like a rhythm section."),

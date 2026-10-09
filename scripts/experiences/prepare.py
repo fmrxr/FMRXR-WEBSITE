@@ -131,6 +131,7 @@ LABS = [("phyllotaxis_grid", "phyllotaxis_grid.glsl"), ("tox13_depth_tunnel", "m
 def labs():
     d = fresh("labs")
     shutil.copy(os.path.join(ROOT, "scripts", "experiences", "labs.html"), os.path.join(d, "index.html"))
+    shutil.copy(os.path.join(ROOT, "scripts", "experiences", "storm.html"), os.path.join(d, "storm.html"))
     for name, rel in LABS:
         shutil.copy(os.path.join(SRC["shaders"], rel), os.path.join(d, name + ".glsl"))
     # Bornes réelles des curseurs de Phyllotaxis : celles de son aperçu web

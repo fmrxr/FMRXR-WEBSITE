@@ -49,6 +49,7 @@ const SHOTS = {
   },
   "spicy-airport": { url: "/experiences/spicy-airport/index.html", warm: 7000, act: (p) => circle(p, 640, 360, 160, 9000) },
   "le-son-de-la-terre": { url: "/experiences/le-son-de-la-terre/index.html", warm: 5000, act: () => sleep(9000) },
+  "lab-storm-tunnel": { url: "/experiences/labs/storm.html", warm: 3000, act: () => sleep(9000) },
   "lab-phyllotaxis": { url: "/experiences/labs/index.html?s=phyllotaxis_grid", warm: 1500, act: () => sleep(9000) },
   "lab-depth-tunnel": { url: "/experiences/labs/index.html?s=tox13_depth_tunnel", warm: 1500, act: () => sleep(9000) },
   "lab-bouncing-bars": { url: "/experiences/labs/index.html?s=tox4_bouncing_bars", warm: 1500, act: () => sleep(9000) },
