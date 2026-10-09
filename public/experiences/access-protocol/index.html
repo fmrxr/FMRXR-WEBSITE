@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>ACCESS PROTOCOL · Cyberpunk Halloween · 42 Marches</title>
+<meta name="description" content="ACCESS PROTOCOL, the Cyberpunk Halloween promo game, portfolio demo by FMRXR Studio.">
+<meta name="theme-color" content="#05060a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20260917e">
+</head>
+<body data-layout="mobile">
+
+<button id="btnSound" type="button" aria-label="Toggle sound">SOUND ON</button>
+<a id="btnStaff" class="corner-btn" href="https://fmrxr.com/experiential" target="_blank" rel="noopener">FMRXR//</a>
+
+<!-- partner + studio logos, discreetly visible on every screen -->
+<div id="logoBar" class="logo-bar">
+  <img src="assets/logo_morninglory.png" alt="Morninglory Paris">
+  <img src="assets/logo_42marches.png" alt="42 Marches">
+  <img src="assets/logo_bae_party.png" alt="Bae Party">
+  <img src="assets/logo_fmrxr.png" alt="FMRXR Studio">
+</div>
+
+<!-- GAMEPLAY -->
+<canvas id="c" hidden></canvas>
+
+<!-- MENU -->
+<section id="menu" class="screen">
+  <div class="stage" data-desk="assets/bg_terminal_desktop.jpg"></div>
+  <video id="introVid" src="assets/intro_official.mp4?v=4" poster="assets/intro_official_poster.jpg?v=4" muted loop playsinline autoplay preload="auto"></video>
+  <div class="menu-panel">
+    <img class="logo-ch" src="assets/logo_cyberpunk_halloween.png" alt="Cyberpunk Halloween">
+    <p class="kicker">SOFI &amp; CHTAK BIRTHDAYS EDITION</p>
+    <h1 class="title">ACCESS PROTOCOL</h1>
+    <div class="levels" role="radiogroup" aria-label="Difficulty">
+      <button type="button" role="radio" data-level="easy">EASY<b>−10%</b></button>
+      <button type="button" role="radio" data-level="medium">MEDIUM<b>−20%</b></button>
+      <button type="button" role="radio" data-level="hard">HARD<b>−30%</b></button>
+    </div>
+    <ul class="legend">
+      <li class="lg-key"><img data-icon="key" src="assets/sprite_key_01.png" alt=""><b>KEY</b><span>TAP IT</span></li>
+      <li class="lg-intr"><img data-icon="intr" src="assets/sprite_intrusion_01.png" alt=""><b>INTRUSION</b><span>SHOOT IT</span></li>
+      <li class="lg-bad"><img data-icon="corrupt" src="assets/sprite_key_01.png" alt=""><b>RED KEY</b><span>NEVER TOUCH · −2</span></li>
+    </ul>
+    <p class="rules"><b class="g">10 KEYS</b> IN <span id="rTime">40</span> S · ONLY <span id="rBudget">12</span> APPEAR<br>3 INTRUSIONS GET THROUGH = DENIED<br>WIN <b class="g" id="rOff">−20%</b> ON YOUR TICKET<br>PORTFOLIO DEMO · NO TICKET IS ISSUED</p>
+    <button id="btnStart" class="btn" type="button">TAP TO AUTHENTICATE</button>
+    <button id="btnTicket" class="btn ghost sm" type="button" hidden>VIEW MY TICKET</button>
+    <p class="small blink">BEST PLAYED AFTER MIDNIGHT</p>
+    <p class="lineup">31 OCTOBER · 42 MARCHES<br>ANAS · BAE PARTY · CHTAK<br>SOFI AIRLINES<sup class="live">LIVE</sup> · VIGILANCE ZERO</p>
+    <footer class="credits">
+      <span>GAME BY FMRXR STUDIO</span>
+    </footer>
+  </div>
+</section>
+
+<!-- WIN TRANSITION -->
+<section id="winScreen" class="screen" hidden>
+  <video id="winVid" src="assets/win_transition.mp4?v=4" poster="assets/win_transition_firstframe.jpg?v=4" playsinline preload="auto"></video>
+  <button id="btnSkip" class="btn ghost sm skip" type="button" hidden>SKIP</button>
+</section>
+
+<!-- REWARD -->
+<section id="reward" class="screen" hidden>
+  <div class="stage" data-desk="assets/bg_access_granted_desktop.jpg" data-mob="assets/bg_access_granted_mobile.jpg">
+    <div class="sign" id="sign"><img src="assets/logo_42marches.png" alt="42 Marches"></div>
+  </div>
+  <div class="fog"></div>
+  <div class="reward-wrap">
+    <div class="reward-head">
+      <p class="granted">ACCESS GRANTED</p>
+      <img class="logo-ch sm" src="assets/logo_cyberpunk_halloween.png" alt="Cyberpunk Halloween">
+    </div>
+    <div id="ticket" class="ticket">
+      <img class="t-bg" src="assets/ticket_voucher.png" alt="">
+      <div class="t-win">
+        <img class="t-flames" src="assets/fx_birthday_flames.png" alt="">
+        <img class="t-photo" src="assets/photo_sofi_chtak.png" alt="Sofi &amp; Chtak">
+        <div class="t-hb">HAPPY<br>BIRTHDAYS<b>SOFI &amp; CHTAK</b></div>
+        <div class="t-off" id="tOff">−10<small>%</small></div>
+        <div class="t-logos">
+          <img src="assets/logo_morninglory.png" alt="Morninglory Paris">
+          <img src="assets/logo_42marches.png" alt="42 Marches">
+          <img src="assets/logo_bae_party.png" alt="Bae Party">
+          <img src="assets/logo_fmrxr.png" alt="FMRXR Studio">
+        </div>
+      </div>
+      <div class="t-event">CYBERPUNK HALLOWEEN · 31 OCTOBER · 42 MARCHES</div>
+      <div class="t-qr" id="qr"></div>
+      <div class="t-code" id="codeText"></div>
+    </div>
+    <div class="reward-info">
+      <p class="g">THIS IS THE FMRXR PORTFOLIO DEMO OF THE GAME</p>
+      <div class="row">
+        <button id="btnCopy" class="btn ghost sm" type="button" hidden>COPY CODE</button>
+        <a id="btnShotgun" class="btn sm" href="https://fmrxr.com/experiential" target="_blank" rel="noopener">MORE FMRXR EXPERIENCES</a>
+      </div>
+      <p id="rewardMsg" class="small m"></p>
+      <div class="row">
+        <button id="btnShare1" class="btn ghost sm" type="button">SHARE THE GAME</button>
+        <button id="btnAgain2" class="btn ghost sm" type="button">PLAY AGAIN</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DENIED -->
+<section id="denied" class="screen" hidden>
+  <div class="stage" data-desk="assets/bg_access_denied.jpg"></div>
+  <div class="panel">
+    <p class="denied">ACCESS DENIED</p>
+    <p class="stat"><span id="dKeys">0/10</span> KEYS · SCORE <span id="dScore">000000</span></p>
+    <p id="dReason" class="small m"></p>
+    <p class="small" id="dNeed">YOU NEED 10 KEYS TO UNLOCK YOUR DISCOUNT.</p>
+    <button id="btnAgain" class="btn" type="button">RETRY AUTHENTICATION</button>
+    <div class="row">
+      <button id="btnShare2" class="btn ghost sm" type="button">SHARE THE GAME</button>
+      <button id="btnMenu" class="btn ghost sm" type="button">MENU</button>
+    </div>
+  </div>
+</section>
+
+<script src="game.js?v=20260917e" defer></script>
+</body>
+</html>
