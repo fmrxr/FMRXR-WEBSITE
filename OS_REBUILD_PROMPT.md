@@ -181,10 +181,10 @@ Next 16 (app router) · React 19 · TypeScript strict · Tailwind v4 · shadcn/u
 --color-fmaccent:#7bef7b (vert électrique — SIGNAL rare)
 --color-fmprimary:#4d9fff (bleu — interactif/secondaire)
 --color-fmborder:#1e1b2c  --color-fmcard:#111019  --color-fmmutedbg:#181620
---font-display:"Monument Extended" (fallback Geist)  --font-grotesk/sans:"Resolve Sans" (fallback Space Grotesk)  --font-mono:Geist Mono
+--font-display:Geist (900, capitales)  --font-grotesk/sans:Space Grotesk  --font-mono:Geist Mono   (tout via next/font ; Monument Extended / Resolve Sans = polices EXPLAB, pas FMRXR)
 ```
-Classes utilitaires disponibles : `.fm-canvas` (trame 72px + halo vert + grain, fade bas), `.fm-glass-card` (verre translucide blur+hairline, hover), `.fm-display` (Monument, uppercase, -0.03em, lh .92), `.fm-glow-accent` (halo vert sur mots accent), `.fm-rise` (entrée), `.fm-link` (hover vert), `.fm-row` (flèche qui glisse au hover).
-**Règles couleur** : fond violet-noir ; vert = accent/signal **rare** (états actifs, live, mots-clés) ; bleu = interactif (liens, CTA secondaires) ; **rouge = danger fonctionnel uniquement** (retards, critiques) — jamais comme accent de marque (le rouge est réservé aux documents imprimés). Cartes = glass. Titres = Monument. Coins arrondis en digital.
+Classes utilitaires disponibles : `.fm-canvas` (trame 72px + halo vert + grain, fade bas), `.fm-glass-card` (verre translucide blur+hairline, hover), `.fm-display` (Geist 900, uppercase, -0.03em, lh .92), `.fm-glow-accent` (halo vert sur mots accent), `.fm-rise` (entrée), `.fm-link` (hover vert), `.fm-row` (flèche qui glisse au hover).
+**Règles couleur** : fond violet-noir ; vert = accent/signal **rare** (états actifs, live, mots-clés) ; bleu = interactif (liens, CTA secondaires) ; **rouge = danger fonctionnel uniquement** (retards, critiques) — jamais comme accent de marque (le rouge est réservé aux documents imprimés). Cartes = glass. Titres = Geist 900 en capitales. Coins arrondis en digital.
 
 ### Backend OS déjà posé (Phase 1 hybride — à réutiliser tel quel)
 - `supabase/migrations/0005_os_graph.sql` : table `os_graph(owner uuid unique, data jsonb, updated_at, updated_by)`, RLS `owner=auth.uid() AND has_role(admin)`.
@@ -289,7 +289,7 @@ Chaque item est cliquable et navigue vers son module (ou `/os/legacy#<module>` t
 
 - **Ne jamais casser** le site public (`(public)/*`) ni le backoffice (`/admin/*`).
 - **RLS/admin** : toutes les routes `/os` et `/api/os` réservées au rôle `admin`.
-- **Design** : uniquement les tokens/classes `fmrxr-design` (§2). Vert rare, bleu interactif, rouge = danger seul. Glass + Monument + fm-canvas. Pas de lib d'icônes générique lourde (lucide déjà présent, usage sobre).
+- **Design** : uniquement les tokens/classes `fmrxr-design` (§2). Vert rare, bleu interactif, rouge = danger seul. Glass + Geist 900 + fm-canvas. Pas de lib d'icônes générique lourde (lucide déjà présent, usage sobre).
 - **Données** : le knowledge-graph est le contrat. Ne pas inventer de chiffres (finance, deadlines). Montants : distinguer devise d'émission (fait foi) vs affichage consolidé (switch TND/€).
 - **TS strict**, pas de `any` non justifié. Petits composants. Server components par défaut, `'use client'` seulement où nécessaire (store, interactions).
 - **Tests** : au moins couvrir `compute.ts` (fonctions pures) en Vitest.
