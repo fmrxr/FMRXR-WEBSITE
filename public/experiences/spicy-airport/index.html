@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07090d" />
+    <title>SPICY AIRPORT — SOFI AIRLINES · Engine Bay</title>
+    <meta
+      name="description"
+      content="FMRXR interactive aviation world. A SOFI AIRLINES airframe at the gate and a strippable turbofan digital twin."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Goldman:wght@400;700&family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="./assets/index-DwGpNI27.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three-B_fvafAg.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-BLDafV3i.css">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="viewport"></canvas>
+      <div id="labels" aria-hidden="true"></div>
+
+      <!-- ── Masthead ─────────────────────────────────────────────── -->
+      <header id="masthead">
+        <div class="lockup">
+          <span class="carrier">SOFI AIRLINES</span><span class="tail">&#9992;</span>
+        </div>
+        <div class="sub">SPICY AIRPORT &middot; FMRXR CONTROL TOWER</div>
+      </header>
+
+      <!-- ── Guided run: the four strokes ─────────────────────────── -->
+      <nav id="tour" aria-label="Guided run">
+        <button class="tour-tab" data-chapter="0">SUCK</button>
+        <button class="tour-tab" data-chapter="1">SQUEEZE</button>
+        <button class="tour-tab" data-chapter="2">BANG</button>
+        <button class="tour-tab" data-chapter="3">BLOW</button>
+        <div id="tour-progress"><i></i></div>
+      </nav>
+
+      <!-- ── Cabin announcement ───────────────────────────────────── -->
+      <section id="pa" class="hidden" aria-live="polite">
+        <div class="pa-head">
+          <span class="ding">&#9670;</span>
+          <span>CABIN ANNOUNCEMENT</span>
+          <span class="pa-sep">/</span>
+          <span id="pa-chapter">SUCK</span>
+        </div>
+        <p id="pa-text"></p>
+        <div class="pa-transport">
+          <button data-tour="prev" aria-label="Previous">&#9664;&#9664;</button>
+          <button data-tour="toggle" id="pa-toggle" aria-label="Play or pause">&#10073;&#10073;</button>
+          <button data-tour="next" aria-label="Next">&#9654;&#9654;</button>
+          <button data-tour="stop" class="pa-end">END RUN</button>
+        </div>
+      </section>
+
+      <!-- ── Flight strip ─────────────────────────────────────────── -->
+      <aside id="strip">
+        <div class="strip-row"><span class="k">FLT</span><span class="v" id="strip-flt">SPICY 1</span></div>
+        <div class="strip-row"><span class="k">STAND</span><span class="v" id="strip-stand">A07</span></div>
+        <div class="strip-row"><span class="k">TYPE</span><span class="v" id="strip-type">SA-320</span></div>
+        <div class="strip-row"><span class="k">PHASE</span><span class="v amber" id="strip-phase">BOARDING</span></div>
+      </aside>
+
+      <!-- ── Engine instruments ───────────────────────────────────── -->
+      <section id="instruments" aria-label="Engine instruments">
+        <div class="inst-head">
+          <span id="inst-engine">ENG 1</span>
+          <span id="inst-state" class="dim">SHUTDOWN</span>
+        </div>
+        <div class="gauge" data-gauge="n1">
+          <span class="g-label">N1</span>
+          <div class="g-track"><i style="width:0%"></i></div>
+          <span class="g-value">0.0<small>%</small></span>
+        </div>
+        <div class="gauge" data-gauge="n2">
+          <span class="g-label">N2</span>
+          <div class="g-track"><i style="width:0%"></i></div>
+          <span class="g-value">0.0<small>%</small></span>
+        </div>
+        <div class="gauge" data-gauge="egt">
+          <span class="g-label">EGT</span>
+          <div class="g-track"><i style="width:0%"></i></div>
+          <span class="g-value">15<small>&deg;C</small></span>
+        </div>
+        <div class="gauge" data-gauge="thr">
+          <span class="g-label">THR</span>
+          <div class="g-track"><i style="width:0%"></i></div>
+          <span class="g-value">0.0<small>kN</small></span>
+        </div>
+      </section>
+
+      <!-- ── Component read-out ───────────────────────────────────── -->
+      <section id="info" class="hidden" aria-live="polite">
+        <button id="info-close" aria-label="Close">&times;</button>
+        <div class="info-tag" id="info-tag">ATA 72</div>
+        <h2 id="info-title">FAN</h2>
+        <p id="info-body"></p>
+        <dl id="info-specs"></dl>
+      </section>
+
+      <!-- ── Aviation control panel ───────────────────────────────── -->
+      <section id="panel" aria-label="Flight deck controls">
+        <div class="panel-bar">
+          <span class="panel-id">SPICY DISPLAY UNIT</span>
+          <button id="panel-toggle" aria-expanded="true" aria-controls="panel-body">&#9662;</button>
+        </div>
+
+        <div id="panel-body">
+          <div class="korry-bank">
+            <button class="korry" data-action="master" data-state="off">
+              <span class="k1">ENG</span><span class="k2">MASTER</span>
+            </button>
+            <button class="korry" data-action="engine" data-value="L" data-state="on">
+              <span class="k1">ENG</span><span class="k2">1 &middot; LEFT</span>
+            </button>
+            <button class="korry" data-action="airflow" data-state="on">
+              <span class="k1">AIR</span><span class="k2">FLOW</span>
+            </button>
+            <button class="korry" data-action="audio" data-state="off">
+              <span class="k1">CABIN</span><span class="k2">AUDIO</span>
+            </button>
+            <button class="korry" data-action="tour" data-state="off">
+              <span class="k1">GUIDED</span><span class="k2">RUN</span>
+            </button>
+            <button class="korry warn" data-action="reset" data-state="off">
+              <span class="k1">RTN</span><span class="k2">BASE</span>
+            </button>
+          </div>
+
+          <div class="throttle-block">
+            <label for="throttle">THRUST LEVER</label>
+            <input id="throttle" type="range" min="0" max="100" value="0" step="0.5"
+                   aria-valuetext="0 percent" />
+            <div class="detents">
+              <span>IDLE</span><span>CLB</span><span>FLX</span><span>TOGA</span>
+            </div>
+          </div>
+
+          <div class="mode-block">
+            <span class="block-label">INSPECTION</span>
+            <div class="seg" role="radiogroup" aria-label="Inspection mode">
+              <button class="seg-btn active" data-action="mode" data-value="normal" role="radio" aria-checked="true">NORMAL</button>
+              <button class="seg-btn" data-action="mode" data-value="cutaway" role="radio" aria-checked="false">CUTAWAY</button>
+              <button class="seg-btn" data-action="mode" data-value="exploded" role="radio" aria-checked="false">EXPLODED</button>
+            </div>
+          </div>
+
+          <div class="mode-block">
+            <span class="block-label">VIEW</span>
+            <div class="seg" role="radiogroup" aria-label="Camera state">
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_AIRPORT" role="radio" aria-checked="false">APRON</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_AIRCRAFT" role="radio" aria-checked="false">AIRCRAFT</button>
+              <button class="seg-btn active" data-action="camera" data-value="CAMERA_ENGINE" role="radio" aria-checked="true">ENGINE</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_COCKPIT" role="radio" aria-checked="false">COCKPIT</button>
+            </div>
+          </div>
+
+          <div class="mode-block">
+            <span class="block-label">ENGINEERING</span>
+            <div class="seg">
+              <button class="seg-btn" data-action="engmode" role="radio" aria-checked="false">READABILITY MODE</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Hint rail ────────────────────────────────────────────── -->
+      <footer id="hint">
+        <span><b>DRAG</b> orbit</span><span><b>SCROLL</b> zoom</span><span><b>CLICK</b> inspect</span>
+        <span><b>E</b> explode</span><span><b>C</b> cutaway</span><span><b>SPACE</b> master</span>
+        <span><b>&uarr;&darr;</b> thrust</span><span><b>H</b> debug</span>
+      </footer>
+
+      <!-- ── Debug ────────────────────────────────────────────────── -->
+      <pre id="debug" class="hidden" aria-hidden="true"></pre>
+
+      <!-- ── Boot veil (not a loading screen: scene is live behind) ─ -->
+      <div id="boot"><span>SOFI AIRLINES &#9992; SPICY 1 &middot; SYSTEMS ALIGNING</span></div>
+    </div>
+
+  </body>
+</html>

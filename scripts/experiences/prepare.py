@@ -6,7 +6,7 @@ Sans argument : tout. Chaque étape efface puis recrée son dossier cible, donc
 le script se relance sans risque. Chaque remplacement est vérifié : un motif
 introuvable arrête tout plutôt que de publier un fichier à moitié corrigé.
 """
-import os, re, shutil, subprocess, sys
+import os, re, shutil, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "public", "experiences")
@@ -98,17 +98,25 @@ def access():
 
 
 def spicy():
-    cfg = os.path.join(SRC["spicy"], "vite.config.ts")
-    s = read(cfg)
-    if "base:" not in s:
-        s = sub(s, "defineConfig({", "defineConfig({\n  // Relatif : le build tourne aussi sous fmrxr.com/experiences/spicy-airport/.\n  base: './',")
-        write(cfg, s)
-    subprocess.run("npm run build", cwd=SRC["spicy"], shell=True, check=True)
+    # On copie le dernier build tel quel : recompiler embarquerait le travail en
+    # cours du dépôt spicy-airport. Pour un nouveau build : npm run build là-bas
+    # (vite.config.ts est déjà en base relative), puis relancer cette étape.
+    src = os.path.join(SRC["spicy"], "dist")
+    if re.search(r'(src|href)="/(assets|audio|brand|models)', read(os.path.join(src, "index.html"))):
+        sys.exit("le build SPICY AIRPORT a des chemins absolus : il faut base './' dans vite.config.ts")
     d = os.path.join(OUT, "spicy-airport")
     shutil.rmtree(d, ignore_errors=True)
-    shutil.copytree(os.path.join(SRC["spicy"], "dist"), d)
-    if re.search(r'(src|href)="/(assets|audio|brand|models)', read(os.path.join(d, "index.html"))):
-        sys.exit("chemins absolus restants dans SPICY AIRPORT")
+    shutil.copytree(src, d)
+    # Seuls les modèles que le code charge partent en ligne. Le build contient
+    # aussi des fichiers jamais référencés, dont a320.glb (licence Sketchfab
+    # Standard, redistribution interdite) : ils restent sur le disque.
+    code = "".join(read(os.path.join(d, "assets", f)) for f in os.listdir(os.path.join(d, "assets")) if f.endswith(".js"))
+    used = set(re.findall(r"models/([\w.-]+\.glb)", code))
+    if not used:
+        sys.exit("aucun modèle référencé trouvé dans le build SPICY AIRPORT")
+    for f in os.listdir(os.path.join(d, "models")):
+        if f not in used:
+            os.remove(os.path.join(d, "models", f))
 
 
 def terre():
