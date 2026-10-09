@@ -15,11 +15,39 @@
   }
   #tag b { color: #7bef7b; font-weight: 700; }
   #err { display: none; top: 16px; right: 16px; bottom: auto; white-space: pre-wrap; text-transform: none; letter-spacing: 0; color: #ff5a5f; }
+  #toggle {
+    position: fixed; top: 12px; right: 12px; z-index: 3; cursor: pointer;
+    font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .15em;
+    color: #f5f5f8; background: rgba(13,12,20,.72); border: 1px solid rgba(245,245,248,.18);
+    border-radius: 999px; padding: 8px 12px; backdrop-filter: blur(6px);
+  }
+  #toggle:hover { border-color: #7bef7b; color: #7bef7b; }
+  #panel {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 2; width: 270px; max-width: 86vw;
+    overflow-y: auto; padding: 48px 14px 24px; box-sizing: border-box;
+    background: rgba(13,12,20,.86); border-left: 1px solid rgba(245,245,248,.12); backdrop-filter: blur(8px);
+    font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #c9c9d2;
+    transform: translateX(100%); transition: transform .25s ease;
+  }
+  #panel.open { transform: none; }
+  #panel h4 { margin: 14px 0 4px; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: #7b7a8e; font-weight: 600; }
+  #panel .row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 5px 0; }
+  #panel .row span:last-child { color: #f5f5f8; font-variant-numeric: tabular-nums; }
+  #panel input[type=range] { grid-column: 1 / 3; width: 100%; margin: 0; accent-color: #7bef7b; }
+  #panel button {
+    width: 100%; margin-top: 16px; padding: 8px; cursor: pointer; border-radius: 6px;
+    font: inherit; letter-spacing: .15em; text-transform: uppercase;
+    color: #f5f5f8; background: transparent; border: 1px solid rgba(245,245,248,.2);
+  }
+  #panel button:hover { border-color: #7bef7b; color: #7bef7b; }
+  #panel .note { margin-top: 12px; color: #7b7a8e; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <p id="tag">FMRXR<b>//</b> LABS · <span id="name"></span></p>
+<button id="toggle" type="button" aria-expanded="false" aria-controls="panel">PARAMETERS</button>
+<aside id="panel" aria-label="Shader parameters"></aside>
 <pre id="err"></pre>
 <script>
 // Lecteur des shaders du mixer EFFET MÈRE, écrits pour un GLSL TOP de
@@ -121,10 +149,16 @@ async function start() {
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
-  for (const [u, v] of Object.entries(defaults(src))) {
+  const initial = defaults(src);
+  const values = {};
+  for (const [u, v] of Object.entries(initial)) {
+    values[u] = v.slice();
     const loc = gl.getUniformLocation(prog, u);
     if (loc) gl.uniform4fv(loc, v);
   }
+  // Bornes publiées seulement pour Phyllotaxis (son aperçu web d'origine).
+  const ranges = await fetch(`${name}.ranges.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  buildPanel(prog, src, initial, values, ranges);
   gl.uniform1i(gl.getUniformLocation(prog, "uGradeMode"), GRADE[name]);
   const uTime = gl.getUniformLocation(prog, "u_time");
   const uAspect = gl.getUniformLocation(prog, "u_aspect");
@@ -147,6 +181,85 @@ async function start() {
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
+}
+
+// Réglages : un curseur par composante de chaque vec4. Les noms sont ceux des
+// commentaires du shader (« uniform vec4 uFrame; // zoom | echelle | … »), les
+// composantes « (libre) » n'ont pas de curseur.
+// Bornes : celles de <shader>.ranges.json quand elles existent. Sinon aucune
+// borne n'est publiée, et la règle est explicite : de 0 à 3 fois la valeur
+// d'origine (symétrique si elle est négative, 0 à 1 pour une couleur ou une
+// valeur nulle), entier si la valeur d'origine est un entier ≥ 2.
+function labelsFrom(src) {
+  const out = {};
+  for (const m of src.matchAll(/^uniform\s+vec4\s+(u\w+)\s*;\s*\/\/\s*(.+)$/gm)) {
+    const parts = m[2].split("|").map((s) => s.trim());
+    out[m[1]] = parts.length === 4 ? parts : /rgb/i.test(m[2]) ? ["r", "g", "b", ""] : [m[2].trim(), "", "", ""];
+  }
+  return out;
+}
+
+function fallbackRange(v, label) {
+  if (/^(r|g|b)$/.test(label) || v === 0) return [0, 1, 0.001];
+  const int = Number.isInteger(v) && Math.abs(v) >= 2;
+  const lo = v < 0 ? 3 * v : 0, hi = v < 0 ? -3 * v : 3 * v;
+  return [lo, hi, int ? 1 : Math.abs(v) / 200];
+}
+
+function fmt(x) {
+  return Math.abs(x) >= 100 ? x.toFixed(0) : Math.abs(x) >= 10 ? x.toFixed(2) : x.toFixed(3);
+}
+
+function buildPanel(prog, src, initial, values, ranges) {
+  const panel = document.getElementById("panel");
+  const toggle = document.getElementById("toggle");
+  const labels = labelsFrom(src);
+  const inputs = [];
+  for (const [u, def] of Object.entries(initial)) {
+    const names = labels[u] || [u + ".x", u + ".y", u + ".z", u + ".w"];
+    const loc = gl.getUniformLocation(prog, u);
+    if (!loc) continue;
+    const head = document.createElement("h4");
+    head.textContent = u;
+    panel.append(head);
+    names.forEach((label, i) => {
+      if (!label || /libre/i.test(label)) return;
+      const [min, max, step] = ranges?.[u]?.[i] ?? fallbackRange(def[i], label);
+      const row = document.createElement("label");
+      row.className = "row";
+      const name = document.createElement("span");
+      name.textContent = label;
+      const val = document.createElement("span");
+      val.textContent = fmt(def[i]);
+      const input = Object.assign(document.createElement("input"), { type: "range", min, max, step, value: def[i] });
+      input.addEventListener("input", () => {
+        values[u][i] = parseFloat(input.value);
+        val.textContent = fmt(values[u][i]);
+        gl.uniform4fv(loc, values[u]);
+      });
+      inputs.push({ input, u, i, val, loc });
+      row.append(name, val, input);
+      panel.append(row);
+    });
+  }
+  const reset = Object.assign(document.createElement("button"), { type: "button", textContent: "Reset" });
+  reset.addEventListener("click", () => {
+    for (const { input, u, i, val, loc } of inputs) {
+      values[u][i] = initial[u][i];
+      input.value = initial[u][i];
+      val.textContent = fmt(initial[u][i]);
+      gl.uniform4fv(loc, values[u]);
+    }
+  });
+  const note = document.createElement("p");
+  note.className = "note";
+  note.textContent = ranges ? "Ranges from the original preview." : "Ranges: 0 to 3x the original value.";
+  panel.append(reset, note);
+  toggle.addEventListener("click", () => {
+    const open = panel.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.textContent = open ? "CLOSE" : "PARAMETERS";
+  });
 }
 
 start().catch((e) => fail(`Shader failed to start.\n${e.message}`));

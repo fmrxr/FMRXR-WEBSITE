@@ -23,6 +23,9 @@ export function GameEmbed({
   label?: string;
 }) {
   const [live, setLive] = useState(false);
+  // La caméra et le micro ne sont délégués qu'à nos propres expériences
+  // (fmrxr.com/experiences/), jamais à une page tierce.
+  const ours = /^(https:\/\/fmrxr\.com)?\/experiences\//.test(url);
 
   return (
     <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-fmborder bg-fmbg sm:aspect-[4/3] lg:aspect-video">
@@ -30,7 +33,7 @@ export function GameEmbed({
         <iframe
           src={url}
           title={title}
-          allow="fullscreen; autoplay; clipboard-write"
+          allow={`fullscreen; autoplay; clipboard-write${ours ? "; camera; microphone" : ""}`}
           className="absolute inset-0 h-full w-full"
         />
       ) : (

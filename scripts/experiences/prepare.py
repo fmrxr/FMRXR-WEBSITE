@@ -6,7 +6,7 @@ Sans argument : tout. Chaque étape efface puis recrée son dossier cible, donc
 le script se relance sans risque. Chaque remplacement est vérifié : un motif
 introuvable arrête tout plutôt que de publier un fichier à moitié corrigé.
 """
-import os, re, shutil, sys
+import json, os, re, shutil, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "public", "experiences")
@@ -133,6 +133,16 @@ def labs():
     shutil.copy(os.path.join(ROOT, "scripts", "experiences", "labs.html"), os.path.join(d, "index.html"))
     for name, rel in LABS:
         shutil.copy(os.path.join(SRC["shaders"], rel), os.path.join(d, name + ".glsl"))
+    # Bornes réelles des curseurs de Phyllotaxis : celles de son aperçu web
+    # d'origine (SPEC = [[uniform, groupe, [[label, défaut, min, max, pas] x4]], ...]).
+    # Les autres shaders n'ont pas de bornes publiées sur le disque.
+    prev = read(os.path.join(SRC["shaders"], "phyllotaxis_grid_preview.html"))
+    m = re.search(r"^const SPEC = (\[.*\]);$", prev, re.M)
+    if not m:
+        sys.exit("SPEC introuvable dans phyllotaxis_grid_preview.html")
+    spec = json.loads(m.group(1))
+    ranges = {u: [[c[2], c[3], c[4]] for c in comps] for u, _, comps in spec}
+    write(os.path.join(d, "phyllotaxis_grid.ranges.json"), json.dumps(ranges))
 
 
 STEPS = {"radiance": radiance, "access": access, "spicy": spicy, "terre": terre, "labs": labs}
