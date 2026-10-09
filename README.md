@@ -7,7 +7,7 @@ All FMRXR content is managed from `/admin`; public pages render it live (RLS-pro
 
 - **Frontend:** Next.js 16, React 19 (RSC + Server Actions), TypeScript, Tailwind v4, shadcn/Base-UI, Zod.
 - **Backend:** hosted Supabase — Postgres + Auth (email/password) + Storage (`media` bucket).
-- **Hosting:** Netlify (`netlify.toml` + `@netlify/plugin-nextjs`).
+- **Hosting:** Hostinger (Node app pulling from GitHub `main`), live at https://fmrxr.com since 30/09/2026.
 
 ## Local development
 
@@ -52,13 +52,25 @@ npm test                                   # pure unit tests (schemas, roles, re
 npx dotenv -e .env.local -- npm test       # includes DB tests (RLS / write-guard) once .env.local is set
 ```
 
-## Deploy to Netlify
+## Deploy (Hostinger)
 
-1. Push this `fmrxr-web/` repo to GitHub.
-2. In Netlify: connect the repo (build settings come from `netlify.toml`).
-3. Set the three env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`) in **Site settings → Environment variables**.
-4. Deploy, then claim the admin account at `/auth`.
+1. Check the active GitHub account first: `gh auth status` must show **`fmrxr`**
+   (the machine also has `spoofypooff-boop`, a test account).
+2. Push to `main` on [fmrxr/FMRXR-WEBSITE](https://github.com/fmrxr/FMRXR-WEBSITE).
+   Hostinger pulls and builds (`npm run build` → `next start`) on its own, with a delay of
+   a few minutes. Never assume a push is live: check the real page before relying on it.
+3. Project pages read Supabase live (`force-dynamic`), so publishing content is instant.
+   **Deploy the code first, publish the content that depends on it second.**
+4. Environment variables live in the Hostinger app settings: the three Supabase values,
+   plus `NEXT_PUBLIC_GA_ID`, `GOOGLE_SITE_VERIFICATION`, `OS_AGENT_TOKEN`, `ANTHROPIC_API_KEY`
+   and, for lead e-mails, `SMTP_USER` / `SMTP_PASS` (Google app password) / `LEAD_NOTIFY_TO`.
+   Without the SMTP pair, briefs are still saved, just not e-mailed.
+   The `OS_*_PATH` / `*_LAUNCH_BAT_PATH` variables are local Windows paths, dev only.
+5. On a fresh install, claim the admin account at `/auth`.
+
+`netlify.toml` no longer deploys the site: the old Netlify site
+(`fmrxrstudio.netlify.app`) only 301-redirects to https://fmrxr.com. Keep it as a
+fallback until Hostinger is proven stable (removing its `[[redirects]]` block brings it back).
 
 ## Phase 2 (not built)
 
