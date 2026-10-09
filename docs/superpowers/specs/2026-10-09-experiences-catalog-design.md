@@ -14,12 +14,14 @@ Remplacer la page d'attente `/experiential` (« Interactive experiences · Comin
 | Source des fiches | **Registre dans le code** (`src/lib/experiences.ts`), fichiers dans `public/experiences/<slug>/`. Pas de table Supabase : une expérience exige de toute façon un déploiement de fichiers, et la fiche suit le même déploiement que son code |
 | ACCESS PROTOCOL | **Version démo** hébergée sur fmrxr.com, sans aucun code promo |
 | Sons de SPICY AIRPORT | Accord de Sofi (Spicy Sofi) pour l'usage de « SPICY HOT! », **à condition de le créditer** |
+| Droits RADIANCE | Propriété de **FMRXR seule** (confirmé par Haïfa le 09/10/2026), publication libre |
+| Démo ACCESS PROTOCOL | **Accord de Morninglory** (09/10/2026), publication possible avant le 31/10 |
 
 ## Catalogue au lancement
 
 | Rangée | Slug | Source | Prérequis |
 |---|---|---|---|
-| Corps & caméra | `radiance` | `E:\FB ART&EVENT\radiance_cascades_mediapipe (2)\radiance_cascades_final.html`, créée pour SPECTRUM (05/2026) | caméra, ordinateur |
+| Corps & caméra | `radiance` | `E:\FB ART&EVENT\radiance_cascades_mediapipe (2)\radiance_cascades_final.html`, œuvre **propriété de FMRXR seule** (05/2026) | caméra, ordinateur |
 | Jeux | `access-protocol` | `Clients/Morninglory Paris/…/Jeu/game_shotgun/public/` | aucun (son conseillé) |
 | Espaces 3D | `spicy-airport` | `spicy-airport/` (Vite + Three.js), rebuild en `base: './'` | ordinateur conseillé, son |
 | Espaces 3D | `le-son-de-la-terre` | `Concepts/LeSonDeLaTerre_3D/index.html` (5,9 Mo autoportant) | aucun |
@@ -56,7 +58,7 @@ export type Experience = {
   requires: ("camera" | "microphone" | "sound" | "midi")[];
   desktopOnly?: boolean;
   featured?: boolean;
-  project?: string;          // slug de fiche projet liée (ex. "spectrum")
+  project?: string;          // slug de fiche projet liée (ex. "cyberpunk-halloween")
 };
 ```
 
@@ -64,7 +66,7 @@ Les libellés des rangées vivent dans le même fichier. Ajouter une expérience
 
 ## Préparation de chaque expérience
 
-**RADIANCE.** Copier `radiance_cascades_final.html` en `public/experiences/radiance/index.html`. Remplacer le chargement local de MediaPipe (`./mediapipe/vision_bundle.mjs` et `./mediapipe/wasm`, 33 Mo) par le CDN jsDelivr en version fixée (`@mediapipe/tasks-vision@0.10.35`, déjà le repli du fichier). Le modèle `hand_landmarker.task` reste chargé depuis storage.googleapis.com. Vérifier que le mode souris fonctionne sans caméra (refus d'autorisation) et que l'écran d'erreur est lisible. Crédit : « Created for SPECTRUM: The Birth of Light, Studio B3, 2026 ». Fiche liée : SPECTRUM.
+**RADIANCE.** Copier `radiance_cascades_final.html` en `public/experiences/radiance/index.html`. Remplacer le chargement local de MediaPipe (`./mediapipe/vision_bundle.mjs` et `./mediapipe/wasm`, 33 Mo) par le CDN jsDelivr en version fixée (`@mediapipe/tasks-vision@0.10.35`, déjà le repli du fichier). Le modèle `hand_landmarker.task` reste chargé depuis storage.googleapis.com. Vérifier que le mode souris fonctionne sans caméra (refus d'autorisation) et que l'écran d'erreur est lisible. Crédit : « FMRXR Studio, 2026 ». L'œuvre appartient à FMRXR seule : aucune mention de FB Art & Event ni de SPECTRUM, pas de fiche projet liée.
 
 **ACCESS PROTOCOL (démo).** Copier `game_shotgun/public/` en `public/experiences/access-protocol/`. Dans `game.js` :
 - supprimer les trois champs `promo` (codes base64) et le lien `SHOTGUN` ;
@@ -110,8 +112,6 @@ Fiche détaillée par expérience, comptes visiteurs, favoris, commentaires, tab
 - Contrôle `grep` des codes promo vide sur `public/experiences/access-protocol/`.
 - Après déploiement Hostinger : vérifier la page réelle avant d'annoncer quoi que ce soit (délai de tirage de plusieurs minutes constaté).
 
-## Points ouverts pour Haïfa
+## Libellés des rangées
 
-- Statut de diffusion de RADIANCE : accord de FB Art & Event nécessaire pour la publier hors SPECTRUM ?
-- Morninglory : accord pour publier la démo d'ACCESS PROTOCOL avant le 31/10, ou après seulement.
-- Libellés des rangées en anglais (langue du site) : « Body & camera », « Games », « 3D spaces », « Labs · live shaders ».
+En anglais, langue du site : « Body & camera », « Games », « 3D spaces », « Labs · live shaders ».
