@@ -48,7 +48,7 @@ Budget : chaque image réserve le « coût réservé par image » réglé dans l
 ## Mise en service
 
 1. **Migration** : coller `supabase/migrations/0017_photobooth.sql` dans l'éditeur SQL Supabase et exécuter.
-2. **Hostinger** : ajouter `HF_API_KEY_ID` et `HF_API_KEY_SECRET` dans les variables d'environnement (jamais `NEXT_PUBLIC_`). Déjà présents dans `.env.local`.
+2. **Hostinger** : ajouter `HF_API_KEY_ID` et `HF_API_KEY_SECRET` dans les variables d'environnement (jamais `NEXT_PUBLIC_`), **puis redéployer** : une variable ajoutée n'est lue qu'au déploiement suivant. Vérification sans frais : `GET /api/photobooth/status/00000000-0000-4000-8000-000000000000?session=x` répond `PROVIDER_NOT_CONFIGURED` (503) tant que la clé manque, `not_found` (404) quand elle est vue.
 3. Pousser le code, attendre que Hostinger l'ait tiré.
 4. `/admin/photobooth` → nouvelle campagne → statut Active → « Copier le lien ».
 5. Vérifier : `npx dotenv -e .env.local -- npm test` (les tests en base ne tournent qu'une fois la migration appliquée).
