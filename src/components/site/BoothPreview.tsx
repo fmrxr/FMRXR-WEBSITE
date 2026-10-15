@@ -11,7 +11,8 @@ import s from "./BoothPreview.module.css";
 
 const GESTURES = ["✋", "✊", "👍", "✌️"];
 
-export function BoothPreview() {
+/** hud=false : sans la vignette du style (hero, ou la carte donne deja l'info). */
+export function BoothPreview({ hud = true }: { hud?: boolean }) {
   const [i, setI] = useState(0);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -28,7 +29,7 @@ export function BoothPreview() {
         <div className={s.scan} />
         <div className={s.silhouette} />
       </div>
-      <div className={s.hud}>
+      {hud && <div className={s.hud}>
         <span className={s.ring}>
           <svg viewBox="0 0 50 50">
             <circle cx="25" cy="25" r="22" className={s.track} />
@@ -40,7 +41,7 @@ export function BoothPreview() {
           <span className={s.kicker}>Style</span>
           <span key={`s${i}`} className={s.name}>{style.label.en}</span>
         </span>
-      </div>
+      </div>}
       <span className={s.rec}>
         <span className={s.dot} /> LIVE · ON-DEVICE
       </span>

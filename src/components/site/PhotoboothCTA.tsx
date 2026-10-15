@@ -10,10 +10,13 @@ export function PhotoboothCTA({ index, source }: { index: string; source: string
     <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
       <div className="fm-glass-card grid gap-8 overflow-hidden rounded-2xl p-6 md:grid-cols-[1.3fr_1fr] md:p-10">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.15em] text-fmaccent">{index} · AI Photobooth</p>
-          <h2 className="fm-display mt-3 text-[clamp(2rem,5vw,3.6rem)] text-fmfg">
-            Your guests, portrayed by your brand.
+          <p className="text-[11px] uppercase tracking-[0.15em] text-fmaccent">{index}</p>
+          <h2 className="fm-display mt-3 text-[clamp(2.6rem,7vw,5.2rem)] text-fmfg">
+            AI Photo<span className="text-fmaccent">booth</span>
           </h2>
+          <p className="fm-display mt-3 text-[clamp(1.1rem,2.2vw,1.6rem)] text-fmfg/80">
+            Your guests, portrayed by your brand.
+          </p>
           <p className="fm-grotesk mt-5 max-w-xl text-[15px] leading-relaxed text-fmfg/80">
             Three gestures, one photo, a high-end portrait in under a minute. Editorial looks, magazine covers,
             film posters, collectible cards or full transformations, branded with your logo, printed on site

@@ -39,9 +39,9 @@ export default function Photobooth() {
   return (
     <>
       <PageHero
-        index="AI Photobooth"
-        title="Your guests, portrayed by your brand"
-        intro="A photobooth that composes a high-end portrait from three gestures. Built for brand activations, launches and festivals, run under live conditions."
+        index="New · FMRXR Experience"
+        title="AI Photobooth"
+        intro="Your guests, portrayed by your brand. A photobooth that composes a high-end portrait from three gestures, built for brand activations, launches and festivals, run under live conditions."
       />
 
       <section className="mx-auto flex max-w-[1200px] flex-wrap gap-3 px-5 md:px-8">

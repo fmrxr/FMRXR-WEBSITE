@@ -2,13 +2,30 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { BoothPreview } from "./BoothPreview";
 
 type Clip = { url: string; poster?: string; title?: string; description?: string };
+
+// Diapositives du hero : les clips video (reglages du site), puis les
+// lancements produit, rendus par un composant anime plutot qu'une video.
+type Slide =
+  | ({ kind: "video" } & Clip)
+  | { kind: "product"; title: string; description: string; href: string };
+
+const PRODUCTS: Extract<Slide, { kind: "product" }>[] = [
+  {
+    kind: "product",
+    title: "AI Photobooth",
+    description: "New release · branded AI portraits for events, driven by gestures, 14 styles.",
+    href: "/photobooth",
+  },
+];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export function Hero({ clips }: { clips: Clip[] }) {
-  const valid = (clips ?? []).filter((c) => c?.url);
+  const videos = (clips ?? []).filter((c) => c?.url);
+  const valid: Slide[] = [...videos.map((c) => ({ kind: "video" as const, ...c })), ...PRODUCTS];
   const hasVideo = valid.length > 0;
   const [i, setI] = useState(0);
   const refs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -19,7 +36,7 @@ export function Hero({ clips }: { clips: Clip[] }) {
       v.muted = true;
       v.defaultMuted = true;
       v.playsInline = true;
-      if (idx === i) v.play().catch(() => {});
+      if (valid[i]?.kind === "video" && idx === i) v.play().catch(() => {});
       else v.pause();
     });
   }, [i, valid.length]);
@@ -36,7 +53,17 @@ export function Hero({ clips }: { clips: Clip[] }) {
     <section className={`relative overflow-hidden ${hasVideo ? "flex min-h-dvh flex-col justify-end" : ""}`}>
       {hasVideo && (
         <div className="absolute inset-0 z-0 overflow-hidden bg-fmbg" aria-hidden>
-          {valid.map((c, idx) => (
+          {valid.map((c, idx) => c.kind === "product" ? (
+            <div
+              key={c.title}
+              className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${idx === i ? "opacity-100" : "opacity-0"}`}
+            >
+              {/* aperçu anime de la borne, en grand a droite (en fond sur mobile) */}
+              <div className="absolute inset-x-5 top-24 h-[52vh] opacity-60 md:inset-x-auto md:right-[6%] md:top-[14%] md:h-[60vh] md:w-[min(40vw,520px)] md:opacity-100">
+                {idx === i && <BoothPreview hud={false} />}
+              </div>
+            </div>
+          ) : (
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <video
               key={c.url}
@@ -104,7 +131,7 @@ export function Hero({ clips }: { clips: Clip[] }) {
               <div className="fm-glass-card w-full max-w-sm rounded-xl p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">
-                    <span className="text-fmaccent">●</span> Now showing
+                    <span className="text-fmaccent">●</span> {active?.kind === "product" ? "New release" : "Now showing"}
                   </span>
                   <span className="text-[10px] tabular-nums text-fmmuted">
                     {pad(i + 1)} / {pad(valid.length)}
@@ -113,6 +140,15 @@ export function Hero({ clips }: { clips: Clip[] }) {
                 <h2 className="fm-display mt-3 text-xl text-fmfg">{active?.title || "Untitled"}</h2>
                 {active?.description && (
                   <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{active.description}</p>
+                )}
+                {active?.kind === "product" && (
+                  <Link
+                    href={active.href}
+                    data-cta="hero_photobooth"
+                    className="group mt-3 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-fmfg"
+                  >
+                    Discover <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
+                  </Link>
                 )}
                 {valid.length > 1 && (
                   <div className="mt-4 flex gap-2">
