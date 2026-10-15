@@ -3,13 +3,18 @@
 .stage {
   position: fixed;
   inset: 0;
-  overflow: hidden;
+  /* Defilement vertical : sur telephone, l'ecran resultat (portrait, QR,
+     boutons) depasse la hauteur. La camera et le voile restent fixes. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: var(--color-fmbg);
   color: var(--color-fmfg);
 }
 
 .video {
-  position: absolute;
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -19,7 +24,7 @@
 }
 
 .veil {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background:
     radial-gradient(90% 70% at 50% 40%, transparent 40%, rgba(13, 12, 20, 0.85) 100%),

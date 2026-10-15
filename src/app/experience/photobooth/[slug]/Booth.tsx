@@ -19,6 +19,16 @@ const MAX_SIDE = 1536;
 
 const uuid = () => crypto.randomUUID();
 
+/**
+ * Moteur de detection de la main : GPU (WebGL) par defaut, CPU en secours.
+ * Sur iPhone (iOS 18.7, Safari 26.5, 15/10/2026) le GPU fonctionne : les
+ * « None » venaient d'une main a moitie hors champ, pas du moteur.
+ * Pour comparer sur place : &delegate=cpu ou &delegate=gpu.
+ */
+function preferredDelegate(): "GPU" | "CPU" {
+  return new URLSearchParams(window.location.search).get("delegate") === "cpu" ? "CPU" : "GPU";
+}
+
 // MediaPipe ecrit des messages d'information de son moteur (ex. « INFO: Created
 // TensorFlow Lite XNNPACK delegate for CPU. ») via console.error. Ce ne sont
 // pas des erreurs, mais Next.js les affiche comme telles en developpement. On
@@ -101,6 +111,7 @@ export function Booth({
     filterMediapipeInfo();
     if (landmarkerRef.current) return setTracker("ready");
     setTracker("loading");
+    const t0 = performance.now();
     try {
       // Modele officiel GestureRecognizer (il contient aussi le suivi de la main).
       const { FilesetResolver, GestureRecognizer } = await import("@mediapipe/tasks-vision");
@@ -119,9 +130,13 @@ export function Booth({
       };
       // GPU (WebGL) d'abord ; certains telephones et navigateurs le refusent : CPU.
       // Apres un plantage en cours de route, on repart directement en CPU.
-      landmarkerRef.current = cpuOnly ? await make("CPU") : await make("GPU").catch(() => make("CPU"));
+      landmarkerRef.current = cpuOnly || preferredDelegate() === "CPU"
+        ? await make("CPU")
+        : await make("GPU").catch(() => make("CPU"));
       setTracker("ready");
-    } catch {
+      console.warn(`photobooth: modele pret en ${Math.round(performance.now() - t0)} ms (${delegateRef.current})`);
+    } catch (e) {
+      console.error("photobooth: chargement du modele impossible", e);
       setTracker("failed"); // le quiz reste faisable au toucher
     }
   }, []);
@@ -131,7 +146,12 @@ export function Booth({
     if (!navigator.mediaDevices?.getUserMedia) return fail("CAMERA_UNAVAILABLE");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } },
+        // Telephone / tablette : 1280x720 suffit au portrait et divise par deux la
+        // memoire de l'image. Sur iPhone, Safari tue l'onglet (et le recharge)
+        // quand camera pleine resolution + MediaPipe depassent sa limite memoire.
+        video: window.matchMedia("(pointer: coarse)").matches
+          ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+          : { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
       streamRef.current = stream;
@@ -212,6 +232,7 @@ export function Booth({
     const fctx = frame.getContext("2d")!;
     let crashed = false;
     const v = videoRef.current!;
+    const dbg = debugRef.current;
     const stab = new GestureStabilizer(config.gestureHoldMs, 250);
     // Ecrans tactiles (telephones, tablettes) : ~15 analyses/s pour garder la
     // fluidite et la batterie ; poste fixe : a chaque image.
@@ -238,11 +259,16 @@ export function Booth({
       lastRun = now;
       let g: Gesture | null = null;
       try {
-        if (!frame.width && v.videoWidth) {
+        if (!v.videoWidth || !v.videoHeight) return;
+        // La vignette suit le format reel de la camera. iOS annonce d'abord la
+        // camera en paysage (1280x720) puis la passe en portrait (720x1280) :
+        // une vignette figee a la premiere image ecrasait la main en hauteur,
+        // et le modele repondait « None » (test iPhone du 15/10/2026).
+        const h = Math.round((640 * v.videoHeight) / v.videoWidth);
+        if (frame.width !== 640 || frame.height !== h) {
           frame.width = 640;
-          frame.height = Math.round((640 * v.videoHeight) / v.videoWidth);
+          frame.height = h;
         }
-        if (!frame.width) return;
         fctx.drawImage(v, 0, 0, frame.width, frame.height);
         const res = lm.recognizeForVideo(frame, now);
         const top = res.gestures?.[0]?.[0];
@@ -288,7 +314,12 @@ export function Booth({
       }
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      // Hors du quiz, plus de main a montrer : le squelette ne doit pas rester.
+      dbg.landmarks = null;
+      dbg.decided = null;
+    };
   }, [step, tracker, qIndex, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose, loadTracker]);
 
   // Lumiere : luminance moyenne de l'image, mesuree sur une vignette.
@@ -312,6 +343,65 @@ export function Booth({
     return () => window.clearInterval(id);
   }, [step]);
 
+  // Diagnostic a distance (mode debug) : erreurs et etat envoyes au serveur de
+  // developpement, pour un telephone dont on ne voit pas la console.
+  const [debugErrors, setDebugErrors] = useState<string[]>([]);
+  const stateRef = useRef({ step, tracker });
+  useEffect(() => {
+    stateRef.current = { step, tracker };
+    try { sessionStorage.setItem("pb-last-step", step); } catch { /* indisponible */ }
+  }, [step, tracker]);
+  useEffect(() => {
+    if (!debug) return;
+    const events: string[] = [];
+    const push = (kind: string, args: unknown[]) => {
+      const msg = `${kind}: ${args.map((a) => (a instanceof Error ? `${a.name} ${a.message} ${a.stack?.split("\n").slice(0, 3).join(" | ")}` : typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`.slice(0, 600);
+      events.push(msg);
+      if (kind !== "warn") setDebugErrors((e) => [...e.slice(-2), msg.slice(0, 160)]);
+    };
+    const oe = console.error;
+    const ow = console.warn;
+    console.error = (...a: unknown[]) => { push("error", a); oe(...a); };
+    console.warn = (...a: unknown[]) => { push("warn", a); ow(...a); };
+    const onErr = (e: ErrorEvent) => push("window", [e.message, `${e.filename}:${e.lineno}`]);
+    const onRej = (e: PromiseRejectionEvent) => push("rejection", [e.reason]);
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onRej);
+    // Plantage d'onglet : iOS recharge la page sans prevenir. On garde la
+    // derniere etape en sessionStorage ; un rechargement trouve en pleine
+    // experience (pas a l'accueil) est un plantage, on le signale.
+    try {
+      const prev = sessionStorage.getItem("pb-last-step");
+      const loads = Number(sessionStorage.getItem("pb-loads") ?? 0) + 1;
+      sessionStorage.setItem("pb-loads", String(loads));
+      if (prev && prev !== "attract" && prev !== "result" && prev !== "error") {
+        push("CRASH-RELOAD", [`page rechargee alors qu'elle etait a l'etape « ${prev} » (chargement n°${loads})`]);
+      }
+    } catch { /* stockage indisponible */ }
+    const send = () => {
+      const v = videoRef.current;
+      const d = debugRef.current;
+      const body = JSON.stringify({
+        ua: navigator.userAgent, ...stateRef.current, delegate: delegateRef.current,
+        cam: `${v?.videoWidth ?? 0}x${v?.videoHeight ?? 0}`, readyState: v?.readyState, currentTime: v?.currentTime,
+        fps: d.fps, seen: `${d.category} ${d.score.toFixed(2)}`, luma: Math.round(lumaRef.current),
+        // orientation de la main telle que le modele la voit (0 poignet, 4 pouce, 12 majeur)
+        hand: d.landmarks ? [0, 4, 12].map((i) => `${i}:${d.landmarks![i].x.toFixed(2)},${d.landmarks![i].y.toFixed(2)}`).join(" ") : null,
+        events: events.splice(0),
+      });
+      fetch("/api/photobooth/debug-log", { method: "POST", body, keepalive: true }).catch(() => {});
+    };
+    send();
+    const id = window.setInterval(send, 2000);
+    return () => {
+      window.clearInterval(id);
+      console.error = oe;
+      console.warn = ow;
+      window.removeEventListener("error", onErr);
+      window.removeEventListener("unhandledrejection", onRej);
+    };
+  }, [debug]);
+
   // Calibrage : dessine le squelette de la main et rafraichit le panneau.
   useEffect(() => {
     if (!debug) return;
@@ -328,7 +418,7 @@ export function Booth({
       const ctx = cv.getContext("2d")!;
       ctx.clearRect(0, 0, w, h);
       const v = videoRef.current;
-      const m = debugRef.current.landmarks;
+      const m = stateRef.current.step === "quiz" ? debugRef.current.landmarks : null;
       if (v && v.videoWidth && m) {
         // meme cadrage que la video : object-cover puis miroir
         const scale = Math.max(w / v.videoWidth, h / v.videoHeight);
@@ -500,6 +590,7 @@ export function Booth({
           <p>lumière {calib.luma}/255 {calib.luma < 55 ? "⚠ trop sombre" : "ok"}</p>
           <p data-testid="calib-seen">vu {calib.category} {calib.score.toFixed(2)}</p>
           <p>imprimante {printer.state.kind}{"name" in printer.state ? ` · ${printer.state.name}` : ""}</p>
+          {debugErrors.map((e, i) => <p key={i} className="max-w-[80vw] break-all text-red-300">{e}</p>)}
           <p data-testid="calib-decided">retenu {calib.decided ?? "—"} (seuil {config.gestureMinScore}, maintien {config.gestureHoldMs} ms)</p>
         </div>
       )}
@@ -544,7 +635,7 @@ export function Booth({
         )}
       </header>
 
-      <main className="relative z-10 flex h-full flex-col">
+      <main className="relative z-10 flex min-h-full flex-col">
         {step === "attract" && (
           <section className={`${s.enter} m-auto flex max-w-3xl flex-col items-center gap-8 px-6 text-center`}>
             <div className={s.field} />
@@ -581,18 +672,29 @@ export function Booth({
           </>
         )}
 
+        {step === "quiz" && tracker === "ready" && !live.gesture && (
+          // Zone ou montrer la main : a hauteur du visage, au-dessus des reponses.
+          // Sur telephone tenu a la main, la main libre arrive sinon en bas, sous
+          // les cartes et a moitie hors champ, et le modele ne voit pas de geste.
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-[14%] z-[1] mx-auto grid aspect-[3/4] w-[46vw] max-w-xs place-items-center rounded-3xl border-2 border-dashed border-white/45 md:top-[10%] md:w-[22vw]"
+          >
+            <span className="rounded-full bg-black/55 px-3 py-1 text-xs text-fmfg/90">{t.handHere}</span>
+          </div>
+        )}
         {step === "quiz" && question && (
-          <section key={qIndex} className={`${s.enter} mt-auto flex flex-col gap-6 p-5 pb-8 md:p-10`}>
+          <section key={qIndex} className={`${s.enter} mt-auto flex flex-col gap-3 p-4 pb-6 md:gap-6 md:p-10`}>
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">
                 {t.question} <bdi dir="ltr">{qIndex + 1} / 3</bdi>
               </p>
-              <h2 className="fm-display mt-3 text-[clamp(2rem,5.5vw,4.5rem)]">{question.prompt[locale]}</h2>
-              <p className="mt-3 text-sm text-fmmuted">
+              <h2 className="fm-display mt-2 text-[clamp(1.4rem,5.5vw,4.5rem)] md:mt-3">{question.prompt[locale]}</h2>
+              <p className="mt-2 text-xs text-fmfg/70 md:mt-3 md:text-sm md:text-fmmuted">
                 {tracker === "failed" ? t.manualOnly : lowLight ? t.lowLight : live.gesture ? t.gestureHint : t.noHand}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
               {question.options.map((o) => {
                 const active = live.gesture === o.gesture;
                 const picked = chosen === o.id;
@@ -601,11 +703,11 @@ export function Booth({
                   <button
                     key={o.id}
                     onClick={() => choose(o.id)}
-                    className={`group flex min-h-28 items-center gap-4 rounded-xl border p-4 text-start backdrop-blur-md transition ${
+                    className={`group flex min-h-16 items-center gap-2.5 rounded-xl border p-2.5 text-start backdrop-blur-md transition md:min-h-28 md:gap-4 md:p-4 ${
                       picked ? "border-fmaccent bg-fmaccent/20" : active ? "border-fmfg/60 bg-fmcard/80" : "border-fmborder bg-fmcard/60 hover:border-fmfg/40"
                     }`}
                   >
-                    <span className="relative grid size-14 shrink-0 place-items-center text-2xl">
+                    <span className="relative grid size-11 shrink-0 place-items-center text-xl md:size-14 md:text-2xl">
                       <svg className="absolute inset-0 -rotate-90" viewBox="0 0 50 50" aria-hidden>
                         <circle cx="25" cy="25" r="22" fill="none" stroke="rgba(245,245,248,0.12)" strokeWidth="2" />
                         <circle
@@ -616,7 +718,7 @@ export function Booth({
                       </svg>
                       <span aria-hidden>{GESTURE_GLYPH[o.gesture]}</span>
                     </span>
-                    <span className="text-base leading-snug md:text-lg">{o.label[locale]}</span>
+                    <span className="text-sm leading-snug md:text-lg">{o.label[locale]}</span>
                   </button>
                 );
               })}
@@ -697,9 +799,9 @@ export function Booth({
         )}
 
         {step === "result" && resultUrl && (
-          <section className={`${s.enter} m-auto flex w-full flex-col items-center gap-6 px-5 py-20 text-center`}>
+          <section className={`${s.enter} m-auto flex w-full flex-col items-center gap-5 px-5 pb-10 pt-20 text-center md:gap-6 md:py-20`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={resultUrl} alt={mood?.title[locale] ?? ""} className="max-h-[68vh] max-w-full rounded-xl object-contain shadow-2xl" />
+            <img src={resultUrl} alt={mood?.title[locale] ?? ""} className="max-h-[52vh] max-w-full rounded-xl object-contain shadow-2xl md:max-h-[68vh]" />
             {mood && (
               <div>
                 <p className="fm-display text-3xl md:text-5xl">{mood.title[locale]}</p>
