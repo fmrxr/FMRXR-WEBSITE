@@ -3,7 +3,8 @@ import { timingSafeEqual } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveConfig, type CampaignConfig } from "./config";
 import { createHiggsfieldProvider, type ImageProvider } from "./higgsfield";
-import { pollGeneration, type PhotoboothDb } from "./service";
+import { pollGeneration, type PhotoboothDb, type Submission } from "./service";
+import type { MoodProfile } from "./mood";
 import { finalFromUrl, type FinalOptions } from "./branding";
 import { STYLES, isStyleId } from "./styles";
 import { EXPRESSION_LABEL, EXPRESSIONS, type ExpressionId } from "./expression";
@@ -96,6 +97,26 @@ export function createSupabaseDb(): PhotoboothDb {
         .eq("id", usageId)
         .maybeSingle();
       return data;
+    },
+    // Hors comptabilite : le statut et le quota ne passent que par les RPC ci-dessus.
+    async saveSubmission(usageId, mood) {
+      await sb.from("photobooth_usage").update({ mood }).eq("id", usageId);
+    },
+    async getRetryContext(usageId) {
+      const { data } = await sb
+        .from("photobooth_usage")
+        .select("mood, campaign:photobooth_campaigns(config)")
+        .eq("id", usageId)
+        .maybeSingle();
+      const mood = data?.mood as (MoodProfile & { submission?: Submission }) | null;
+      if (!mood?.submission?.imageUrl) return null;
+      const campaign = (Array.isArray(data!.campaign) ? data!.campaign[0] : data!.campaign) as { config: unknown } | null;
+      const cfg = resolveConfig(campaign?.config);
+      if (!cfg.ok) return null;
+      return { config: cfg.config, mood, submission: mood.submission };
+    },
+    async audit(campaignId, action, before, after) {
+      await sb.from("photobooth_audit").insert({ campaign_id: campaignId, actor: null, action, before, after });
     },
   };
 }

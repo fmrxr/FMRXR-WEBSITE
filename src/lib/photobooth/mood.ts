@@ -171,9 +171,9 @@ export const GROUP_IDENTITY_LOCK =
  * plateau : d'abord ce qui est verrouille (identite, pose, cadrage), puis ce
  * qui change (lumiere, decor, tenue, etalonnage), puis le rendu attendu.
  */
-export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig): string {
+export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts: { soften?: boolean } = {}): string {
   const style = STYLES[p.style] ?? STYLES.mood;
-  if (style.family === "transform") return buildTransformPrompt(p, config);
+  if (style.family === "transform") return buildTransformPrompt(p, config, opts.soften ?? false);
   if (p.shot === "group") return buildGroupPrompt(withStyle(p), config);
   p = withStyle(p);
   const expression = p.expressionReading
@@ -240,12 +240,13 @@ function withStyle(p: MoodProfile): MoodProfile & { extra?: string } {
  * accessoires, expression), sans pouvoir garantir l'exactitude d'une edition.
  * L'ambiance choisie donne encore la palette et l'atmosphere.
  */
-function buildTransformPrompt(p: MoodProfile, config: CampaignConfig): string {
+function buildTransformPrompt(p: MoodProfile, config: CampaignConfig, soften: boolean): string {
   const st = STYLES[p.style];
   const group = p.shot === "group";
   const who = group ? "every person in the reference photo" : "the person in the reference photo";
   return [
     `Turn ${who} into ${st.transform}.`,
+    soften ? SOFTEN : "",
     `LIKENESS (most important): the result must stay clearly recognisable as ${group ? "these exact people" : "this exact person"}. ` +
       "Keep each face shape, eye shape, eyebrows, nose, lips, skin tone, age, hairstyle and hair colour, facial hair, glasses and headwear, and their expression. " +
       (group ? "Keep the same number of people and their positions; do not add or remove anyone. " : "") +
@@ -258,5 +259,10 @@ function buildTransformPrompt(p: MoodProfile, config: CampaignConfig): string {
     // De la liste « a eviter » de la campagne, seuls texte, lettres, logos et filigrane
     // valent pour une transformation (« cartoon », « plastic skin » la contrediraient).
     `Avoid: ${["text, letters, watermark", ...config.negative.split(",").map((x) => x.trim()).filter((x) => /logo|watermark|text|letter/i.test(x))].join(", ")}, ${group ? "missing or added people" : "extra people"}, deformed hands, distorted face.`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
+
+// Relance apres un faux refus « nsfw » de Higgsfield (vu sur « hero » avec un
+// portrait habille ordinaire) : formulation adoucie, sans rien de corporel.
+export const SOFTEN =
+  "Family-friendly result: fully clothed, modest costume covering the shoulders, arms and torso, natural confident pose, no skin emphasis.";

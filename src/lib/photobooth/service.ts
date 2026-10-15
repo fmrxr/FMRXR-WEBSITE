@@ -14,6 +14,21 @@ export type ReserveResult =
   | { ok: true; usage_id: string; duplicate: boolean; status: UsageStatus }
   | { ok: false; error: string };
 
+/**
+ * Ce qu'il faut pour relancer une generation sans la photo d'origine : la
+ * reference deja chez Higgsfield, les reponses et le format. Range dans
+ * photobooth_usage.mood (cle « submission »), donc sans migration.
+ */
+export type Submission = {
+  imageUrl: string;
+  answers: Answers;
+  model: CampaignConfig["model"];
+  aspect?: CampaignConfig["aspectRatio"];
+};
+
+/** Marqueur de la relance nsfw dans error_code : une seule relance par ligne. */
+export const NSFW_RETRY = "NSFW_RETRY";
+
 export interface PhotoboothDb {
   reserve(a: { campaignId: string; sessionId: string; idempotencyKey: string; model: string; mood: MoodProfile }): Promise<ReserveResult>;
   transition(usageId: string, to: UsageStatus, fields?: {
@@ -24,6 +39,10 @@ export interface PhotoboothDb {
     status_url: string | null; result_url: string | null; error_code: string | null; created_at: string;
     share_token?: string;
   } | null>;
+  // Optionnels : sans eux, un refus nsfw reste un echec net (ancien comportement).
+  saveSubmission?(usageId: string, mood: MoodProfile & { submission: Submission }): Promise<void>;
+  getRetryContext?(usageId: string): Promise<{ config: CampaignConfig; mood: MoodProfile; submission: Submission } | null>;
+  audit?(campaignId: string, action: string, before: unknown, after: unknown): Promise<void>;
 }
 
 export type StartInput = {
@@ -86,6 +105,10 @@ export async function startGeneration(input: StartInput, deps: { db: PhotoboothD
 
   if (sub.kind === "accepted") {
     await deps.db.transition(usageId, "processing", { providerJobId: sub.jobId, statusUrl: sub.statusUrl });
+    // Garde de quoi relancer apres un faux nsfw. Echec ici = pas de relance, rien de plus.
+    await deps.db.saveSubmission?.(usageId, {
+      ...mood, submission: { imageUrl, answers: input.answers, model: input.config.model, aspect: input.aspect },
+    }).catch(() => undefined);
     return { ok: true, usageId, status: "processing", mood };
   }
   if (sub.kind === "rejected") {
@@ -129,10 +152,16 @@ export async function pollGeneration(
       if (!s.imageUrl) return { status: "processing" };
       await deps.db.transition(usageId, "succeeded", { resultUrl: s.imageUrl });
       return { status: "succeeded", resultUrl: s.imageUrl };
-    case "failed":
     case "nsfw":
-      await deps.db.transition(usageId, "failed", { errorCode: s.status === "nsfw" ? "PROVIDER_NSFW" : "PROVIDER_FAILED" });
-      return { status: "failed", error: s.status === "nsfw" ? "PROVIDER_NSFW" : "PROVIDER_FAILED" };
+      if (u.error_code !== NSFW_RETRY) {
+        const retried = await retryAfterNsfw(u, deps);
+        if (retried) return retried;
+      }
+      await deps.db.transition(usageId, "failed", { errorCode: "PROVIDER_NSFW" });
+      return { status: "failed", error: "PROVIDER_NSFW" };
+    case "failed":
+      await deps.db.transition(usageId, "failed", { errorCode: "PROVIDER_FAILED" });
+      return { status: "failed", error: "PROVIDER_FAILED" };
     case "canceled":
       await deps.db.transition(usageId, "cancelled", { errorCode: "PROVIDER_CANCELED" });
       return { status: "failed", error: "PROVIDER_CANCELED" };
@@ -146,4 +175,55 @@ export async function pollGeneration(
         ? { status: "unknown", error: s.error ?? "STATUS_ERROR" }
         : { status: "processing" };
   }
+}
+
+/**
+ * Faux refus « nsfw » (vu sur le style « hero » avec un portrait habille) :
+ * une seule relance, autre mise en scene (autre graine) et, pour une
+ * transformation, formulation adoucie. La ligne de consommation reste la
+ * meme et reste « processing » : aucune nouvelle reservation, donc aucune
+ * place de quota en plus (Higgsfield ne facture pas le nsfw).
+ * Renvoie null quand la relance est impossible : l'appelant echoue net.
+ */
+async function retryAfterNsfw(
+  u: { id: string; campaign_id: string; status_url: string | null },
+  deps: { db: PhotoboothDb; provider: ImageProvider },
+): Promise<PollResult | null> {
+  const ctx = await deps.db.getRetryContext?.(u.id).catch(() => null);
+  if (!ctx) return null;
+  let mood: MoodProfile;
+  try {
+    const m = ctx.mood;
+    mood = buildMoodProfile(ctx.submission.answers, ctx.config, `${u.id}:nsfw-retry`, m.expressionReading, m.shot, m.style);
+    if (m.locale) mood.locale = m.locale;
+  } catch {
+    return null;
+  }
+  const prompt = buildPortraitPrompt(mood, ctx.config, { soften: true });
+  const config = ctx.submission.aspect ? { ...ctx.config, aspectRatio: ctx.submission.aspect } : ctx.config;
+  // Cle propre a la relance : deux lectures simultanees (borne + reconciliation)
+  // retombent sur la meme requete Higgsfield, jamais deux.
+  const sub = await deps.provider.submit({
+    model: ctx.submission.model, prompt, imageUrl: ctx.submission.imageUrl, config,
+    idempotencyKey: `${u.id}-nsfw-retry`,
+  });
+  const audit = (outcome: string, extra: Record<string, unknown> = {}) =>
+    deps.db.audit?.(u.campaign_id, "nsfw_retry",
+      { usage_id: u.id, status_url: u.status_url, variant: ctx.mood.variant },
+      { usage_id: u.id, outcome, variant: mood.variant, softened: true, ...extra },
+    ).catch(() => undefined);
+
+  if (sub.kind === "accepted") {
+    await deps.db.transition(u.id, "processing", { providerJobId: sub.jobId, statusUrl: sub.statusUrl, errorCode: NSFW_RETRY });
+    await deps.db.saveSubmission?.(u.id, { ...mood, submission: ctx.submission }).catch(() => undefined);
+    await audit("resubmitted", { provider_job_id: sub.jobId });
+    return { status: "processing" };
+  }
+  if (sub.kind === "rejected") {
+    await audit("rejected", { code: sub.code });
+    return null; // echec net PROVIDER_NSFW par l'appelant
+  }
+  // Issue inconnue : on garde la ligne, la prochaine lecture rejoue avec la meme cle.
+  await audit("ambiguous", { code: sub.code });
+  return { status: "processing" };
 }
