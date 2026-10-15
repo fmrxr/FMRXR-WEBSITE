@@ -122,8 +122,18 @@
   transition: stroke-dashoffset 80ms linear;
 }
 
+/* Main fantome dans le cadre vide : montre le geste a faire (lever la main). */
+.ghost {
+  display: inline-block;
+  animation: ghost 2.2s ease-in-out infinite;
+}
+@keyframes ghost {
+  0%, 100% { transform: translateY(14px) rotate(-6deg); }
+  50% { transform: translateY(-4px) rotate(4deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .scanLine, .field, .pulse { animation: none; }
+  .scanLine, .field, .pulse, .ghost { animation: none; }
   .enter { animation-duration: 1ms; }
   .flash { animation-duration: 1ms; }
   .video { transition: none; }

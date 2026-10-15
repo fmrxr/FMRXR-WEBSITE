@@ -39,6 +39,10 @@ const CONFIRM_OPTIONS: { id: string; gesture: Gesture }[] = [
   { id: "retake", gesture: "peace" },
 ];
 const GESTURE_STEPS = ["howto", "shot", "quiz", "mood", "capture", "confirm"];
+// Ou s'affiche le retour du geste : grand cadre sur les ecrans de choix,
+// bandeau sur ceux dont le centre est deja occupe (ambiance, photo).
+const ZONE_STEPS = ["howto", "shot", "quiz"];
+const PILL_STEPS = ["mood", "capture", "confirm"];
 
 /**
  * Moteur de detection de la main : GPU (WebGL) par defaut, CPU en secours.
@@ -80,7 +84,11 @@ export function Booth({
   const [answers, setAnswers] = useState<string[]>([]);
   const [chosen, setChosen] = useState<string | null>(null);
   const [tracker, setTracker] = useState<Tracker>("idle");
-  const [live, setLive] = useState<{ gesture: Gesture | null; progress: number }>({ gesture: null, progress: 0 });
+  // hand : une main est dans l'image (meme sans geste reconnu) ;
+  // waiting : le geste qui vient de valider l'etape precedente est encore tenu.
+  type Live = { gesture: Gesture | null; progress: number; hand: boolean; waiting: boolean };
+  const IDLE_LIVE: Live = { gesture: null, progress: 0, hand: false, waiting: false };
+  const [live, setLive] = useState<Live>(IDLE_LIVE);
   const [count, setCount] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
   const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
@@ -346,6 +354,7 @@ export function Booth({
       lastTime = v.currentTime;
       lastRun = now;
       let g: Gesture | null = null;
+      let hand = false;
       try {
         if (!v.videoWidth || !v.videoHeight) return;
         // La vignette suit le format reel de la camera. iOS annonce d'abord la
@@ -362,6 +371,7 @@ export function Booth({
         const top = res.gestures?.[0]?.[0];
         const marks = res.landmarks?.[0] as Point[] | undefined;
         g = decideGesture(top, marks, config.gestureMinScore);
+        hand = Boolean(marks?.length);
         frames++;
         const d = debugRef.current;
         d.category = top?.categoryName ?? "-";
@@ -388,10 +398,10 @@ export function Booth({
       }
       if (!armed && (g === null || g !== previous)) armed = true;
       const r = armed ? stab.update(g, performance.now()) : { gesture: g, progress: 0, confirmed: false };
-      const key = `${r.gesture}:${Math.round(r.progress * 20)}`;
+      const key = `${r.gesture}:${Math.round(r.progress * 20)}:${hand}:${armed}`;
       if (key !== lastUi) {
         lastUi = key;
-        setLive({ gesture: r.gesture, progress: r.progress });
+        setLive({ gesture: r.gesture, progress: r.progress, hand, waiting: !armed && g !== null });
       }
       if (r.confirmed && r.gesture) {
         const opt = options.find((o) => o.gesture === r.gesture);
@@ -405,6 +415,7 @@ export function Booth({
     raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
+      setLive({ gesture: null, progress: 0, hand: false, waiting: false });
       // Hors du quiz, plus de main a montrer : le squelette ne doit pas rester.
       dbg.landmarks = null;
       dbg.decided = null;
@@ -662,9 +673,38 @@ export function Booth({
   // ---------- render ----------
   const cameraOn = ["scan", "howto", "shot", "quiz", "mood", "capture"].includes(step);
   const question = config.questions[qIndex];
-  // Gestes que ce parcours demande vraiment (choix seul/groupe + questions), pour le tutoriel.
-  const usedGestures = (Object.keys(GESTURE_GLYPH) as Gesture[]).filter((g) =>
-    [...SHOT_OPTIONS, ...CONFIRM_OPTIONS].some((o) => o.gesture === g) || config.questions.some((q) => q.options.some((o) => o.gesture === g)));
+  // Gestes qui servent a choisir (seul/groupe + questions), pour l'aide-memoire.
+  const chooseGestures = (Object.keys(GESTURE_GLYPH) as Gesture[]).filter((g) =>
+    SHOT_OPTIONS.some((o) => o.gesture === g) || config.questions.some((q) => q.options.some((o) => o.gesture === g)));
+  // Gestes acceptes par l'ecran en cours (cadre vide des ecrans de choix).
+  const stepGestures: Gesture[] = step === "shot" ? SHOT_OPTIONS.map((o) => o.gesture)
+    : step === "quiz" && question ? question.options.map((o) => o.gesture)
+    : [];
+  // Tutoriel en trois temps, deduits de ce que voit la camera : lever, tenir, c'est fait.
+  const howtoPhase: "raise" | "hold" | "done" = chosen === "go" ? "done" : live.hand || live.gesture ? "hold" : "raise";
+  // Ce que le geste en cours va faire a cette etape.
+  const actionFor = (g: Gesture): string | null => {
+    if (step === "howto") return g === "open_palm" ? t.howtoGo : null;
+    if (step === "shot") {
+      const o = SHOT_OPTIONS.find((x) => x.gesture === g);
+      return o ? t[o.labelKey] : null;
+    }
+    if (step === "quiz") return question?.options.find((o) => o.gesture === g)?.label[locale] ?? null;
+    if (step === "mood") return g === "thumb_up" ? t.continue : null;
+    if (step === "capture") return g === "thumb_up" ? t.capture : null;
+    if (step === "confirm") return g === "thumb_up" ? t.confirm : g === "peace" ? t.retake : null;
+    return null;
+  };
+  // Texte du cadre : etat de la main, puis ce que le geste va faire.
+  const gaugeAction = live.gesture && !live.waiting ? actionFor(live.gesture) : null;
+  const gauge = {
+    action: gaugeAction,
+    text: live.waiting ? t.lowerHand
+      : gaugeAction ? gaugeAction
+      : live.gesture ? t.gestureUnused
+      : live.hand ? t.handSeen
+      : t.handHere,
+  };
   // Progression du geste en cours sur un bouton (anneau), comme les reponses du quiz.
   const ring = (g: Gesture) => {
     const C = 2 * Math.PI * 22;
@@ -792,65 +832,94 @@ export function Booth({
           </>
         )}
 
-        {(step === "quiz" || step === "shot" || step === "howto") && tracker !== "failed" && !live.gesture && (
-          // Zone ou montrer la main : a hauteur du visage, au-dessus des reponses.
-          // Sur telephone tenu a la main, la main libre arrive sinon en bas, sous
-          // les cartes et a moitie hors champ, et le modele ne voit pas de geste.
+        {ZONE_STEPS.includes(step) && tracker !== "failed" && (
+          // Le cadre de la main est l'interface : a hauteur du visage, au-dessus
+          // des reponses (sur telephone, la main libre arrive sinon en bas, a
+          // moitie hors champ). Son contour se remplit pendant qu'on tient le
+          // geste, et il dit ce que le geste va faire.
           <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-[14%] z-[1] mx-auto grid aspect-[3/4] w-[46vw] max-w-xs place-items-center rounded-3xl border-2 border-dashed border-white/45 md:top-[10%] md:w-[22vw]"
+            aria-live="polite"
+            className={`pointer-events-none absolute inset-x-0 top-[14%] z-[1] mx-auto grid aspect-[3/4] w-[46vw] max-w-xs place-items-center md:top-[10%] md:w-[22vw] ${
+              chosen ? "rounded-3xl bg-fmaccent/15" : ""
+            }`}
           >
-            <span className="rounded-full bg-black/55 px-3 py-1 text-xs text-fmfg/90">{t.handHere}</span>
+            <svg className="absolute inset-0 size-full overflow-visible" viewBox="0 0 300 400" preserveAspectRatio="none" aria-hidden>
+              <rect
+                x="2" y="2" width="296" height="396" rx="26" fill="none"
+                stroke={live.hand ? "rgba(245,245,248,0.3)" : "rgba(245,245,248,0.5)"} strokeWidth="2"
+                strokeDasharray={live.hand ? undefined : "10 9"}
+              />
+              {(chosen || (gauge.action && live.progress > 0)) && (
+                <rect
+                  x="2" y="2" width="296" height="396" rx="26" fill="none"
+                  stroke="var(--color-fmaccent)" strokeWidth="5"
+                  pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - (chosen ? 1 : live.progress)}
+                  className={s.ring}
+                />
+              )}
+            </svg>
+            <div className="flex flex-col items-center gap-2 px-3 text-center">
+              {chosen ? (
+                <span className="text-5xl text-fmaccent md:text-6xl" aria-hidden>✓</span>
+              ) : (
+                live.gesture ? (
+                  <span aria-hidden className="text-5xl md:text-6xl">{GESTURE_GLYPH[live.gesture]}</span>
+                ) : step === "howto" ? (
+                  // Tutoriel : la main ouverte est bien le geste a faire.
+                  <span aria-hidden className={`${s.ghost} text-5xl opacity-60 md:text-6xl`}>{GESTURE_GLYPH.open_palm}</span>
+                ) : (
+                  // Ecrans de choix : les gestes acceptes ici, pas un geste suggere.
+                  <span aria-hidden className="flex gap-2 text-3xl opacity-70 md:text-4xl">
+                    {stepGestures.map((g) => <span key={g}>{GESTURE_GLYPH[g]}</span>)}
+                  </span>
+                )
+              )}
+              <span className="rounded-full bg-black/60 px-3 py-1 text-xs leading-snug text-fmfg md:text-sm">{gauge.text}</span>
+            </div>
+          </div>
+        )}
+        {PILL_STEPS.includes(step) && tracker === "ready" && (live.gesture || live.hand) && !(step === "capture" && count !== null) && (
+          // Ecrans sans cadre (ambiance, prise de vue, validation) : meme retour, en bandeau.
+          <div
+            aria-live="polite"
+            className="pointer-events-none absolute inset-x-0 top-[11%] z-[2] mx-auto flex w-max max-w-[92vw] items-center gap-3 rounded-full border border-fmaccent/50 bg-black/70 py-2 ps-3 pe-4 backdrop-blur-md"
+          >
+            <span className="text-2xl" aria-hidden>{live.gesture ? GESTURE_GLYPH[live.gesture] : GESTURE_GLYPH.open_palm}</span>
+            <span className="text-sm md:text-base">{gauge.text}</span>
+            {gauge.action && (
+              <span className="h-1.5 w-20 overflow-hidden rounded-full bg-white/15 md:w-28">
+                <span className="block h-full bg-fmaccent" style={{ width: `${Math.round(live.progress * 100)}%` }} />
+              </span>
+            )}
           </div>
         )}
         {step === "howto" && (
-          <section className={`${s.enter} mt-auto flex flex-col gap-3 p-4 pb-6 md:gap-5 md:p-10`}>
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">{t.howtoLabel}</p>
-              <h2 className="fm-display mt-2 text-[clamp(1.4rem,5.5vw,4.5rem)] md:mt-3">{t.howtoTitle}</h2>
-            </div>
-            <ol className="grid gap-2 md:grid-cols-3 md:gap-3">
-              {[t.howto1, t.howto2, t.howto3].map((line, i) => (
-                <li key={i} className="flex items-start gap-3 rounded-xl border border-fmborder bg-fmcard/60 p-3 backdrop-blur-md md:p-4">
-                  <span className="font-mono text-sm text-fmaccent md:text-base">{i + 1}</span>
-                  <span className="text-sm leading-snug md:text-lg">{line}</span>
-                </li>
-              ))}
-            </ol>
-            <ul className="flex flex-wrap gap-2" aria-label={t.howtoGestures}>
-              {usedGestures.map((g) => (
-                <li key={g} className="flex items-center gap-2 rounded-full border border-fmborder bg-fmcard/60 px-3 py-1.5 text-sm backdrop-blur-md">
-                  <span aria-hidden>{GESTURE_GLYPH[g]}</span>
-                  {t[`g_${g}`]}
-                </li>
-              ))}
+          <section className="mt-auto flex flex-col items-center gap-3 p-4 pb-8 text-center md:gap-5 md:p-10">
+            <h2 key={howtoPhase} className={`${s.enter} fm-display text-[clamp(2.2rem,8vw,6rem)]`}>
+              {howtoPhase === "raise" ? t.howtoRaise : howtoPhase === "hold" ? t.howtoHold : t.howtoDone}
+            </h2>
+            <p className="max-w-md text-base text-fmfg/85 md:text-xl">
+              {tracker === "failed" ? t.manualOnly
+                : lowLight ? t.lowLight
+                : howtoPhase === "raise" ? t.howtoRaiseHint
+                : howtoPhase === "hold" ? t.howtoHoldHint
+                : t.howtoDoneHint}
+            </p>
+            {/* Aide-memoire pour la suite : ce que chaque geste fera. */}
+            <ul className="mt-1 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-fmmuted md:text-base" aria-label={t.howtoGestures}>
+              <li><span aria-hidden className="me-1.5 text-fmfg">{chooseGestures.map((g) => GESTURE_GLYPH[g]).join(" ")}</span>{t.legendChoose}</li>
+              <li><span aria-hidden className="me-1.5 text-fmfg">{GESTURE_GLYPH.thumb_up}</span>{t.legendYes}</li>
+              <li>{t.legendTap}</li>
             </ul>
-            <div className="flex flex-wrap items-center gap-3 md:gap-5">
-              <button
-                data-testid="howto-go"
-                onClick={leaveHowto}
-                className={`flex items-center gap-3 rounded-full border py-2 ps-2 pe-6 font-semibold transition ${
-                  chosen === "go" ? "border-fmaccent bg-fmaccent/20" : "border-fmfg/60 bg-fmcard/80 hover:border-fmaccent/70"
-                }`}
-              >
-                <span className="relative grid size-11 shrink-0 place-items-center text-xl">
-                  <svg className="absolute inset-0 -rotate-90" viewBox="0 0 50 50" aria-hidden>
-                    <circle cx="25" cy="25" r="22" fill="none" stroke="rgba(245,245,248,0.12)" strokeWidth="2" />
-                    <circle
-                      cx="25" cy="25" r="22" fill="none" stroke="var(--color-fmaccent)" strokeWidth="2.5"
-                      strokeDasharray={2 * Math.PI * 22}
-                      strokeDashoffset={2 * Math.PI * 22 * (1 - (chosen === "go" ? 1 : live.gesture === "open_palm" ? live.progress : 0))}
-                      className={s.ring}
-                    />
-                  </svg>
-                  <span aria-hidden>{GESTURE_GLYPH.open_palm}</span>
-                </span>
-                {t.howtoGo}
-              </button>
-              <p className="text-xs text-fmfg/70 md:text-sm md:text-fmmuted">
-                {tracker === "failed" ? t.manualOnly : lowLight ? t.lowLight : `${t.howtoTry} ${t.howtoTouch}`}
-              </p>
-            </div>
+            <button
+              data-testid="howto-skip"
+              onClick={leaveHowto}
+              className={tracker === "failed"
+                ? "mt-2 rounded-full bg-fmfg px-8 py-3.5 font-semibold text-fmbg"
+                : "mt-1 px-4 py-2 text-sm text-fmfg/70 underline-offset-4 hover:text-fmfg hover:underline"}
+            >
+              {tracker === "failed" ? t.howtoContinue : t.howtoSkip}
+            </button>
           </section>
         )}
         {step === "shot" && (
