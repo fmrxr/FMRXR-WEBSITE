@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { EXPERIENCES, ROWS, findExperience, featuredExperience, experiencesByRow, allowFor } from "@/lib/experiences";
+import { EXPERIENCES, ROWS, findExperience, featuredExperience, experiencesByRow, allowFor, visibleExperiences, isVisible, PHOTOBOOTH_SLUG } from "@/lib/experiences";
 
 describe("experiences registry", () => {
   it("has unique slugs", () => {
@@ -51,5 +51,26 @@ describe("allowFor", () => {
   });
   it("ignores sound, which needs no permission", () => {
     expect(allowFor({ requires: ["sound"] })).toBe("fullscreen; autoplay");
+  });
+});
+
+describe("visibilité réglée dans le CMS", () => {
+  it("null = jamais réglé : tout s'affiche", () => {
+    expect(visibleExperiences(null)).toEqual(EXPERIENCES);
+    expect(isVisible(PHOTOBOOTH_SLUG, null)).toBe(true);
+  });
+  it("photobooth seul : catalogue vide, bloc visible", () => {
+    expect(visibleExperiences([PHOTOBOOTH_SLUG])).toEqual([]);
+    expect(isVisible(PHOTOBOOTH_SLUG, [PHOTOBOOTH_SLUG])).toBe(true);
+    expect(isVisible("radiance", [PHOTOBOOTH_SLUG])).toBe(false);
+  });
+  it("une expérience cachée ne s'ouvre pas par ?play=", () => {
+    const list = visibleExperiences(["access-protocol"]);
+    expect(findExperience("radiance", list)).toBeUndefined();
+    expect(featuredExperience(list).slug).toBe("access-protocol");
+    expect(experiencesByRow(list).map((r) => r.id)).toEqual(["games"]);
+  });
+  it("une slug inconnue dans le réglage est ignorée", () => {
+    expect(visibleExperiences(["nope"])).toEqual([]);
   });
 });

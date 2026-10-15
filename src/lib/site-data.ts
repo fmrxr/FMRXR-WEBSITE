@@ -15,6 +15,8 @@ export interface SiteSettings {
   location?: string; founder?: string; artist_alias?: string;
   socials: { instagram?: string; tiktok?: string; linkedin?: string; x?: string; web?: string };
   hero_media?: { url: string; poster?: string; title?: string; description?: string }[];
+  /** Slugs affichés sur /experiences (CMS), null = toutes. */
+  experiences_visible?: string[] | null;
 }
 
 export const SITE: SiteSettings = {

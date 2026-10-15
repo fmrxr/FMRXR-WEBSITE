@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ProjectRow } from "@/components/site/ProjectRow";
 import { CardFilm } from "@/components/site/CardFilm";
 import { track } from "@/lib/track";
-import { allowFor, experiencesByRow, featuredExperience, findExperience, type Experience } from "@/lib/experiences";
+import { allowFor, experiencesByRow, featuredExperience, findExperience, visibleExperiences, type Experience } from "@/lib/experiences";
 
 // Le catalogue de /experiences, à la manière d'un service de streaming : un
 // grand lecteur en haut, des rangées dessous. Cliquer une carte la charge dans
@@ -34,13 +34,15 @@ function useSmallScreen() {
   return small;
 }
 
-export function ExperienceCatalog() {
+/** visible : slugs affichés (réglage CMS), null = toutes. Au moins une. */
+export function ExperienceCatalog({ visible }: { visible: string[] | null }) {
+  const list = visibleExperiences(visible);
   const params = useSearchParams();
   const router = useRouter();
   // L'URL fait foi (?play=slug) : lien partagé, retour arrière et clic sur une
   // carte passent tous par elle. « En lecture » veut dire que l'expérience
   // lancée est celle affichée : en changer arrête donc la précédente.
-  const current = findExperience(params.get("play")) ?? featuredExperience();
+  const current = findExperience(params.get("play"), list) ?? featuredExperience(list);
   const [launched, setLaunched] = useState<string | null>(null);
   const playing = launched === current.slug;
   const setPlaying = (on: boolean) => setLaunched(on ? current.slug : null);
@@ -142,7 +144,7 @@ export function ExperienceCatalog() {
       </section>
 
       <section className="mx-auto max-w-[1200px] space-y-12 px-5 pb-24 pt-10 md:px-8">
-        {experiencesByRow().map((row) => (
+        {experiencesByRow(list).map((row) => (
           <div key={row.id}>
             <h3 className="mb-4 text-[11px] uppercase tracking-[0.15em] text-fmmuted">— {row.label}</h3>
             <ProjectRow>

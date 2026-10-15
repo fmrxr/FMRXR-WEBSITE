@@ -28,6 +28,7 @@ const GROUPS: { title: string; links: [string, string][] }[] = [
   {
     title: "Expériences",
     links: [
+      ["Page Experiences", "/admin/experiences"],
       ["Photobooth", "/admin/photobooth"],
     ],
   },

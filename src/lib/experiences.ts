@@ -99,17 +99,35 @@ export const EXPERIENCES: Experience[] = [
   lab("lab-lightpos-noise", "tox8_lightpos_noise", "LIGHT FIELD", "Rails of coloured light drifting through a noise field."),
 ];
 
-export function findExperience(slug: string | null | undefined): Experience | undefined {
+// Bloc AI Photobooth de /experiences : pas une entrée du catalogue, mais sa
+// visibilité se règle au même endroit dans le CMS.
+export const PHOTOBOOTH_SLUG = "photobooth";
+
+/**
+ * Expériences affichées, selon site_settings.experiences_visible (CMS).
+ * null = jamais réglé : tout s'affiche. Sinon seules les slugs listées, ce qui
+ * garde cachée une expérience ajoutée au code tant qu'on ne l'active pas.
+ */
+export function visibleExperiences(visible: readonly string[] | null | undefined): Experience[] {
+  if (visible == null) return EXPERIENCES;
+  return EXPERIENCES.filter((e) => visible.includes(e.slug));
+}
+
+export function isVisible(slug: string, visible: readonly string[] | null | undefined): boolean {
+  return visible == null || visible.includes(slug);
+}
+
+export function findExperience(slug: string | null | undefined, list: Experience[] = EXPERIENCES): Experience | undefined {
   if (!slug) return undefined;
-  return EXPERIENCES.find((e) => e.slug === slug);
+  return list.find((e) => e.slug === slug);
 }
 
-export function featuredExperience(): Experience {
-  return EXPERIENCES.find((e) => e.featured) ?? EXPERIENCES[0];
+export function featuredExperience(list: Experience[] = EXPERIENCES): Experience {
+  return list.find((e) => e.featured) ?? list[0];
 }
 
-export function experiencesByRow(): { id: RowId; label: string; items: Experience[] }[] {
-  return ROWS.map((r) => ({ ...r, items: EXPERIENCES.filter((e) => e.row === r.id) })).filter((r) => r.items.length);
+export function experiencesByRow(list: Experience[] = EXPERIENCES): { id: RowId; label: string; items: Experience[] }[] {
+  return ROWS.map((r) => ({ ...r, items: list.filter((e) => e.row === r.id) })).filter((r) => r.items.length);
 }
 
 // Permissions déléguées à l'iframe. Le son n'en demande aucune.
