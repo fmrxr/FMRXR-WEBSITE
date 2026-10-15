@@ -8,6 +8,8 @@ import { buildMoodProfile, type Answers } from "@/lib/photobooth/mood";
 import { ERROR_ALIAS, ERRORS, GESTURE_GLYPH, UI } from "./strings";
 import s from "./booth.module.css";
 import { PAGE_SIZE, usePrinter } from "./usePrinter";
+import { useExpressionReader } from "./useExpression";
+import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
 
 type Step = "attract" | "camera" | "scan" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
 type Tracker = "idle" | "loading" | "ready" | "failed";
@@ -74,6 +76,9 @@ export function Booth({
   // Statut imprimante surveille a l'accueil (pour l'equipe) et sur le resultat.
   const printer = usePrinter(config.print, step === "attract" || step === "result" || debug);
   const resetPrints = printer.reset;
+  // Lecture d'expression locale pendant le scan et le debut du quiz.
+  const expression = useExpressionReader(videoRef, step === "scan" || step === "quiz");
+  const resetExpression = expression.reset;
   const debugRef = useRef<{ category: string; score: number; decided: Gesture | null; fps: number; landmarks: Point[] | null }>(
     { category: "-", score: 0, decided: null, fps: 0, landmarks: null },
   );
@@ -181,6 +186,7 @@ export function Booth({
     setResultUrl(null);
     setQr(null);
     resetPrints();
+    resetExpression();
     setAnswers([]);
     setQIndex(0);
     setChosen(null);
@@ -190,7 +196,7 @@ export function Booth({
     usageRef.current = null;
     sessionRef.current = uuid();
     setStep("attract");
-  }, [photo, stopCamera, resetPrints]);
+  }, [photo, stopCamera, resetPrints, resetExpression]);
 
   // Scan : animation de calibrage, puis quiz.
   useEffect(() => {
@@ -543,6 +549,7 @@ export function Booth({
     fd.set("session", sessionRef.current);
     fd.set("idem", idemRef.current);
     fd.set("answers", JSON.stringify(answers));
+    if (expression.reading) fd.set("expr", expression.reading);
     fd.set("image", photo.blob, "portrait.jpg");
     try {
       const r = await fetch("/api/photobooth/generate", { method: "POST", body: fd });
@@ -553,7 +560,7 @@ export function Booth({
     } catch {
       fail("DEFAULT");
     }
-  }, [accessKey, answers, fail, photo, poll, slug]);
+  }, [accessKey, answers, fail, photo, poll, slug, expression.reading]);
 
   const resumeCheck = useCallback(() => {
     if (!usageRef.current) return reset();
@@ -591,6 +598,7 @@ export function Booth({
           <p data-testid="calib-seen">vu {calib.category} {calib.score.toFixed(2)}</p>
           <p>imprimante {printer.state.kind}{"name" in printer.state ? ` · ${printer.state.name}` : ""}</p>
           {debugErrors.map((e, i) => <p key={i} className="max-w-[80vw] break-all text-red-300">{e}</p>)}
+          <p>expression {expression.reading ?? "…"}{expression.scores ? ` · sourire ${expression.scores.smile.toFixed(2)} sourcils ${expression.scores.raise.toFixed(2)}` : ""}</p>
           <p data-testid="calib-decided">retenu {calib.decided ?? "—"} (seuil {config.gestureMinScore}, maintien {config.gestureHoldMs} ms)</p>
         </div>
       )}
@@ -736,6 +744,12 @@ export function Booth({
               ))}
             </div>
             <p className="text-fmfg/80">{mood.description[locale]}</p>
+            {expression.reading && (
+              <p data-testid="expression" className="rounded-full border border-fmborder bg-fmcard/70 px-4 py-2 text-sm">
+                {t.yourExpression} <strong className="text-fmaccent">{EXPRESSION_LABEL[expression.reading][locale]}</strong>
+                <span className="mt-0.5 block text-[11px] text-fmmuted">{t.expressionNote}</span>
+              </p>
+            )}
             <div className="flex flex-wrap justify-center gap-3">
               <button onClick={() => setStep("capture")} className="rounded-full bg-fmfg px-8 py-3.5 font-semibold text-fmbg transition hover:bg-fmaccent">
                 {t.continue}

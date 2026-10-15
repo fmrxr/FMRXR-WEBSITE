@@ -1,6 +1,7 @@
 import type { CampaignConfig } from "./config";
 import type { ImageProvider } from "./higgsfield";
 import { buildMoodProfile, buildPortraitPrompt, validateMoodProfile, type Answers, type MoodProfile } from "./mood";
+import type { ExpressionId } from "./expression";
 
 // Orchestration d'une generation. Les dependances (base, fournisseur) sont
 // injectees pour que les tests puissent prouver la regle centrale :
@@ -31,6 +32,7 @@ export type StartInput = {
   sessionId: string;
   idempotencyKey: string;
   image: { bytes: Uint8Array; type: string };
+  expression?: ExpressionId | null;
 };
 
 export type StartResult =
@@ -41,7 +43,7 @@ export async function startGeneration(input: StartInput, deps: { db: PhotoboothD
   let mood: MoodProfile;
   try {
     // Graine = cle de la photo : une relance retombe sur la meme mise en scene.
-    mood = buildMoodProfile(input.answers, input.config, input.idempotencyKey);
+    mood = buildMoodProfile(input.answers, input.config, input.idempotencyKey, input.expression ?? null);
   } catch {
     return { ok: false, error: "INVALID_ANSWERS" };
   }

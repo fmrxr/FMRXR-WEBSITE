@@ -1,5 +1,6 @@
 import type { CampaignConfig, Locale, Localized } from "./config";
 import { PROMPT_BANK, type Variant } from "./prompt-bank";
+import { EXPRESSION_PROMPT, type ExpressionId } from "./expression";
 
 // Moteur d'ambiance : traduit les trois reponses en une direction visuelle.
 // Titre, palette et description dependent uniquement des reponses.
@@ -27,6 +28,8 @@ export type MoodProfile = {
   composition: string;
   camera: string;
   paletteWords: string;
+  /** Lecture d'expression faite sur l'appareil (categorie seulement), si disponible. */
+  expressionReading: ExpressionId | null;
 };
 
 function pick(config: CampaignConfig, answers: Answers) {
@@ -58,7 +61,12 @@ function variantsOf(o: Option): Variant[] {
  * @param seed cle de la photo (idempotence). Sans graine, ou si la variete
  * est coupee pour la campagne : fragments de base seulement.
  */
-export function buildMoodProfile(answers: Answers, config: CampaignConfig, seed?: string): MoodProfile {
+export function buildMoodProfile(
+  answers: Answers,
+  config: CampaignConfig,
+  seed?: string,
+  expressionReading: ExpressionId | null = null,
+): MoodProfile {
   const opts = pick(config, answers);
   const chosen = opts.map((o, i) => {
     const list = variantsOf(o);
@@ -89,6 +97,7 @@ export function buildMoodProfile(answers: Answers, config: CampaignConfig, seed?
     composition: f("composition"),
     camera: f("camera"),
     paletteWords: f("palette"),
+    expressionReading,
   };
 }
 
@@ -118,7 +127,10 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig): str
     "Keep their identity exactly: same face, facial features, skin tone, age, hairstyle and body proportions. Do not turn them into a different person.",
     SKIN_RETOUCH,
     config.styleBrief,
-    `Mood: ${p.atmosphere}; ${p.expression}.`,
+    // Expression lue sur le visiteur : on garde la sienne, l'ambiance la nuance seulement.
+    p.expressionReading
+      ? `Mood: ${p.atmosphere}. Expression: keep the person's own ${EXPRESSION_PROMPT[p.expressionReading]}, only nuanced toward ${p.expression}.`
+      : `Mood: ${p.atmosphere}; ${p.expression}.`,
     p.pose ? `Pose: ${p.pose}.` : "",
     p.setting ? `Setting: ${p.setting}.` : "",
     `Lighting: ${p.lighting}.`,

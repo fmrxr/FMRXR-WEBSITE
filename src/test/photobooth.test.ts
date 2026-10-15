@@ -427,3 +427,38 @@ describe("banque de prompts et variete", () => {
     expect(hashSeed("abc")).toBe(440920331);
   });
 });
+
+// ---------- lecture d'expression (sur l'appareil) ----------
+import face from "./fixtures/face-blendshapes.json";
+import { averageBlendshapes, readExpression, EXPRESSIONS } from "@/lib/photobooth/expression";
+
+describe("lecture d'expression", () => {
+  const neutral = { mouthSmileLeft: 0.02, mouthSmileRight: 0.03, browInnerUp: 0.05, browDownLeft: 0.1, browDownRight: 0.1, jawOpen: 0.02 };
+  it("portrait officiel MediaPipe souriant -> rayonnante", () => {
+    expect(readExpression(face.smiling)).toBe("radiant");
+  });
+  it("sourire leger -> lumineuse ; visage au repos -> sereine", () => {
+    expect(readExpression({ ...neutral, mouthSmileLeft: 0.3, mouthSmileRight: 0.28 })).toBe("bright");
+    expect(readExpression(neutral)).toBe("serene");
+  });
+  it("sourcils leves -> curieuse ; sourcils fronces sans sourire -> concentree", () => {
+    expect(readExpression({ ...neutral, browInnerUp: 0.6, browOuterUpLeft: 0.4, browOuterUpRight: 0.4 })).toBe("curious");
+    expect(readExpression({ ...neutral, browDownLeft: 0.7, browDownRight: 0.7, mouthPressLeft: 0.3, mouthPressRight: 0.3 })).toBe("focused");
+  });
+  it("un sourire avec sourcils abaisses reste un sourire (cas du portrait de test)", () => {
+    expect(readExpression({ ...face.smiling, browDownLeft: 0.9, browDownRight: 0.9 })).toBe("radiant");
+  });
+  it("la moyenne lisse une image isolee", () => {
+    const avg = averageBlendshapes([neutral, neutral, neutral, { ...neutral, mouthSmileLeft: 0.9, mouthSmileRight: 0.9 }]);
+    expect(readExpression(avg)).toBe("bright");
+  });
+  it("le prompt garde l'expression du visiteur, nuancee par l'ambiance", () => {
+    const answers: Answers = ["bold", "cinematic", "cinema"];
+    for (const e of EXPRESSIONS) {
+      const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "k", e), DEFAULT_CONFIG);
+      expect(p).toMatch(/keep the person's own/);
+    }
+    const none = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "k"), DEFAULT_CONFIG);
+    expect(none).not.toMatch(/keep the person's own/);
+  });
+});

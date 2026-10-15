@@ -3,6 +3,7 @@ import { z } from "zod";
 import { sniffImage } from "@/lib/photobooth/image";
 import { campaignAvailability, clientIp, createSupabaseDb, getProvider, loadCampaign, rateLimited } from "@/lib/photobooth/server";
 import { startGeneration } from "@/lib/photobooth/service";
+import { EXPRESSIONS, type ExpressionId } from "@/lib/photobooth/expression";
 
 // POST /api/photobooth/generate — multipart : slug, k, session, idem, answers (JSON), image.
 // Ordre : validation -> reservation atomique du quota -> seulement ensuite Higgsfield.
@@ -56,11 +57,16 @@ export async function POST(req: Request) {
   const type = sniffImage(bytes);
   if (!type) return err("INVALID_UPLOAD", 400);
 
+  // Lecture d'expression faite sur l'appareil : une categorie connue, sinon rien.
+  const exprRaw = form.get("expr");
+  const expression = typeof exprRaw === "string" && (EXPRESSIONS as readonly string[]).includes(exprRaw)
+    ? (exprRaw as ExpressionId) : null;
+
   const provider = getProvider();
   if (!provider) return err("PROVIDER_NOT_CONFIGURED", 503);
 
   const r = await startGeneration(
-    { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type } },
+    { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression },
     { db: createSupabaseDb(), provider },
   );
   if (!r.ok) {
