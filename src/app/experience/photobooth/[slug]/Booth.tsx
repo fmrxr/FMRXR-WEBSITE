@@ -19,6 +19,21 @@ const MAX_SIDE = 1536;
 
 const uuid = () => crypto.randomUUID();
 
+// MediaPipe ecrit des messages d'information de son moteur (ex. « INFO: Created
+// TensorFlow Lite XNNPACK delegate for CPU. ») via console.error. Ce ne sont
+// pas des erreurs, mais Next.js les affiche comme telles en developpement. On
+// ne retire que ces lignes « INFO: », tout le reste passe.
+let mediapipeInfoFiltered = false;
+function filterMediapipeInfo() {
+  if (mediapipeInfoFiltered) return;
+  mediapipeInfoFiltered = true;
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    if (typeof args[0] === "string" && args[0].startsWith("INFO: ")) return;
+    original(...args);
+  };
+}
+
 export function Booth({
   slug, accessKey, config, blocked,
 }: { slug: string; accessKey: string; config: CampaignConfig; blocked: string | null }) {
@@ -82,7 +97,8 @@ export function Booth({
   }, []);
 
   // ---------- hand tracking (local, rien n'est envoye) ----------
-  const loadTracker = useCallback(async () => {
+  const loadTracker = useCallback(async (cpuOnly = false) => {
+    filterMediapipeInfo();
     if (landmarkerRef.current) return setTracker("ready");
     setTracker("loading");
     try {
@@ -102,7 +118,8 @@ export function Booth({
         return r;
       };
       // GPU (WebGL) d'abord ; certains telephones et navigateurs le refusent : CPU.
-      landmarkerRef.current = await make("GPU").catch(() => make("CPU"));
+      // Apres un plantage en cours de route, on repart directement en CPU.
+      landmarkerRef.current = cpuOnly ? await make("CPU") : await make("GPU").catch(() => make("CPU"));
       setTracker("ready");
     } catch {
       setTracker("failed"); // le quiz reste faisable au toucher
@@ -187,6 +204,13 @@ export function Booth({
   useEffect(() => {
     if (step !== "quiz" || tracker !== "ready") return;
     const lm = landmarkerRef.current!;
+    // Le modele analyse une vignette de largeur fixe plutot que l'image pleine
+    // resolution de la camera : plus leger pour le GPU, et la taille d'entree
+    // ne change pas si la webcam renegocie sa resolution apres demarrage (cause
+    // connue de « Aborted() » dans MediaPipe).
+    const frame = document.createElement("canvas");
+    const fctx = frame.getContext("2d")!;
+    let crashed = false;
     const v = videoRef.current!;
     const stab = new GestureStabilizer(config.gestureHoldMs, 250);
     // Ecrans tactiles (telephones, tablettes) : ~15 analyses/s pour garder la
@@ -214,7 +238,13 @@ export function Booth({
       lastRun = now;
       let g: Gesture | null = null;
       try {
-        const res = lm.recognizeForVideo(v, now);
+        if (!frame.width && v.videoWidth) {
+          frame.width = 640;
+          frame.height = Math.round((640 * v.videoHeight) / v.videoWidth);
+        }
+        if (!frame.width) return;
+        fctx.drawImage(v, 0, 0, frame.width, frame.height);
+        const res = lm.recognizeForVideo(frame, now);
         const top = res.gestures?.[0]?.[0];
         const marks = res.landmarks?.[0] as Point[] | undefined;
         g = decideGesture(top, marks, config.gestureMinScore);
@@ -230,6 +260,16 @@ export function Booth({
           fpsSince = now;
         }
       } catch {
+        // Le moteur WebAssembly s'est arrete (« Aborted() ») : il ne repondra
+        // plus. On le jette et on le relance en CPU ; si le CPU echoue aussi,
+        // la borne passe en reponses au toucher (tracker « failed »).
+        if (crashed) return;
+        crashed = true;
+        cancelAnimationFrame(raf);
+        try { lm.close(); } catch { /* deja arrete */ }
+        landmarkerRef.current = null;
+        if (delegateRef.current === "GPU") loadTracker(true);
+        else setTracker("failed");
         return;
       }
       if (!armed && (g === null || g !== previous)) armed = true;
@@ -249,7 +289,7 @@ export function Booth({
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [step, tracker, qIndex, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose]);
+  }, [step, tracker, qIndex, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose, loadTracker]);
 
   // Lumiere : luminance moyenne de l'image, mesuree sur une vignette.
   // Sous ~55/255 la reconnaissance chute (calibrage : poing perdu a 80 % de noir).
