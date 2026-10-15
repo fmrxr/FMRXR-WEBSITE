@@ -78,6 +78,7 @@ export function Booth({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const landmarkerRef = useRef<GestureRecognizer | null>(null);
+  const trackerLoading = useRef(false); // un seul chargement a la fois (recommencer pendant le chargement)
   const delegateRef = useRef<"GPU" | "CPU" | null>(null);
   // Mode calibrage operateur : ?debug=1 affiche squelette, score, fps, lumiere.
   const debug = useSyncExternalStore(
@@ -128,6 +129,8 @@ export function Booth({
   const loadTracker = useCallback(async (cpuOnly = false) => {
     filterMediapipeInfo();
     if (landmarkerRef.current) return setTracker("ready");
+    if (trackerLoading.current) return;
+    trackerLoading.current = true;
     setTracker("loading");
     const t0 = performance.now();
     try {
@@ -156,12 +159,17 @@ export function Booth({
     } catch (e) {
       console.error("photobooth: chargement du modele impossible", e);
       setTracker("failed"); // le quiz reste faisable au toucher
+    } finally {
+      trackerLoading.current = false;
     }
   }, []);
 
   const startCamera = useCallback(async () => {
     setStep("camera");
     if (!navigator.mediaDevices?.getUserMedia) return fail("CAMERA_UNAVAILABLE");
+    // Le modele des gestes se charge pendant l'autorisation camera et le scan,
+    // pas apres : il est pret quand arrive la premiere question.
+    loadTracker();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         // Telephone / tablette : 1280x720 suffit au portrait et divise par deux la
@@ -177,7 +185,6 @@ export function Booth({
       v.srcObject = stream;
       await v.play();
       setStep("scan");
-      loadTracker();
     } catch (e) {
       const name = (e as DOMException)?.name;
       fail(name === "NotAllowedError" || name === "SecurityError" ? "CAMERA_DENIED" : "CAMERA_UNAVAILABLE");
@@ -606,7 +613,7 @@ export function Booth({
   }, [poll, reset]);
 
   // ---------- render ----------
-  const cameraOn = ["scan", "quiz", "mood", "capture"].includes(step);
+  const cameraOn = ["scan", "shot", "quiz", "mood", "capture"].includes(step);
   const question = config.questions[qIndex];
   const errorText = errorCode === "QUOTA_EXHAUSTED"
     ? config.quotaMessage[locale]
@@ -718,7 +725,7 @@ export function Booth({
           </>
         )}
 
-        {(step === "quiz" || step === "shot") && tracker === "ready" && !live.gesture && (
+        {(step === "quiz" || step === "shot") && tracker !== "failed" && !live.gesture && (
           // Zone ou montrer la main : a hauteur du visage, au-dessus des reponses.
           // Sur telephone tenu a la main, la main libre arrive sinon en bas, sous
           // les cartes et a moitie hors champ, et le modele ne voit pas de geste.
