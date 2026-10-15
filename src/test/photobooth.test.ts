@@ -44,12 +44,15 @@ describe("mood", () => {
     const prompts = new Set(all.map((a) => buildPortraitPrompt(buildMoodProfile(a, DEFAULT_CONFIG), DEFAULT_CONFIG)));
     expect(prompts.size).toBe(64);
   });
-  it("le prompt verrouille l'identite, la pose et le cadrage", () => {
+  it("le prompt verrouille l'identite et la pose, recule la camera et detaille le decor", () => {
     const p = buildPortraitPrompt(buildMoodProfile(["calm", "natural", "editorial"], DEFAULT_CONFIG), DEFAULT_CONFIG);
     expect(p).toMatch(/IDENTITY \(must not change\)/);
-    expect(p).toMatch(/Keep the original head position, head tilt/);
+    expect(p).toMatch(/Keep the original head tilt, gaze direction and camera angle/);
     expect(p).toMatch(/do not change the pose/);
-    expect(p).toMatch(/CHANGE ONLY the lighting, the background set and the colour grade/);
+    expect(p).toMatch(/CHANGE ONLY the camera distance, the lighting, the background set and the colour grade/);
+    expect(p).toMatch(/FRAMING: Pull the camera back to a medium shot/);
+    expect(p).toMatch(/never an empty blur/);
+    expect(p).toMatch(/Avoid: tight close-up, face filling the frame/);
   });
   it("refuse une reponse inconnue", () => {
     expect(() => buildMoodProfile(["calm", "nope", "editorial"], DEFAULT_CONFIG)).toThrow();
@@ -490,7 +493,7 @@ describe("portrait ou groupe", () => {
     expect(p).toMatch(/same number of people/);
     expect(p).toMatch(/do not add, remove, merge or swap anyone/);
     expect(p).toMatch(/Every person must stay exactly the same/);
-    expect(p).toMatch(/nobody is cropped out/);
+    expect(p).toMatch(/nobody is cropped out/i);
     expect(p).not.toMatch(/extra people/);
   });
   it("en groupe, la lecture d'expression (un seul visage) est ignoree", () => {

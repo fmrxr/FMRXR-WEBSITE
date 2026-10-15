@@ -98,19 +98,33 @@ export default function Photobooth() {
         <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">14 styles, activated per client</h2>
         <p className="fm-grotesk mt-4 max-w-2xl text-[15px] leading-relaxed text-fmfg/80">
           Each campaign offers the styles that fit the brand. Guests choose among them at the booth.
+          Every image below is a real output of the booth, made from one photo of a fictional model (generated, not a real person).
         </p>
         {[["Editorial · the face stays exact", editorial], ["Transformations · a recognisable likeness, reinterpreted", transform]].map(([label, ids]) => (
           <div key={label as string} className="mt-10">
             <p className="text-[12px] uppercase tracking-[0.12em] text-fmaccent">{label as string}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {(ids as typeof STYLE_IDS[number][]).map((id) => (
-                <div key={id} className="fm-glass-card rounded-xl p-5">
-                  <p className="fm-display text-base text-fmfg">{STYLES[id].label.en}</p>
-                  <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{STYLES[id].blurb.en}</p>
-                  {STYLES[id].layout !== "none" && (
-                    <p className="mt-3 text-[10px] uppercase tracking-[0.12em] text-fmfg/60">Branded layout</p>
-                  )}
-                </div>
+                <figure key={id} className="fm-glass-card overflow-hidden rounded-xl">
+                  {/* Sortie réelle de la borne (pipeline de production) sur un modèle fictif :
+                      public/photobooth/styles/<id>.webp, une image par style. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                      src={`/photobooth/styles/${id}.webp`}
+                      alt={`${STYLES[id].label.en} style, AI Photobooth output`}
+                      loading="lazy"
+                      width={600}
+                      height={800}
+                      className="aspect-[3/4] w-full bg-fmmutedbg object-cover"
+                  />
+                  <figcaption className="p-5">
+                    <p className="fm-display text-base text-fmfg">{STYLES[id].label.en}</p>
+                    <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{STYLES[id].blurb.en}</p>
+                    {STYLES[id].layout !== "none" && (
+                      <p className="mt-3 text-[10px] uppercase tracking-[0.12em] text-fmfg/60">Branded layout</p>
+                    )}
+                  </figcaption>
+                </figure>
               ))}
             </div>
           </div>

@@ -49,15 +49,15 @@ export const PROMPT_BANK: Record<string, Variant[]> = {
 
   // ---------- Q2 · univers ----------
   natural: [
-    { lighting: "large north-facing window as key light from camera left, white bounce filling the shadow side, soft wrap on the face", setting: "a linen-toned room with a textured plaster wall and a sheer curtain, softly out of focus", grade: "warm neutral grade, creamy highlights, gentle film-like roll-off" },
-    { lighting: "late golden-hour sun filtered through foliage, warm dappled light on the backdrop, soft fill on the face", setting: "a quiet garden courtyard, greenery melting into soft bokeh", grade: "warm amber grade with natural green undertones" },
+    { lighting: "large north-facing window as key light from camera left, white bounce filling the shadow side, soft wrap on the face", setting: "a linen-toned room with a textured plaster wall, a sheer curtain lifting in the window light, a wooden stool and dried flowers in a stoneware vase", grade: "warm neutral grade, creamy highlights, gentle film-like roll-off" },
+    { lighting: "late golden-hour sun filtered through foliage, warm dappled light on the backdrop, soft fill on the face", setting: "a quiet garden courtyard with olive trees, climbing jasmine on old stone walls and a small fountain", grade: "warm amber grade with natural green undertones" },
     { lighting: "big diffused overhead skylight with a soft reflector under the chin, even and luminous", setting: "an airy ceramics studio with raw clay textures and wooden shelves", grade: "soft natural grade, earthy neutrals" },
     { lighting: "low afternoon sidelight with long soft shadows, gentle fill from a white wall", setting: "a sunlit Mediterranean interior with whitewashed walls and terracotta tones", grade: "sun-warmed grade, ochre and sand tones" },
-    { lighting: "overcast daylight through a wide doorway, flattering soft key, very gentle falloff", setting: "a seaside terrace of pale limestone, the sea a soft haze behind", grade: "muted coastal grade, sand, linen and faded blue" },
+    { lighting: "overcast daylight through a wide doorway, flattering soft key, very gentle falloff", setting: "a seaside terrace of pale limestone with a low whitewashed parapet, potted bougainvillea and the sea stretching to the horizon behind", grade: "muted coastal grade, sand, linen and faded blue" },
   ],
   cinematic: [
     { lighting: "single hard key from a practical lamp at 45 degrees, deep falloff into shadow, faint warm rim on the hair", setting: "a dark wood-panelled room with a glowing lamp far behind", grade: "teal-and-amber cinema grade, rich blacks" },
-    { lighting: "soft key from one side, coloured practicals reflecting on wet glass behind", setting: "a rain-streaked window at night with blurred city lights", grade: "deep teal night grade with warm skin tones preserved" },
+    { lighting: "soft key from one side, coloured practicals reflecting on wet glass behind", setting: "a high-floor window at night, rain on the glass, the lit city grid and traffic trails spread out below", grade: "deep teal night grade with warm skin tones preserved" },
     { lighting: "warm tungsten pool of light on the face, cool ambient shadow around", setting: "an empty theatre, velvet seats fading into darkness", grade: "warm tungsten against cool shadows, film-print contrast" },
     { lighting: "dramatic rim light through light haze, controlled soft key on the face", setting: "a moody lounge corner in deep teal and oxblood", grade: "oxblood and teal grade, velvety shadows" },
     { lighting: "low sun through window blinds casting soft striped shadows on the backdrop only, clean light on the face", setting: "a vintage office at dusk", grade: "golden dusk grade, nostalgic film tone" },
@@ -70,11 +70,11 @@ export const PROMPT_BANK: Record<string, Variant[]> = {
     { lighting: "prismatic light leaks across the edge of the frame, clean key on the face", setting: "an abstract space of layered textures and torn coloured paper", grade: "warm prismatic accents over a neutral base" },
   ],
   metallic: [
-    { lighting: "cool specular rim light on both edges, soft frontal key, light haze", setting: "a minimal brushed-chrome corridor softly out of focus", grade: "cool silver grade, neutral skin" },
+    { lighting: "cool specular rim light on both edges, soft frontal key, light haze", setting: "a minimal brushed-chrome corridor with recessed light lines receding into the distance", grade: "cool silver grade, neutral skin" },
     { lighting: "clean white beauty-dish key with cold blue fill", setting: "a brushed-steel architectural interior with precise lines", grade: "graphite and steel grade, crisp whites" },
-    { lighting: "light bounced from mirrored panels, crisp specular highlights", setting: "a room of polished metal surfaces and soft reflections", grade: "cool metallic grade with a single green accent" },
+    { lighting: "light bounced from mirrored panels, crisp specular highlights", setting: "a gallery of polished metal panels and mirrored columns, reflections repeating into depth", grade: "cool metallic grade with a single green accent" },
     { lighting: "low cold key, one green accent light on the backdrop", setting: "a dark futuristic lab of glass and graphite", grade: "deep graphite grade, restrained green" },
-    { lighting: "moonlike silver key, high and soft, cold rim from behind", setting: "a night rooftop, glass towers blurred behind", grade: "silver night grade, cool but true skin tones" },
+    { lighting: "moonlike silver key, high and soft, cold rim from behind", setting: "a night rooftop terrace with a glass railing, lit glass towers and a skyline behind", grade: "silver night grade, cool but true skin tones" },
   ],
 
   // ---------- Q3 · style ----------

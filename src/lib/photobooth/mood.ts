@@ -136,12 +136,28 @@ export const SKIN_RETOUCH =
 
 // Ce qui ne doit jamais changer. Un modele d'edition redessine le visage des
 // qu'on change la pose, l'angle ou l'optique : on le lui interdit
-// explicitement (constat du 15/10/2026 sur les premiers portraits).
+// explicitement (constat du 15/10/2026 sur les premiers portraits). La
+// distance, elle, change (FRAMING_MEDIUM) : un sujet plein cadre ecrase le decor.
 export const IDENTITY_LOCK =
   "This is a photo edit, not a new photo. The person must stay exactly the same and instantly recognisable: " +
   "same face shape, jawline, cheekbones, eyes, eyebrows, nose, lips, ears, skin tone, age, hairline and hair, facial hair, " +
-  "and any glasses, cap or headwear they wear. Keep the original head position, head tilt, gaze direction, camera angle, distance and framing, " +
+  "and any glasses, cap or headwear they wear. Keep the original head tilt, gaze direction and camera angle (same eye level), " +
   "with the same facial proportions. Do not reshape, slim, smooth into plastic, or idealise the face, and do not change the pose.";
+
+// Cadrage plan moyen : le sujet ne remplit plus l'image, le decor se lit
+// (retour du 15/10/2026 : « le background doit etre plus detaille et le sujet
+// moins grand »). Methode du recul de camera en edition : seule la distance
+// change, l'angle et la hauteur restent ceux de la photo.
+export const FRAMING_MEDIUM =
+  "Pull the camera back to a medium shot: show the person from the top of the head to the waist, head in the upper third of the frame, " +
+  "the person taking up about half of the frame height so that the set around them is clearly visible on both sides. " +
+  "Same camera height and eye-level angle as the photo. Continue their own clothing naturally below the original crop; arms relaxed, hands out of frame or resting naturally.";
+
+// Decor detaille : plusieurs plans de profondeur lisibles, pas un flou.
+export const SET_DEPTH =
+  "Build it as a fully realised, believable location with clear depth layers: a soft foreground element at one edge of the frame, the person in the midground, " +
+  "and a detailed background with readable architecture, materials, props and practical light sources. " +
+  "Moderate depth of field, as at f/4: the background stays recognisable and rich in detail, never an empty blur.";
 
 // Version groupe : chaque visage est verrouille, et le nombre de personnes aussi.
 export const GROUP_IDENTITY_LOCK =
@@ -171,16 +187,17 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig): str
     // Une seule famille de changements (lumiere, decor, etalonnage) : changer
     // aussi la tenue multiplie la derive du visage (guides des modeles
     // d'edition, et constat sur les premiers portraits).
-    "CHANGE ONLY the lighting, the background set and the colour grade, as follows.",
+    "CHANGE ONLY the camera distance, the lighting, the background set and the colour grade, as follows.",
+    `FRAMING: ${FRAMING_MEDIUM}`,
     `LIGHTING: ${p.lighting}${p.contrast ? `; ${p.contrast}` : ""}. Light the face cleanly and flatteringly, keeping its features clearly readable. The new light must have one consistent direction and colour on the face, the clothing and the background, like a single real lighting setup.`,
-    p.setting ? `SET: ${p.setting}, with natural depth of field behind the person.` : "",
+    `SET: ${p.setting || "a real location that matches the mood"}. ${SET_DEPTH}`,
     "WARDROBE: keep the person's own clothing and accessories exactly as in the photo, simply clean and well lit.",
     `COLOUR: ${p.grade ? `${p.grade}; ` : ""}palette of ${p.paletteWords}.`,
     `MOOD: ${p.atmosphere}.`,
     `FINISH: ${p.texture}. ${config.styleBrief}`,
-    "Photographic realism, like a real photo shoot with professional lighting. Keep the same framing as the reference, as if shot on a medium telephoto lens.",
+    "Photographic realism, like a real photo shoot with professional lighting, shot on a 50mm lens from about two and a half metres, natural perspective.",
     (p as MoodProfile & { extra?: string }).extra ?? "",
-    `Avoid: wide-angle distortion, changed face, different person, ${config.negative}.`,
+    `Avoid: tight close-up, face filling the frame, empty or blurred background, wide-angle distortion, changed face, different person, ${config.negative}.`,
   ].filter(Boolean).join("\n");
 }
 
@@ -192,14 +209,15 @@ function buildGroupPrompt(p: MoodProfile, config: CampaignConfig): string {
     `IDENTITY (must not change): ${GROUP_IDENTITY_LOCK}`,
     `EXPRESSIONS: keep each person's own expression; nuance the overall mood at most slightly toward: ${p.expression}.`,
     `SKIN: ${SKIN_RETOUCH} Apply the same light retouch to everyone.`,
-    "CHANGE ONLY the lighting, the background set and the colour grade, as follows.",
+    "CHANGE ONLY the camera distance, the lighting, the background set and the colour grade, as follows.",
+    "FRAMING: pull the camera back slightly so that everyone is fully in frame with breathing space around the group and the set clearly visible; same camera height and angle.",
     `LIGHTING: ${p.lighting}${p.contrast ? `; ${p.contrast}` : ""}. Light every face cleanly and evenly, so that no one falls into shadow. The new light must have one consistent direction and colour on all the people and the background, like a single real lighting setup.`,
-    p.setting ? `SET: ${p.setting}, with natural depth of field behind the group.` : "",
+    `SET: ${p.setting || "a real location that matches the mood"}. ${SET_DEPTH}`,
     "WARDROBE: keep everyone's own clothing and accessories exactly as in the photo, simply clean and well lit.",
     `COLOUR: ${p.grade ? `${p.grade}; ` : ""}palette of ${p.paletteWords}.`,
     `MOOD: ${p.atmosphere}.`,
     `FINISH: ${p.texture}. ${config.styleBrief}`,
-    "Photographic realism, like a real group photo shoot with professional lighting. Keep the same framing as the reference so that nobody is cropped out.",
+    "Photographic realism, like a real group photo shoot with professional lighting. Nobody is cropped out.",
     (p as MoodProfile & { extra?: string }).extra ?? "",
     `Avoid: wide-angle distortion, changed faces, missing or added people, ${negative}.`,
   ].filter(Boolean).join("\n");
@@ -231,7 +249,9 @@ function buildTransformPrompt(p: MoodProfile, config: CampaignConfig): string {
     `LIKENESS (most important): the result must stay clearly recognisable as ${group ? "these exact people" : "this exact person"}. ` +
       "Keep each face shape, eye shape, eyebrows, nose, lips, skin tone, age, hairstyle and hair colour, facial hair, glasses and headwear, and their expression. " +
       (group ? "Keep the same number of people and their positions; do not add or remove anyone. " : "") +
-      "Keep the pose and framing close to the reference photo.",
+      "Keep the pose close to the reference photo.",
+    `FRAMING: ${group ? "pull back slightly so everyone is fully in frame with the scene visible around them" : "a medium shot from the top of the head to the waist, the person taking up about half of the frame height"}.`,
+    "SCENE: a detailed, fully realised environment in the same style around the subject, with foreground, midground and background depth.",
     `COLOUR: palette of ${p.paletteWords}${p.grade ? `; ${p.grade}` : ""}.`,
     `MOOD: ${p.atmosphere}.`,
     "Original artwork: no existing characters, franchises, celebrities, brands, emblems or logos.",
