@@ -40,7 +40,7 @@ const L = (fr: string, en: string, ar: string): Localized => ({ fr, en, ar });
 export const STYLES: Record<StyleId, StyleDef> = {
   mood: {
     id: "mood", family: "editorial", layout: "none",
-    label: L("Mood Portrait", "Mood Portrait", "بورتريه المزاج"),
+    label: L("AURA FARMING", "AURA FARMING", "AURA FARMING"),
     blurb: L("Portrait éditorial composé à partir de vos choix.", "Editorial portrait composed from your choices.", "بورتريه تحريري من اختياراتك."),
   },
   film: {

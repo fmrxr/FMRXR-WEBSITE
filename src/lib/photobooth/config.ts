@@ -100,7 +100,7 @@ const withBank = (qs: CampaignConfig["questions"]): CampaignConfig["questions"] 
   qs.map((q) => ({ ...q, options: q.options.map((o) => ({ ...o, variants: PROMPT_BANK[o.id] ?? [] })) }));
 
 export const DEFAULT_CONFIG: CampaignConfig = {
-  title: L("Mood Portrait", "Mood Portrait", "بورتريه المزاج"),
+  title: L("AURA FARMING", "AURA FARMING", "AURA FARMING"),
   intro: L(
     "Trois gestes, une photo. Le système compose un portrait éditorial à partir de vos choix.",
     "Three gestures, one photo. The system composes an editorial portrait from your choices.",
