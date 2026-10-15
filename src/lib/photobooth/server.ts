@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveConfig, type CampaignConfig } from "./config";
 import { createHiggsfieldProvider, type ImageProvider } from "./higgsfield";
 import { pollGeneration, type PhotoboothDb } from "./service";
+import { brandedFromUrl } from "./branding";
 
 // Cote serveur uniquement : client service_role, cle Higgsfield.
 
@@ -129,7 +130,7 @@ export function isShareActive(completedAt: string | null, now = Date.now()) {
 
 /** Portrait partage : reussi, de moins de 7 jours, campagne qui autorise le partage. */
 export async function findShared(token: string): Promise<
-  | { ok: true; resultUrl: string; title: Record<string, string> | null; campaignName: string; expiresAt: string }
+  | { ok: true; resultUrl: string; title: Record<string, string> | null; campaignName: string; expiresAt: string; clientLogoUrl: string }
   | { ok: false; reason: "NOT_FOUND" | "EXPIRED" }
 > {
   if (!/^[0-9a-f]{32}$/.test(token)) return { ok: false, reason: "NOT_FOUND" };
@@ -149,6 +150,7 @@ export async function findShared(token: string): Promise<
     resultUrl: data.result_url,
     title: mood?.title ?? null,
     campaignName: campaign?.name ?? "",
+    clientLogoUrl: cfg.config.clientLogoUrl,
     expiresAt: new Date(Date.parse(data.completed_at!) + SHARE_TTL_MS).toISOString(),
   };
 }
@@ -188,4 +190,33 @@ export async function reconcileStale(campaignId: string, provider: ImageProvider
     .eq("campaign_id", campaignId).in("status", ["processing", "unknown"])
     .lt("created_at", before).order("created_at").limit(3);
   await Promise.all((data ?? []).map((u) => pollGeneration(u.id, null, { db, provider }).catch(() => null)));
+}
+
+/** Logo client de la campagne (fichier officiel saisi dans l'admin), vide sinon. */
+export async function campaignLogoUrl(campaignId: string): Promise<string> {
+  const { data } = await getSupabaseAdmin()
+    .from("photobooth_campaigns").select("config").eq("id", campaignId).maybeSingle();
+  const cfg = resolveConfig(data?.config);
+  return cfg.ok ? cfg.config.clientLogoUrl : "";
+}
+
+/**
+ * Relaie le portrait AVEC le branding (bande, logo client, FMRXR//). Si la
+ * composition echoue, on renvoie l'image brute plutot que rien.
+ */
+export async function relayPortrait(resultUrl: string, clientLogoUrl: string, filename: string | null) {
+  if (!resultUrl.startsWith("https://")) return new Response("Expired", { status: 410 });
+  try {
+    const out = await brandedFromUrl(resultUrl, clientLogoUrl);
+    if (!out) return new Response("Expired", { status: 410 });
+    const headers = new Headers({
+      "Content-Type": "image/jpeg",
+      "Cache-Control": "private, max-age=3600",
+      "X-Content-Type-Options": "nosniff",
+    });
+    if (filename) headers.set("Content-Disposition", `attachment; filename="${filename}.jpg"`);
+    return new Response(new Uint8Array(out), { headers });
+  } catch {
+    return relayImage(resultUrl, filename);
+  }
 }
