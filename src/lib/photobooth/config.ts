@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PROMPT_BANK } from "./prompt-bank";
 
 // Configuration d'une campagne photobooth. Tout ce qui est texte, question,
 // ambiance ou reglage de modele vit ici et peut etre surcharge par campagne
@@ -22,6 +23,9 @@ const optionSchema = z.object({
   title: localized.optional(), // mot qui entre dans le titre de l'ambiance
   palette: z.array(z.string().regex(/^#[0-9a-fA-F]{6}$/)).max(5).optional(),
   fragments: z.record(z.string(), z.string()), // lighting, atmosphere, texture...
+  // Banque de mises en scene : une variante tiree par photo (voir mood.ts).
+  // Absente = banque par defaut de cette reponse (prompt-bank.ts) ; [] = aucune.
+  variants: z.array(z.record(z.string(), z.string())).max(20).optional(),
 });
 
 const questionSchema = z.object({
@@ -66,6 +70,7 @@ export const campaignConfigSchema = z.object({
   aspectRatio: z.enum(["3:4", "2:3", "1:1", "9:16"]), // ratios communs aux quatre modeles,
   countdownSeconds: z.number().int().min(0).max(10),
   shareEnabled: z.boolean(), // QR de partage sur l'ecran resultat
+  promptVariety: z.boolean(), // une variante de mise en scene tiree par photo
   // Reconnaissance des gestes (calibrage : voir gestures.ts). Le seuil est le
   // score minimal du modele officiel ; le maintien, le temps pendant lequel le
   // geste doit etre tenu avant d'etre accepte.
@@ -77,6 +82,9 @@ export const campaignConfigSchema = z.object({
 export type CampaignConfig = z.infer<typeof campaignConfigSchema>;
 
 const L = (fr: string, en: string, ar: string): Localized => ({ fr, en, ar });
+
+const withBank = (qs: CampaignConfig["questions"]): CampaignConfig["questions"] =>
+  qs.map((q) => ({ ...q, options: q.options.map((o) => ({ ...o, variants: PROMPT_BANK[o.id] ?? [] })) }));
 
 export const DEFAULT_CONFIG: CampaignConfig = {
   title: L("Mood Portrait", "Mood Portrait", "بورتريه المزاج"),
@@ -98,7 +106,7 @@ export const DEFAULT_CONFIG: CampaignConfig = {
   locales: ["fr", "en", "ar"],
   defaultLocale: "fr",
   clientLogoUrl: "",
-  questions: [
+  questions: withBank([
     {
       id: "energy",
       prompt: L("Quelle énergie voulez-vous exprimer ?", "What energy do you want to express?", "ما الطاقة التي تريد التعبير عنها؟"),
@@ -189,7 +197,7 @@ export const DEFAULT_CONFIG: CampaignConfig = {
         },
       ],
     },
-  ],
+  ]),
   styleBrief:
     "High-end editorial portrait photography for a premium brand campaign. Professional retouching, true-to-life skin texture, precise colour grading, magazine-cover quality.",
   negative:
@@ -200,6 +208,7 @@ export const DEFAULT_CONFIG: CampaignConfig = {
   aspectRatio: "3:4",
   countdownSeconds: 3,
   shareEnabled: true,
+  promptVariety: true,
   gestureMinScore: 0.5,
   gestureHoldMs: 900,
   print: {
@@ -214,6 +223,9 @@ export const DEFAULT_CONFIG: CampaignConfig = {
   maxUploadBytes: 4_000_000,
 };
 
+/** Reglages automatiques : modele, rendu, calibrage des gestes, variete. */
+export const AUTOMATIC = ["model", "resolution", "quality", "gestureMinScore", "gestureHoldMs", "promptVariety"] as const;
+
 /**
  * Fusionne la surcharge de campagne avec la configuration par defaut puis
  * valide le tout. Une surcharge invalide renvoie une erreur lisible plutot
@@ -227,6 +239,9 @@ export function resolveConfig(override: unknown):
     ...DEFAULT_CONFIG,
     ...o,
     print: { ...DEFAULT_CONFIG.print, ...((o.print && typeof o.print === "object" ? o.print : {}) as object) },
+    // Automatique, jamais par campagne : une valeur enregistree est ignoree,
+    // ainsi une amelioration du modele ou du calibrage profite a toutes.
+    ...Object.fromEntries(AUTOMATIC.map((k) => [k, DEFAULT_CONFIG[k]])),
   };
   const parsed = campaignConfigSchema.safeParse(merged);
   if (!parsed.success) {

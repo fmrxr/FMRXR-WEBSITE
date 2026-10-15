@@ -40,7 +40,8 @@ export type StartResult =
 export async function startGeneration(input: StartInput, deps: { db: PhotoboothDb; provider: ImageProvider }): Promise<StartResult> {
   let mood: MoodProfile;
   try {
-    mood = buildMoodProfile(input.answers, input.config);
+    // Graine = cle de la photo : une relance retombe sur la meme mise en scene.
+    mood = buildMoodProfile(input.answers, input.config, input.idempotencyKey);
   } catch {
     return { ok: false, error: "INVALID_ANSWERS" };
   }

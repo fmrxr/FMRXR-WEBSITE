@@ -18,8 +18,9 @@ describe("config", () => {
     const r = resolveConfig({ questions: qs });
     expect(r.ok).toBe(false);
   });
-  it("refuse un modele inconnu", () => {
-    expect(resolveConfig({ model: "dall-e" }).ok).toBe(false);
+  it("le modele est automatique : une valeur de campagne est ignoree", () => {
+    const r = resolveConfig({ model: "dall-e", resolution: "1k", quality: "low" });
+    expect(r.ok && [r.config.model, r.config.resolution, r.config.quality]).toEqual(["flare", "2k", "high"]);
   });
 });
 
@@ -371,8 +372,58 @@ describe("reglages impression et gestes", () => {
     expect(resolveConfig({ print: { agentUrl: "http://192.168.1.20:7341" } }).ok).toBe(false);
     expect(resolveConfig({ print: { agentUrl: "http://localhost:7341" } }).ok).toBe(true);
   });
-  it("seuil de geste borne", () => {
-    expect(resolveConfig({ gestureMinScore: 0.2 }).ok).toBe(false);
-    expect(resolveConfig({ gestureMinScore: 0.6 }).ok).toBe(true);
+  it("calibrage des gestes automatique : une valeur de campagne est ignoree", () => {
+    const r = resolveConfig({ gestureMinScore: 0.2, gestureHoldMs: 5000, promptVariety: false });
+    expect(r.ok && [r.config.gestureMinScore, r.config.gestureHoldMs, r.config.promptVariety]).toEqual([0.5, 900, true]);
+  });
+});
+
+// ---------- banque de prompts ----------
+import { PROMPT_BANK } from "@/lib/photobooth/prompt-bank";
+import { hashSeed } from "@/lib/photobooth/mood";
+
+describe("banque de prompts et variete", () => {
+  const answers: Answers = ["bold", "cinematic", "cinema"];
+  it("chaque reponse par defaut a 5 variantes non vides", () => {
+    for (const q of DEFAULT_CONFIG.questions) for (const o of q.options) {
+      expect(PROMPT_BANK[o.id]).toHaveLength(5);
+      for (const v of PROMPT_BANK[o.id]) for (const t of Object.values(v)) expect(t.trim().length).toBeGreaterThan(3); // ex. « 85mm »
+    }
+  });
+  it("meme photo (meme graine) = meme prompt : une relance ne change rien", () => {
+    const a = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "photo-key-123"), DEFAULT_CONFIG);
+    const b = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "photo-key-123"), DEFAULT_CONFIG);
+    expect(a).toBe(b);
+  });
+  it("visiteurs differents = mises en scene variees (au moins 60 sur 200 photos)", () => {
+    const set = new Set(Array.from({ length: 200 }, (_, i) => buildMoodProfile(answers, DEFAULT_CONFIG, `visitor-${i}`).variant));
+    expect(set.size).toBeGreaterThanOrEqual(60);
+  });
+  it("le tirage couvre toutes les variantes de chaque reponse", () => {
+    const seen = new Set(Array.from({ length: 400 }, (_, i) => buildMoodProfile(answers, DEFAULT_CONFIG, `k${i}`).variant.split(".")[0]));
+    expect(seen.size).toBe(5);
+  });
+  it("titre, palette et description ne dependent que des reponses", () => {
+    const a = buildMoodProfile(answers, DEFAULT_CONFIG, "x1");
+    const b = buildMoodProfile(answers, DEFAULT_CONFIG, "x2");
+    const c = buildMoodProfile(answers, DEFAULT_CONFIG);
+    expect([a.title, a.palette, a.description]).toEqual([c.title, c.palette, c.description]);
+    expect([b.title, b.palette]).toEqual([c.title, c.palette]);
+  });
+  it("le prompt contient pose, decor, stylisme et la retouche legere qui protege la teinte", () => {
+    const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "x1"), DEFAULT_CONFIG);
+    expect(p).toMatch(/Pose: /);
+    expect(p).toMatch(/Setting: /);
+    expect(p).toMatch(/Styling: /);
+    expect(p).toMatch(/Never lighten, whiten or change the skin tone/);
+    expect(p).toMatch(/Keep their identity exactly/);
+  });
+  it("sans variantes (liste vide) on garde les fragments de base", () => {
+    const cfg = structuredClone(DEFAULT_CONFIG);
+    for (const q of cfg.questions) for (const o of q.options) o.variants = [];
+    expect(buildMoodProfile(answers, cfg, "x1").variant).toBe("bold#-.cinematic#-.cinema#-");
+  });
+  it("hash stable (meme valeur navigateur et serveur)", () => {
+    expect(hashSeed("abc")).toBe(440920331);
   });
 });

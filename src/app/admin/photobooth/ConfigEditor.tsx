@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
-  GESTURES, LOCALES, MODELS, PAPERS, resolveConfig,
+  GESTURES, LOCALES, PAPERS, resolveConfig,
   type CampaignConfig, type Locale, type Localized,
 } from "@/lib/photobooth/config";
 
@@ -16,12 +16,6 @@ import {
 const LOCALE_LABEL: Record<Locale, string> = { fr: "Français", en: "English", ar: "العربية" };
 const GESTURE_LABEL: Record<string, string> = {
   open_palm: "✋ Main ouverte", fist: "✊ Poing", thumb_up: "👍 Pouce levé", peace: "✌️ Paix",
-};
-const MODEL_LABEL: Record<string, string> = {
-  flare: "Marketing Studio 2.5 Flare (recommandé, jusqu’à 4k)",
-  sunburst: "Marketing Studio 2.5 Sunburst (jusqu’à 4k)",
-  grok: "Grok Image 2.0 (2k max, 0,09 $)",
-  qwen: "Qwen Image 3 Edit (2k max, 0,04 à 0,075 $)",
 };
 const QUESTION_ROLE = [
   "Énergie : son titre forme le 1er mot du titre d’ambiance, fragments attendus : atmosphere, expression.",
@@ -129,18 +123,10 @@ export function ConfigEditor({ value, onChange }: { value: CampaignConfig; onCha
 
       <fieldset className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
         <legend className="px-1 text-sm font-medium">Génération</legend>
-        <div className="flex flex-col gap-2 md:col-span-2">
-          <Label>Modèle</Label>
-          {select(c.model, (v) => set({ model: v as CampaignConfig["model"] }), MODELS.map((m) => [m, MODEL_LABEL[m]]))}
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label>Résolution</Label>
-          {select(c.resolution, (v) => set({ resolution: v as CampaignConfig["resolution"] }), [["1k", "1k"], ["2k", "2k"], ["4k", "4k (Flare, Sunburst)"]])}
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label>Qualité</Label>
-          {select(c.quality, (v) => set({ quality: v as CampaignConfig["quality"] }), [["low", "low"], ["medium", "medium"], ["high", "high"], ["xhigh", "xhigh (Flare, Sunburst)"], ["max", "max (Flare, Sunburst)"]])}
-        </div>
+        <p className="text-xs text-muted-foreground md:col-span-2">
+          Modèle, résolution, qualité, retouche légère de la peau et variété des mises en scène : automatiques,
+          identiques pour toutes les campagnes.
+        </p>
         <div className="flex flex-col gap-2">
           <Label>Format</Label>
           {select(c.aspectRatio, (v) => set({ aspectRatio: v as CampaignConfig["aspectRatio"] }), [["3:4", "3:4 portrait"], ["2:3", "2:3 portrait"], ["9:16", "9:16 story"], ["1:1", "1:1 carré"]])}
@@ -161,23 +147,6 @@ export function ConfigEditor({ value, onChange }: { value: CampaignConfig; onCha
           <Label>À éviter</Label>
           <Textarea rows={2} value={c.negative} onChange={(e) => set({ negative: e.target.value })} />
         </div>
-      </fieldset>
-
-      <fieldset className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
-        <legend className="px-1 text-sm font-medium">Reconnaissance des gestes</legend>
-        <div className="flex flex-col gap-2">
-          <Label>Score minimal du modèle ({c.gestureMinScore.toFixed(2)})</Label>
-          <input type="range" min={0.35} max={0.95} step={0.05} value={c.gestureMinScore} onChange={(e) => set({ gestureMinScore: Number(e.target.value) })} />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label>Maintien du geste ({c.gestureHoldMs} ms)</Label>
-          <input type="range" min={300} max={3000} step={100} value={c.gestureHoldMs} onChange={(e) => set({ gestureHoldMs: Number(e.target.value) })} />
-        </div>
-        <p className="text-xs text-muted-foreground md:col-span-2">
-          Calibré sur les images de test officielles MediaPipe : 0,50 et 900 ms. Monter le score rend la borne plus stricte (moins d’erreurs,
-          mais la main ouverte, notée 0,53 à 0,69, peut ne plus passer). Sur place, ouvrez la borne avec <code>&amp;debug=1</code> pour voir
-          le squelette, le score, la lumière et l’imprimante.
-        </p>
       </fieldset>
 
       <fieldset className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
