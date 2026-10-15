@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { currentRoles, currentUser } from "@/lib/auth";
-import { landingPath } from "@/lib/roles";
+import { currentRoles, currentUser, landingFor } from "@/lib/auth";
 import { signOut } from "@/app/actions/auth";
 import { PasswordForm } from "./form";
 
@@ -17,7 +16,7 @@ export const dynamic = "force-dynamic";
 // encore son role doit pouvoir remplacer le mot de passe temporaire qu'on lui a
 // transmis, sans attendre qu'on lui ouvre un espace.
 export default async function Account() {
-  const [user, roles] = await Promise.all([currentUser(), currentRoles()]);
+  const [user, roles, back] = await Promise.all([currentUser(), currentRoles(), landingFor()]);
   if (!user) redirect("/auth");
 
   return (
@@ -30,7 +29,7 @@ export default async function Account() {
 
         <p className="fm-grotesk mt-6 text-sm text-fmfg/80">{user.email}</p>
         <p className="fm-grotesk mt-1 text-xs text-fmmuted">
-          {roles.length > 0 ? roles.join(", ") : "aucun rôle attribué"}
+          {roles.length > 0 ? roles.join(", ") : back === "/client" ? "espace client" : "aucun rôle attribué"}
         </p>
 
         <div className="mt-8">
@@ -39,7 +38,7 @@ export default async function Account() {
 
         <div className="mt-10 flex items-center gap-4 border-t border-fmborder pt-5">
           <Link
-            href={landingPath(roles)}
+            href={back}
             className="fm-link fm-grotesk text-xs uppercase tracking-[0.12em] text-fmmuted"
           >
             ← Retour

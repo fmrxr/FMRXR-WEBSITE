@@ -1,4 +1,4 @@
-# Photobooth IA — V1
+# Photobooth IA — V2
 
 Borne de portraits IA par campagne, avec quota d'images vérifié en base avant tout appel payant.
 
@@ -61,9 +61,22 @@ Budget : chaque image réserve le « coût réservé par image » réglé dans l
 - Le site ne stocke ni la photo ni le portrait. Le portrait reste chez Higgsfield (au moins 7 jours) et passe par `/api/photobooth/download` (même origine, session vérifiée).
 - La base ne garde que : session aléatoire, ambiance choisie, état, identifiant de job.
 
-## Limites connues de la V1
+## V2 (15/10/2026)
+
+**Espace client `/client`.** Le client se connecte sur `/auth` et voit, en lecture seule, ses campagnes : forfait, réalisés, restants, jour, dates, état, lien de la borne, dernières générations. Ni portraits, ni budget, ni réglages. Accès donné et retiré depuis la fiche campagne de l'admin (compte créé avec mot de passe temporaire affiché une seule fois, comme `/admin/team`).
+
+⚠️ **Un client n'a aucun rôle dans `user_roles`.** Les tables de `/collab` sont ouvertes à tout compte qui porte un rôle (`has_any_role`, migration 0012) : un rôle « client » y aurait donné accès. Le client est seulement membre de campagnes (`photobooth_campaign_members`), et le serveur vérifie l'appartenance à chaque page. `landingFor()` (`src/lib/auth.ts`) l'envoie sur `/client` après connexion. Testé par `src/test/photobooth-v2-db.test.ts`.
+
+**QR de partage.** Sur l'écran résultat, un QR ouvre `/experience/photobooth/share/<jeton>` sur le téléphone : portrait + téléchargement, 7 jours. Jeton de 128 bits distinct de l'identifiant interne. Le QR pointe toujours vers `https://fmrxr.com` (surcharge : `PHOTOBOOTH_SHARE_ORIGIN`), donc il ne marche qu'une fois le code déployé. Désactivable par campagne (`shareEnabled`).
+
+**Éditeur visuel.** Le formulaire de campagne édite textes (par langue), langues, logo, modèle, résolution, qualité, format, compte à rebours, partage, direction visuelle et les 3 questions (gestes, libellés, mots du titre, palette, fragments de prompt). Validation en direct avec le schéma du serveur. JSON accessible en mode avancé.
+
+**Galerie admin** `/admin/photobooth/<id>/galerie` : portraits réussis, téléchargement. Images relayées par `/api/photobooth/image/<id>` (admin vérifié dans la route).
+
+Migration : `0018_photobooth_v2.sql` (appliquée le 15/10/2026).
+
+## Limites connues
 
 - Limite de débit par IP en mémoire (un seul processus Node). Les vrais plafonds sont en base.
-- Pas de QR de partage ni d'espace client : prévus en V2.
-- Questions et textes se règlent en JSON dans l'admin (pas d'éditeur visuel).
+- Les portraits ne sont pas copiés chez nous : après 7 jours, galerie et partage peuvent perdre l'image (rétention Higgsfield).
 - Une réservation `unknown` se libère à la main dans l'admin après vérification dans la console Higgsfield ; le bouton « Vérifier les générations en cours » interroge Higgsfield pour les autres.

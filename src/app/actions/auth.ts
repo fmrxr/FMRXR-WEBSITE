@@ -1,8 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { currentRoles } from "@/lib/auth";
-import { landingPath } from "@/lib/roles";
+import { landingFor } from "@/lib/auth";
 
 export async function signIn(formData: FormData) {
   const supabase = await getSupabaseServer();
@@ -14,7 +13,7 @@ export async function signIn(formData: FormData) {
   // La destination depend du role : /admin rejette un guest, qui croirait alors
   // que sa connexion a echoue. redirect() leve une exception, donc les roles se
   // lisent avant l'appel.
-  redirect(landingPath(await currentRoles()));
+  redirect(await landingFor());
 }
 
 // Pas de signUp exporte ici. Une server action exportee reste joignable par

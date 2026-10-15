@@ -20,6 +20,7 @@ export interface PhotoboothDb {
   getUsage(usageId: string): Promise<{
     id: string; campaign_id: string; session_id: string; status: UsageStatus;
     status_url: string | null; result_url: string | null; error_code: string | null; created_at: string;
+    share_token?: string;
   } | null>;
 }
 

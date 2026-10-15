@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseDb, getProvider } from "@/lib/photobooth/server";
+import { createSupabaseDb, getProvider, shareUrl } from "@/lib/photobooth/server";
 import { pollGeneration } from "@/lib/photobooth/service";
 
 // GET /api/photobooth/status/<usageId>?session=<id> — la borne interroge ici,
@@ -17,11 +17,17 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const provider = getProvider();
   if (!provider) return NextResponse.json({ status: "failed", error: "PROVIDER_NOT_CONFIGURED" }, { status: 503 });
 
-  const r = await pollGeneration(id, session, { db: createSupabaseDb(), provider });
+  const db = createSupabaseDb();
+  const r = await pollGeneration(id, session, { db, provider });
   if (r.status === "not_found") return NextResponse.json(r, { status: 404 });
   // L'URL Higgsfield n'est pas renvoyee : le telechargement passe par /download.
   if (r.status === "succeeded") {
-    return NextResponse.json({ status: "succeeded", image: `/api/photobooth/download/${id}?session=${encodeURIComponent(session)}` });
+    const u = await db.getUsage(id);
+    return NextResponse.json({
+      status: "succeeded",
+      image: `/api/photobooth/download/${id}?session=${encodeURIComponent(session)}`,
+      shareUrl: u?.share_token ? shareUrl(u.share_token) : null,
+    });
   }
   return NextResponse.json(r);
 }

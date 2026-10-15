@@ -12,7 +12,7 @@ export async function proxy(request: NextRequest) {
   // /collab exige un role quelconque) et par les routes /api/os.
   const gated =
     p.startsWith("/admin") || p.startsWith("/os") || p.startsWith("/api/os") ||
-    p.startsWith("/collab") || p.startsWith("/account");
+    p.startsWith("/collab") || p.startsWith("/account") || p.startsWith("/client");
   if (gated && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";

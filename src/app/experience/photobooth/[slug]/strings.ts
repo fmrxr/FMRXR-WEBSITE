@@ -34,6 +34,7 @@ export const UI: Record<Locale, Dict> = {
     done: "Terminer",
     retry: "Réessayer",
     exit: "Retour à l'accueil",
+    scanToGet: "Scannez pour récupérer votre portrait sur votre téléphone (7 jours).",
   },
   en: {
     start: "Start",
@@ -63,6 +64,7 @@ export const UI: Record<Locale, Dict> = {
     done: "Finish",
     retry: "Try again",
     exit: "Back to start",
+    scanToGet: "Scan to get your portrait on your phone (7 days).",
   },
   ar: {
     start: "ابدأ",
@@ -92,6 +94,7 @@ export const UI: Record<Locale, Dict> = {
     done: "إنهاء",
     retry: "إعادة المحاولة",
     exit: "العودة إلى البداية",
+    scanToGet: "امسح الرمز لتحصل على البورتريه في هاتفك (7 أيام).",
   },
 };
 

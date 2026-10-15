@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
+import QRCode from "qrcode";
 import type { CampaignConfig, Gesture, Locale } from "@/lib/photobooth/config";
 import { classifyGesture, GestureStabilizer } from "@/lib/photobooth/gestures";
 import { buildMoodProfile, type Answers } from "@/lib/photobooth/mood";
@@ -32,6 +33,7 @@ export function Booth({
   const [flash, setFlash] = useState(false);
   const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -117,6 +119,7 @@ export function Booth({
     if (photo) URL.revokeObjectURL(photo.url);
     setPhoto(null);
     setResultUrl(null);
+    setQr(null);
     setAnswers([]);
     setQIndex(0);
     setChosen(null);
@@ -265,6 +268,10 @@ export function Booth({
         const j = await r.json();
         if (j.status === "succeeded") {
           setResultUrl(j.image);
+          if (config.shareEnabled && j.shareUrl) {
+            QRCode.toString(j.shareUrl, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#0d0c14", light: "#f5f5f8" } })
+              .then(setQr).catch(() => setQr(null));
+          }
           stopCamera();
           setStep("result");
           return;
@@ -278,7 +285,7 @@ export function Booth({
       pollRef.current = window.setTimeout(tick, POLL_MS);
     };
     pollRef.current = window.setTimeout(tick, 1500);
-  }, [fail, stopCamera]);
+  }, [config.shareEnabled, fail, stopCamera]);
 
   const generate = useCallback(async () => {
     if (!photo || !idemRef.current) return;
@@ -517,6 +524,12 @@ export function Booth({
               <div>
                 <p className="fm-display text-3xl md:text-5xl">{mood.title[locale]}</p>
                 <p className="mt-2 text-sm text-fmmuted">{mood.description[locale]}</p>
+              </div>
+            )}
+            {qr && (
+              <div className="flex items-center gap-4 rounded-xl border border-fmborder bg-fmcard/80 p-3 text-start">
+                <div className="size-28 shrink-0 overflow-hidden rounded-md [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} />
+                <p className="max-w-[16rem] text-sm text-fmfg/80">{t.scanToGet}</p>
               </div>
             )}
             <div className="flex flex-wrap justify-center gap-3">

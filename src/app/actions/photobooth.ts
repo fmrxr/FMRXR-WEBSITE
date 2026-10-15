@@ -1,7 +1,9 @@
 "use server";
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertRole } from "@/lib/auth";
+import { assertRole, currentUser } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { resolveConfig } from "@/lib/photobooth/config";
 import { createSupabaseDb, getProvider } from "@/lib/photobooth/server";
@@ -182,4 +184,70 @@ export async function releaseUsage(campaignId: string, usageId: string) {
   const r = await createSupabaseDb().transition(usageId, "cancelled", { errorCode: "RELEASED_BY_ADMIN" });
   revalidatePath(`/admin/photobooth/${campaignId}`);
   return r.ok ? { ok: true } : { error: r.error ?? r.status ?? "Transition refusee" };
+}
+
+// ---------- acces client ----------
+// Un client n'a pas de role (voir migration 0018) : il est membre de campagnes.
+
+export async function listClientAccess(campaignId: string) {
+  await assertRole(["admin"]);
+  const admin = getSupabaseAdmin();
+  const [{ data: rows }, { data: users }] = await Promise.all([
+    admin.from("photobooth_campaign_members").select("user_id, created_at").eq("campaign_id", campaignId),
+    admin.auth.admin.listUsers({ perPage: 1000 }),
+  ]);
+  return (rows ?? []).map((r) => {
+    const u = users?.users.find((x) => x.id === r.user_id);
+    return { user_id: r.user_id, email: u?.email ?? "(compte supprimé)", last_sign_in_at: u?.last_sign_in_at ?? null, created_at: r.created_at };
+  });
+}
+
+/**
+ * Ouvre l'espace client a une adresse pour cette campagne. Cree le compte s'il
+ * n'existe pas (mot de passe temporaire renvoye une seule fois, comme dans
+ * /admin/team), sans lui donner de role.
+ */
+export async function grantClientAccess(campaignId: string, email: string): Promise<
+  { ok: true; created: boolean; password: string | null } | { error: string }
+> {
+  await assertRole(["admin"]);
+  const address = email.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) return { error: "Adresse email invalide" };
+  const admin = getSupabaseAdmin();
+
+  const password = randomBytes(12).toString("base64url");
+  const { data, error } = await admin.auth.admin.createUser({ email: address, password, email_confirm: true });
+  let userId = data?.user?.id;
+  let created = true;
+  if (error) {
+    const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    userId = users?.users.find((u) => u.email?.toLowerCase() === address)?.id;
+    if (!userId) return { error: error.message };
+    created = false;
+  }
+
+  const { error: mErr } = await admin.from("photobooth_campaign_members")
+    .upsert({ campaign_id: campaignId, user_id: userId }, { onConflict: "campaign_id,user_id" });
+  if (mErr) {
+    if (created && userId) await admin.auth.admin.deleteUser(userId);
+    return { error: mErr.message };
+  }
+  await admin.from("photobooth_audit").insert({
+    campaign_id: campaignId, actor: (await currentUser())?.id ?? null, action: "client_access_granted", after: { email: address },
+  });
+  revalidatePath(`/admin/photobooth/${campaignId}`);
+  return { ok: true, created, password: created ? password : null };
+}
+
+export async function revokeClientAccess(campaignId: string, userId: string) {
+  await assertRole(["admin"]);
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from("photobooth_campaign_members").delete()
+    .eq("campaign_id", campaignId).eq("user_id", userId);
+  if (error) return { error: error.message };
+  await admin.from("photobooth_audit").insert({
+    campaign_id: campaignId, actor: (await currentUser())?.id ?? null, action: "client_access_revoked", before: { user_id: userId },
+  });
+  revalidatePath(`/admin/photobooth/${campaignId}`);
+  return { ok: true };
 }

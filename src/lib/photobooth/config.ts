@@ -50,6 +50,7 @@ export const campaignConfigSchema = z.object({
   quality: z.enum(["low", "medium", "high", "xhigh", "max"]),
   aspectRatio: z.enum(["3:4", "2:3", "1:1", "9:16"]), // ratios communs aux quatre modeles,
   countdownSeconds: z.number().int().min(0).max(10),
+  shareEnabled: z.boolean(), // QR de partage sur l'ecran resultat
   maxUploadBytes: z.number().int().min(200_000).max(8_000_000),
 });
 export type CampaignConfig = z.infer<typeof campaignConfigSchema>;
@@ -177,6 +178,7 @@ export const DEFAULT_CONFIG: CampaignConfig = {
   quality: "high",
   aspectRatio: "3:4",
   countdownSeconds: 3,
+  shareEnabled: true,
   maxUploadBytes: 4_000_000,
 };
 

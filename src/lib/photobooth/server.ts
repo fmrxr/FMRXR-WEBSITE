@@ -88,7 +88,7 @@ export function createSupabaseDb(): PhotoboothDb {
     async getUsage(usageId) {
       const { data } = await sb
         .from("photobooth_usage")
-        .select("id, campaign_id, session_id, status, status_url, result_url, error_code, created_at")
+        .select("id, campaign_id, session_id, status, status_url, result_url, error_code, created_at, share_token")
         .eq("id", usageId)
         .maybeSingle();
       return data;
@@ -110,4 +110,66 @@ export function rateLimited(ip: string, max = 6, windowMs = 60_000) {
 
 export function clientIp(req: Request) {
   return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "local";
+}
+
+// ---------- partage ----------
+
+/** Les portraits restent chez Higgsfield au moins 7 jours : le lien vit autant. */
+export const SHARE_TTL_MS = 7 * 24 * 3600 * 1000;
+
+/** Le QR doit pointer vers le site public, jamais vers localhost. */
+export function shareUrl(token: string) {
+  const origin = process.env.PHOTOBOOTH_SHARE_ORIGIN || "https://fmrxr.com";
+  return `${origin}/experience/photobooth/share/${token}`;
+}
+
+export function isShareActive(completedAt: string | null, now = Date.now()) {
+  return Boolean(completedAt) && now - Date.parse(completedAt!) < SHARE_TTL_MS;
+}
+
+/** Portrait partage : reussi, de moins de 7 jours, campagne qui autorise le partage. */
+export async function findShared(token: string): Promise<
+  | { ok: true; resultUrl: string; title: Record<string, string> | null; campaignName: string; expiresAt: string }
+  | { ok: false; reason: "NOT_FOUND" | "EXPIRED" }
+> {
+  if (!/^[0-9a-f]{32}$/.test(token)) return { ok: false, reason: "NOT_FOUND" };
+  const { data } = await getSupabaseAdmin()
+    .from("photobooth_usage")
+    .select("status, result_url, completed_at, mood, campaign:photobooth_campaigns(name, config)")
+    .eq("share_token", token)
+    .maybeSingle();
+  if (!data || data.status !== "succeeded" || !data.result_url) return { ok: false, reason: "NOT_FOUND" };
+  const campaign = (Array.isArray(data.campaign) ? data.campaign[0] : data.campaign) as { name: string; config: unknown } | null;
+  const cfg = resolveConfig(campaign?.config);
+  if (!cfg.ok || !cfg.config.shareEnabled) return { ok: false, reason: "NOT_FOUND" };
+  if (!isShareActive(data.completed_at)) return { ok: false, reason: "EXPIRED" };
+  const mood = data.mood as { title?: Record<string, string> } | null;
+  return {
+    ok: true,
+    resultUrl: data.result_url,
+    title: mood?.title ?? null,
+    campaignName: campaign?.name ?? "",
+    expiresAt: new Date(Date.parse(data.completed_at!) + SHARE_TTL_MS).toISOString(),
+  };
+}
+
+/** Relaie une image distante (sortie Higgsfield) en meme origine. */
+export async function relayImage(url: string, filename: string | null) {
+  if (!url.startsWith("https://")) return new Response("Expired", { status: 410 });
+  let up: Response;
+  try {
+    up = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  } catch {
+    return new Response("Expired", { status: 410 });
+  }
+  const type = up.headers.get("content-type") ?? "image/png";
+  if (!up.ok || !up.body || !type.startsWith("image/")) return new Response("Expired", { status: 410 });
+  const ext = type.includes("jpeg") ? "jpg" : type.includes("webp") ? "webp" : "png";
+  const headers = new Headers({
+    "Content-Type": type,
+    "Cache-Control": "private, max-age=3600",
+    "X-Content-Type-Options": "nosniff",
+  });
+  if (filename) headers.set("Content-Disposition", `attachment; filename="${filename}.${ext}"`);
+  return new Response(up.body, { headers });
 }

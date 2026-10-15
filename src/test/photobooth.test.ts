@@ -303,3 +303,14 @@ describe("pollGeneration", () => {
     expect(provider.status).not.toHaveBeenCalled();
   });
 });
+
+// ---------- V2 ----------
+describe("partage", () => {
+  it("le partage est actif par defaut", () => {
+    const r = resolveConfig({});
+    expect(r.ok && r.config.shareEnabled).toBe(true);
+  });
+  it("un ancien reglage sans shareEnabled reste valide", () => {
+    expect(resolveConfig({ model: "qwen" }).ok).toBe(true);
+  });
+});

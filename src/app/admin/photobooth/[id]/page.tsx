@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCampaign } from "@/app/actions/photobooth";
+import { getCampaign, listClientAccess } from "@/app/actions/photobooth";
 import { quotaState, usd } from "@/lib/photobooth/quota";
 import { CampaignForm } from "../CampaignForm";
 import { QuotaBar, StatusBadge } from "../ui";
 import { CampaignActions, ReleaseButton } from "./actions";
+import { ClientAccess } from "./client-access";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function Page({ params, searchParams }: {
 }) {
   const { id } = await params;
   const { edit } = await searchParams;
-  const d = await getCampaign(id);
+  const [d, members] = await Promise.all([getCampaign(id), listClientAccess(id)]);
   if (!d) notFound();
   const { campaign: c, usage: u, history, audit } = d;
   const q = quotaState({ quota: c.quota_limit, succeeded: u.succeeded, active: u.active, warning: c.warning_threshold, critical: c.critical_threshold });
@@ -67,6 +68,8 @@ export default async function Page({ params, searchParams }: {
         <CampaignActions id={c.id} status={c.status} boothPath={boothPath} hasUnknown={u.unknown > 0 || u.active > 0} />
       </section>
 
+      <ClientAccess campaignId={c.id} members={members} />
+
       <section className="mt-6">
         <h2 className="mb-2 text-lg font-semibold">Historique des générations</h2>
         {history.length === 0 ? (
@@ -107,7 +110,13 @@ export default async function Page({ params, searchParams }: {
             const changed = Object.keys(after).filter((k) => k !== "updated_at" && JSON.stringify(before[k]) !== JSON.stringify(after[k]));
             return (
               <li key={a.id}>
-                {new Date(a.created_at).toLocaleString("fr-FR")} · {a.action === "create" ? "création" : `modifié : ${changed.map((k) => `${k} ${JSON.stringify(before[k])} → ${JSON.stringify(after[k])}`).join(", ") || "clé d’accès"}`}
+                {new Date(a.created_at).toLocaleString("fr-FR")} · {
+                  a.action === "create" ? "création"
+                  : a.action === "update" ? `modifié : ${changed.map((k) => `${k} ${JSON.stringify(before[k])} → ${JSON.stringify(after[k])}`).join(", ") || "clé d’accès"}`
+                  : a.action === "client_access_granted" ? `accès client donné à ${String(after.email ?? "")}`
+                  : a.action === "client_access_revoked" ? "accès client retiré"
+                  : a.action
+                }
               </li>
             );
           })}

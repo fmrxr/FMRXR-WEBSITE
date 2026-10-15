@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { currentRoles } from "@/lib/auth";
-import { landingPath } from "@/lib/roles";
+import { landingFor } from "@/lib/auth";
 
 /**
  * Point d'atterrissage des liens envoyes par email par Supabase : invitation,
@@ -39,7 +38,7 @@ export async function GET(request: NextRequest) {
   // On n'accepte qu'un chemin interne : une URL absolue venue de la query
   // transformerait ce lien en redirection ouverte.
   const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
-  return redirectTo(safeNext ?? landingPath(await currentRoles()));
+  return redirectTo(safeNext ?? (await landingFor()));
 }
 
 /**

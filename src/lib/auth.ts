@@ -1,7 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "./supabase/server";
-import { hasAllowedRole, type Role } from "./roles";
+import { hasAllowedRole, landingPath, type Role } from "./roles";
 
 export type { Role } from "./roles";
 export { hasAllowedRole } from "./roles";
@@ -34,4 +34,24 @@ export async function assertRole(allowed: Role[]) {
     throw new Error("Forbidden: insufficient role");
   }
   return roles;
+}
+
+/**
+ * Ou envoyer quelqu'un apres connexion. Un client photobooth n'a aucun role
+ * (voir migration 0018 : un role lui ouvrirait /collab), il est seulement
+ * membre de campagnes : on le reconnait a cela et on l'envoie sur /client.
+ */
+export async function landingFor(): Promise<string> {
+  const roles = await currentRoles();
+  if (roles.length > 0) return landingPath(roles);
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { count } = await supabase
+      .from("photobooth_campaign_members")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if (count) return "/client";
+  }
+  return landingPath(roles);
 }

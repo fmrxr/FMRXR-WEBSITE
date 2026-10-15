@@ -23,6 +23,7 @@ export function CampaignActions({ id, status, boothPath, hasUnknown }: {
       </Button>
       <a href={boothPath} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm", variant: "outline" })}>Ouvrir la borne</a>
       <Link href="?edit=1" className={buttonVariants({ size: "sm", variant: "outline" })}>Modifier</Link>
+      <Link href={`/admin/photobooth/${id}/galerie`} className={buttonVariants({ size: "sm", variant: "outline" })}>Galerie</Link>
       {status === "active" ? (
         <Button size="sm" variant="outline" onClick={() => run(setCampaignStatus(id, "suspended"), "Campagne suspendue")}>Suspendre</Button>
       ) : (
