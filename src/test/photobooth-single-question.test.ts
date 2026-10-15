@@ -52,3 +52,18 @@ describe("une question, deux reponses", () => {
     expect(() => buildMoodProfile(["calm", "natural"], DEFAULT_CONFIG)).toThrow();
   });
 });
+
+describe("decor de campagne", () => {
+  it("setDirection remplace la consigne de decor generique", () => {
+    const r = resolveConfig({ questions: oneQuestion, styles: ["mood"], setDirection: "Built studio set, not a real place." });
+    if (!r.ok) throw new Error(r.error);
+    const prompt = buildPortraitPrompt(buildMoodProfile(["cool"], r.config, "k-1"), r.config);
+    expect(prompt).toContain("SET: d. Built studio set, not a real place.");
+    expect(prompt).not.toContain("readable architecture");
+  });
+  it("sans setDirection : consigne generique inchangee", () => {
+    const r = resolveConfig({ questions: oneQuestion, styles: ["mood"] });
+    if (!r.ok) throw new Error(r.error);
+    expect(buildPortraitPrompt(buildMoodProfile(["cool"], r.config, "k-1"), r.config)).toContain("readable architecture");
+  });
+});

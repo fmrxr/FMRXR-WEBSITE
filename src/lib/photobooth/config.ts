@@ -66,6 +66,9 @@ export const campaignConfigSchema = z.object({
   // Direction visuelle commune a toutes les images de la campagne.
   styleBrief: z.string().max(1500),
   negative: z.string().max(800),
+  // Remplace la consigne de decor generique (SET_DEPTH, mood.ts) : une campagne
+  // de marque construit un monde de studio, pas un lieu reel.
+  setDirection: z.string().max(800).optional(),
   model: z.enum(MODELS),
   resolution: z.enum(["1k", "2k", "4k"]),
   quality: z.enum(["low", "medium", "high", "xhigh", "max"]),
