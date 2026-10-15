@@ -164,6 +164,24 @@ export const POSE_LOCK =
   "Keep the exact body pose of the photo: same shoulders, arms, hands and fingers in the same positions, including any hand gesture or hand near the face. " +
   "Do not add, remove, move or re-pose any limb, do not put hands in pockets, do not turn the body into a model pose.";
 
+// Images de marque jointes a la photo (config brandReferences) : le modele
+// sait a quoi ressemble la vraie marque et n'en invente pas une fausse. Le
+// logo est pose ensuite sur la bande du bas, pas dans l'image generee.
+export function brandReferenceLine(n: number): string {
+  if (n <= 0) return "";
+  const which = n === 1 ? "Image 2 shows" : `Images 2 to ${n + 1} show`;
+  return `BRAND REFERENCE: image 1 is the photo to edit. ${which} the official logo of the event's brand, given only so you know the real mark. ` +
+    "Never invent any other logo, emblem, monogram, wordmark or brand-like sign, and do not place this logo in the image yourself (it is added afterwards). " +
+    "The set may echo its shapes and colours.";
+}
+
+// Visage petit ou flou (photo en pied, contre-jour) : le modele comblait le
+// manque de detail en inventant des traits (test IQOS du 16/10, visage d'une
+// centaine de pixels). On lui demande de nettoyer, jamais de redessiner.
+export const FACE_FIDELITY =
+  "If a face in the photo is small, soft, noisy or dimly lit, keep it as it is and only clean it up (exposure, noise, gentle sharpening): " +
+  "never redraw or re-imagine the facial features to add detail. A slightly soft but true face is better than a sharp face that looks like someone else.";
+
 // Decor detaille : plusieurs plans de profondeur lisibles, pas un flou.
 export const SET_DEPTH =
   "Build it as a fully realised, believable location with clear depth layers: a soft foreground element at one edge of the frame, the person in the midground, " +
@@ -182,10 +200,11 @@ export const GROUP_IDENTITY_LOCK =
  * plateau : d'abord ce qui est verrouille (identite, pose, cadrage), puis ce
  * qui change (lumiere, decor, tenue, etalonnage), puis le rendu attendu.
  */
-export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts: { soften?: boolean } = {}): string {
+export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts: { soften?: boolean; brandRefs?: number } = {}): string {
   const style = STYLES[p.style] ?? STYLES.mood;
-  if (style.family === "transform") return buildTransformPrompt(p, config, opts.soften ?? false);
-  if (p.shot === "group") return buildGroupPrompt(withStyle(p), config);
+  const brand = brandReferenceLine(opts.brandRefs ?? 0);
+  if (style.family === "transform") return buildTransformPrompt(p, config, opts.soften ?? false, brand);
+  if (p.shot === "group") return buildGroupPrompt(withStyle(p), config, brand);
   p = withStyle(p);
   const keep = config.framing === "keep";
   const expression = p.expressionReading
@@ -193,7 +212,8 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts
     : `Keep the person's own expression; nuance it at most slightly toward: ${p.expression}.`;
   return [
     `Edit the reference photo into ${p.treatment || "a high-end editorial portrait"} of the same person.`,
-    `IDENTITY (must not change): ${IDENTITY_LOCK}`,
+    brand,
+    `IDENTITY (must not change): ${IDENTITY_LOCK} ${FACE_FIDELITY}`,
     `EXPRESSION: ${expression}`,
     `SKIN: ${SKIN_RETOUCH}`,
     // Une seule famille de changements (lumiere, decor, etalonnage) : changer
@@ -220,12 +240,13 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts
   ].filter(Boolean).join("\n");
 }
 
-function buildGroupPrompt(p: MoodProfile, config: CampaignConfig): string {
+function buildGroupPrompt(p: MoodProfile, config: CampaignConfig, brand = ""): string {
   // « extra people » n'a pas de sens pour un groupe : retire de la liste a eviter.
   const negative = config.negative.split(",").map((x) => x.trim()).filter((x) => x && !/people/i.test(x)).join(", ");
   return [
     `Edit the reference photo into ${p.treatment || "a high-end editorial group portrait"} of the same group of people.`,
-    `IDENTITY (must not change): ${GROUP_IDENTITY_LOCK}`,
+    brand,
+    `IDENTITY (must not change): ${GROUP_IDENTITY_LOCK} ${FACE_FIDELITY}`,
     `EXPRESSIONS: keep each person's own expression; nuance the overall mood at most slightly toward: ${p.expression}.`,
     `SKIN: ${SKIN_RETOUCH} Apply the same light retouch to everyone.`,
     ...(config.framing === "keep"
@@ -267,12 +288,13 @@ function withStyle(p: MoodProfile): MoodProfile & { extra?: string } {
  * accessoires, expression), sans pouvoir garantir l'exactitude d'une edition.
  * L'ambiance choisie donne encore la palette et l'atmosphere.
  */
-function buildTransformPrompt(p: MoodProfile, config: CampaignConfig, soften: boolean): string {
+function buildTransformPrompt(p: MoodProfile, config: CampaignConfig, soften: boolean, brand = ""): string {
   const st = STYLES[p.style];
   const group = p.shot === "group";
   const who = group ? "every person in the reference photo" : "the person in the reference photo";
   return [
     `Turn ${who} into ${st.transform}.`,
+    brand,
     soften ? SOFTEN : "",
     `LIKENESS (most important): the result must stay clearly recognisable as ${group ? "these exact people" : "this exact person"}. ` +
       "Keep each face shape, eye shape, eyebrows, nose, lips, skin tone, age, hairstyle and hair colour, facial hair, glasses and headwear, and their expression. " +

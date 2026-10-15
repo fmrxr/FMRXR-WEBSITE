@@ -29,7 +29,11 @@ export type StatusResult = {
 
 export interface ImageProvider {
   uploadReference(bytes: Uint8Array, contentType: string): Promise<string>;
-  submit(input: { model: ModelKey; prompt: string; imageUrl: string; config: CampaignConfig; idempotencyKey: string }): Promise<SubmitResult>;
+  submit(input: {
+    model: ModelKey; prompt: string; imageUrl: string; config: CampaignConfig; idempotencyKey: string;
+    /** Images de reference en plus de la photo (logo officiel de la marque...). */
+    extraImageUrls?: string[];
+  }): Promise<SubmitResult>;
   status(statusUrl: string): Promise<StatusResult>;
 }
 
@@ -40,24 +44,29 @@ const ENDPOINTS: Record<ModelKey, string> = {
   qwen: "/alibaba/qwen-image-3/edit",
 };
 
+// Nombre maximal d'images de reference par modele (docs Higgsfield, 15/10/2026).
+const MAX_REFS: Record<ModelKey, number> = { flare: 16, sunburst: 16, grok: 10, qwen: 3 };
+
 /** Corps de requete propre a chaque modele (les schemas refusent les champs en trop). */
-export function buildRequestBody(model: ModelKey, prompt: string, imageUrl: string, c: CampaignConfig) {
+export function buildRequestBody(model: ModelKey, prompt: string, imageUrl: string, c: CampaignConfig, extra: string[] = []) {
   const cap2k = c.resolution === "4k" ? "2k" : c.resolution;
+  // La photo du visiteur reste toujours l'image 1.
+  const image_urls = [imageUrl, ...extra].slice(0, MAX_REFS[model]);
   switch (model) {
     case "flare":
     case "sunburst":
       return {
-        prompt, image_urls: [imageUrl], resolution: c.resolution,
+        prompt, image_urls, resolution: c.resolution,
         aspect_ratio: c.aspectRatio, quality: c.quality, enhance_prompt: false,
       };
     case "grok":
       return {
-        prompt, image_urls: [imageUrl], resolution: cap2k, aspect_ratio: c.aspectRatio,
+        prompt, image_urls, resolution: cap2k, aspect_ratio: c.aspectRatio,
         quality: c.quality === "low" ? "low" : "medium",
       };
     case "qwen":
       return {
-        prompt, image_urls: [imageUrl], resolution: cap2k, aspect_ratio: c.aspectRatio,
+        prompt, image_urls, resolution: cap2k, aspect_ratio: c.aspectRatio,
         negative_prompt: c.negative || undefined,
       };
   }
@@ -117,8 +126,8 @@ export function createHiggsfieldProvider(opts: {
       return j.public_url;
     },
 
-    async submit({ model, prompt, imageUrl, config, idempotencyKey }) {
-      const body = JSON.stringify(buildRequestBody(model, prompt, imageUrl, config));
+    async submit({ model, prompt, imageUrl, config, idempotencyKey, extraImageUrls }) {
+      const body = JSON.stringify(buildRequestBody(model, prompt, imageUrl, config, extraImageUrls));
       // Meme Idempotency-Key a chaque essai : Higgsfield renvoie la meme requete
       // au lieu d'en lancer une deuxieme (docs concepts/errors).
       for (let attempt = 0; attempt <= retries; attempt++) {

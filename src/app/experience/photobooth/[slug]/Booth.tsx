@@ -18,7 +18,10 @@ type Tracker = "idle" | "loading" | "ready" | "failed";
 const POLL_MS = 3000;
 const GEN_DEADLINE_MS = 4 * 60_000;
 const IDLE_MS = 90_000;
-const MAX_SIDE = 1536;
+// Cote long de la photo envoyee. Test IQOS du 16/10 : en pied, bras leves,
+// le visage ne faisait qu'une centaine de pixels sur une photo 810x1080, et le
+// modele reinventait des traits qui ne ressemblaient plus a la personne.
+const MAX_SIDE = 2048;
 
 const uuid = () => crypto.randomUUID();
 
@@ -204,7 +207,9 @@ export function Booth({
         // quand camera pleine resolution + MediaPipe depassent sa limite memoire.
         video: window.matchMedia("(pointer: coarse)").matches
           ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
-          : { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } },
+          // Poste fixe / borne : la meilleure definition de la webcam (jusqu'a 4K),
+          // sans sacrifier la fluidite de l'apercu et du suivi de la main.
+          : { facingMode: "user", width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } },
         audio: false,
       });
       streamRef.current = stream;
@@ -584,14 +589,17 @@ export function Booth({
     ctx.translate(c.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
-    c.toBlob((blob) => {
+    // JPEG 0.92, puis 0.82 si la photo depasse la taille autorisee (photo 4K).
+    const done = (blob: Blob | null, retried: boolean) => {
+      if (blob && blob.size > config.maxUploadBytes && !retried) return c.toBlob((b) => done(b, true), "image/jpeg", 0.82);
       if (!blob || blob.size > config.maxUploadBytes) return fail(blob ? "UPLOAD_TOO_LARGE" : "CAPTURE_FAILED");
       setFlash(true);
       window.setTimeout(() => setFlash(false), 450);
       setPhoto({ blob, url: URL.createObjectURL(blob) });
       idemRef.current = uuid(); // une photo confirmee = une cle = au plus une image facturee
       setStep("confirm");
-    }, "image/jpeg", 0.92);
+    };
+    c.toBlob((b) => done(b, false), "image/jpeg", 0.92);
   }, [captureAspect, config.maxUploadBytes, fail]);
 
   const startCountdown = useCallback(() => {

@@ -8,6 +8,35 @@ import type { StyleId } from "./styles";
 // injectees pour que les tests puissent prouver la regle centrale :
 // sans reservation reussie, aucun appel au fournisseur payant.
 
+// Images de marque (config brandReferences) envoyees une fois chez Higgsfield
+// puis reutilisees : pas un envoi par visiteur. Rafraichies chaque jour.
+const BRAND_TTL_MS = 24 * 3600 * 1000;
+const brandCache = new Map<string, { url: string; at: number }>();
+export const resetBrandCache = () => brandCache.clear();
+
+/** URLs Higgsfield des images de marque. Une image injoignable est ignoree, jamais bloquante. */
+export async function brandReferenceUrls(config: CampaignConfig, provider: ImageProvider, fetchImpl: typeof fetch = fetch): Promise<string[]> {
+  const out: string[] = [];
+  for (const src of config.brandReferences ?? []) {
+    const hit = brandCache.get(src);
+    if (hit && Date.now() - hit.at < BRAND_TTL_MS) {
+      out.push(hit.url);
+      continue;
+    }
+    try {
+      const r = await fetchImpl(src, { signal: AbortSignal.timeout(10_000) });
+      const type = r.headers.get("content-type") ?? "";
+      if (!r.ok || !type.startsWith("image/")) continue;
+      const url = await provider.uploadReference(new Uint8Array(await r.arrayBuffer()), type.split(";")[0]);
+      brandCache.set(src, { url, at: Date.now() });
+      out.push(url);
+    } catch {
+      // logo injoignable : la generation part quand meme, sans lui
+    }
+  }
+  return out;
+}
+
 export type UsageStatus = "reserved" | "processing" | "succeeded" | "failed" | "cancelled" | "unknown";
 
 export type ReserveResult =
@@ -95,10 +124,11 @@ export async function startGeneration(input: StartInput, deps: { db: PhotoboothD
     return { ok: false, error: "UPLOAD_FAILED", usageId };
   }
 
-  const prompt = buildPortraitPrompt(mood, input.config);
+  const brandRefs = await brandReferenceUrls(input.config, deps.provider);
+  const prompt = buildPortraitPrompt(mood, input.config, { brandRefs: brandRefs.length });
   // L'identifiant de la ligne sert de cle d'idempotence chez Higgsfield.
   const sub = await deps.provider.submit({
-    model: input.config.model, prompt, imageUrl,
+    model: input.config.model, prompt, imageUrl, extraImageUrls: brandRefs,
     config: input.aspect ? { ...input.config, aspectRatio: input.aspect } : input.config,
     idempotencyKey: usageId,
   });
@@ -199,12 +229,13 @@ async function retryAfterNsfw(
   } catch {
     return null;
   }
-  const prompt = buildPortraitPrompt(mood, ctx.config, { soften: true });
+  const brandRefs = await brandReferenceUrls(ctx.config, deps.provider);
+  const prompt = buildPortraitPrompt(mood, ctx.config, { soften: true, brandRefs: brandRefs.length });
   const config = ctx.submission.aspect ? { ...ctx.config, aspectRatio: ctx.submission.aspect } : ctx.config;
   // Cle propre a la relance : deux lectures simultanees (borne + reconciliation)
   // retombent sur la meme requete Higgsfield, jamais deux.
   const sub = await deps.provider.submit({
-    model: ctx.submission.model, prompt, imageUrl: ctx.submission.imageUrl, config,
+    model: ctx.submission.model, prompt, imageUrl: ctx.submission.imageUrl, config, extraImageUrls: brandRefs,
     idempotencyKey: `${u.id}-nsfw-retry`,
   });
   const audit = (outcome: string, extra: Record<string, unknown> = {}) =>

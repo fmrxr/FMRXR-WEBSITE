@@ -72,6 +72,9 @@ export const campaignConfigSchema = z.object({
   // "medium" (defaut) : recul de camera, decor plus present, le corps sous le
   // cadre est invente. "keep" : cadre et pose d'origine intouches (IQOS).
   framing: z.enum(["medium", "keep"]).optional(),
+  // Images officielles de la marque (logo...), envoyees au modele comme images
+  // de reference 2, 3... pour qu'il n'invente jamais une fausse identite de marque.
+  brandReferences: z.array(z.string().url()).max(3).optional(),
   model: z.enum(MODELS),
   resolution: z.enum(["1k", "2k", "4k"]),
   quality: z.enum(["low", "medium", "high", "xhigh", "max"]),
