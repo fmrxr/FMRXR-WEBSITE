@@ -153,6 +153,17 @@ export const FRAMING_MEDIUM =
   "the person taking up about half of the frame height so that the set around them is clearly visible on both sides. " +
   "Same camera height and eye-level angle as the photo. Continue their own clothing naturally below the original crop; arms relaxed, hands out of frame or resting naturally.";
 
+// Cadrage d'origine garde (option de campagne framing: "keep") : test IQOS du
+// 16/10/2026, le recul de camera faisait inventer le bas du corps et
+// re-poser les bras (mains dans les poches, geste de la main efface).
+// Ici rien du corps n'est invente : meme cadre, meme distance, meme pose.
+export const FRAMING_KEEP =
+  "Keep exactly the original framing, crop and camera distance: the person stays the same size and in the same place in the frame. " +
+  "Do not extend the image below or around the original crop and do not invent any part of the body.";
+export const POSE_LOCK =
+  "Keep the exact body pose of the photo: same shoulders, arms, hands and fingers in the same positions, including any hand gesture or hand near the face. " +
+  "Do not add, remove, move or re-pose any limb, do not put hands in pockets, do not turn the body into a model pose.";
+
 // Decor detaille : plusieurs plans de profondeur lisibles, pas un flou.
 export const SET_DEPTH =
   "Build it as a fully realised, believable location with clear depth layers: a soft foreground element at one edge of the frame, the person in the midground, " +
@@ -176,6 +187,7 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts
   if (style.family === "transform") return buildTransformPrompt(p, config, opts.soften ?? false);
   if (p.shot === "group") return buildGroupPrompt(withStyle(p), config);
   p = withStyle(p);
+  const keep = config.framing === "keep";
   const expression = p.expressionReading
     ? `Keep the person's own expression (${EXPRESSION_PROMPT[p.expressionReading]}); nuance it at most slightly toward: ${p.expression}.`
     : `Keep the person's own expression; nuance it at most slightly toward: ${p.expression}.`;
@@ -187,17 +199,24 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts
     // Une seule famille de changements (lumiere, decor, etalonnage) : changer
     // aussi la tenue multiplie la derive du visage (guides des modeles
     // d'edition, et constat sur les premiers portraits).
-    "CHANGE ONLY the camera distance, the lighting, the background set and the colour grade, as follows.",
-    `FRAMING: ${FRAMING_MEDIUM}`,
+    keep ? `POSE (must not change): ${POSE_LOCK}` : "",
+    keep
+      ? "CHANGE ONLY the lighting, the background set and the colour grade, as follows."
+      : "CHANGE ONLY the camera distance, the lighting, the background set and the colour grade, as follows.",
+    `FRAMING: ${keep ? FRAMING_KEEP : FRAMING_MEDIUM}`,
     `LIGHTING: ${p.lighting}${p.contrast ? `; ${p.contrast}` : ""}. Light the face cleanly and flatteringly, keeping its features clearly readable. The new light must have one consistent direction and colour on the face, the clothing and the background, like a single real lighting setup.`,
     `SET: ${p.setting || "a real location that matches the mood"}. ${config.setDirection || SET_DEPTH}`,
     "WARDROBE: keep the person's own clothing and accessories exactly as in the photo, simply clean and well lit.",
     `COLOUR: ${p.grade ? `${p.grade}; ` : ""}palette of ${p.paletteWords}.`,
     `MOOD: ${p.atmosphere}.`,
     `FINISH: ${p.texture}. ${config.styleBrief}`,
-    "Photographic realism, like a real photo shoot with professional lighting, shot on a 50mm lens from about two and a half metres, natural perspective.",
+    keep
+      ? "Photographic realism, like a real photo shoot with professional lighting, same lens and perspective as the original photo."
+      : "Photographic realism, like a real photo shoot with professional lighting, shot on a 50mm lens from about two and a half metres, natural perspective.",
     (p as MoodProfile & { extra?: string }).extra ?? "",
-    `Avoid: tight close-up, face filling the frame, empty or blurred background, wide-angle distortion, changed face, different person, ${config.negative}.`,
+    keep
+      ? `Avoid: changed pose, re-posed arms or hands, removed hand gesture, invented body, empty or blurred background, changed face, different person, ${config.negative}.`
+      : `Avoid: tight close-up, face filling the frame, empty or blurred background, wide-angle distortion, changed face, different person, ${config.negative}.`,
   ].filter(Boolean).join("\n");
 }
 
@@ -209,8 +228,16 @@ function buildGroupPrompt(p: MoodProfile, config: CampaignConfig): string {
     `IDENTITY (must not change): ${GROUP_IDENTITY_LOCK}`,
     `EXPRESSIONS: keep each person's own expression; nuance the overall mood at most slightly toward: ${p.expression}.`,
     `SKIN: ${SKIN_RETOUCH} Apply the same light retouch to everyone.`,
-    "CHANGE ONLY the camera distance, the lighting, the background set and the colour grade, as follows.",
-    "FRAMING: pull the camera back slightly so that everyone is fully in frame with breathing space around the group and the set clearly visible; same camera height and angle.",
+    ...(config.framing === "keep"
+      ? [
+          `POSES (must not change): ${POSE_LOCK} This applies to every person.`,
+          "CHANGE ONLY the lighting, the background set and the colour grade, as follows.",
+          `FRAMING: ${FRAMING_KEEP}`,
+        ]
+      : [
+          "CHANGE ONLY the camera distance, the lighting, the background set and the colour grade, as follows.",
+          "FRAMING: pull the camera back slightly so that everyone is fully in frame with breathing space around the group and the set clearly visible; same camera height and angle.",
+        ]),
     `LIGHTING: ${p.lighting}${p.contrast ? `; ${p.contrast}` : ""}. Light every face cleanly and evenly, so that no one falls into shadow. The new light must have one consistent direction and colour on all the people and the background, like a single real lighting setup.`,
     `SET: ${p.setting || "a real location that matches the mood"}. ${config.setDirection || SET_DEPTH}`,
     "WARDROBE: keep everyone's own clothing and accessories exactly as in the photo, simply clean and well lit.",
@@ -219,7 +246,7 @@ function buildGroupPrompt(p: MoodProfile, config: CampaignConfig): string {
     `FINISH: ${p.texture}. ${config.styleBrief}`,
     "Photographic realism, like a real group photo shoot with professional lighting. Nobody is cropped out.",
     (p as MoodProfile & { extra?: string }).extra ?? "",
-    `Avoid: wide-angle distortion, changed faces, missing or added people, ${negative}.`,
+    `Avoid: ${config.framing === "keep" ? "changed poses, re-posed arms or hands, invented bodies, " : ""}wide-angle distortion, changed faces, missing or added people, ${negative}.`,
   ].filter(Boolean).join("\n");
 }
 

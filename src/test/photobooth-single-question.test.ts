@@ -67,3 +67,27 @@ describe("decor de campagne", () => {
     expect(buildPortraitPrompt(buildMoodProfile(["cool"], r.config, "k-1"), r.config)).toContain("readable architecture");
   });
 });
+
+describe("cadrage garde (framing: keep)", () => {
+  const build = (framing?: "keep" | "medium", shot: "solo" | "group" = "solo") => {
+    const r = resolveConfig({ questions: oneQuestion, styles: ["mood"], framing });
+    if (!r.ok) throw new Error(r.error);
+    return buildPortraitPrompt(buildMoodProfile(["cool"], r.config, "k-1", null, shot), r.config);
+  };
+  it("verrouille la pose, les mains et le geste, sans recul de camera", () => {
+    const p = build("keep");
+    expect(p).toContain("POSE (must not change)");
+    expect(p).toContain("including any hand gesture");
+    expect(p).toContain("Keep exactly the original framing");
+    expect(p).not.toContain("Pull the camera back");
+    expect(p).not.toContain("hands out of frame or resting naturally");
+  });
+  it("groupe : poses verrouillees aussi", () => {
+    const p = build("keep", "group");
+    expect(p).toContain("POSES (must not change)");
+    expect(p).not.toContain("pull the camera back");
+  });
+  it("par defaut : recul de camera inchange", () => {
+    expect(build()).toContain("Pull the camera back to a medium shot");
+  });
+});

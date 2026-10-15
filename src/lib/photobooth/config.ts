@@ -69,6 +69,9 @@ export const campaignConfigSchema = z.object({
   // Remplace la consigne de decor generique (SET_DEPTH, mood.ts) : une campagne
   // de marque construit un monde de studio, pas un lieu reel.
   setDirection: z.string().max(800).optional(),
+  // "medium" (defaut) : recul de camera, decor plus present, le corps sous le
+  // cadre est invente. "keep" : cadre et pose d'origine intouches (IQOS).
+  framing: z.enum(["medium", "keep"]).optional(),
   model: z.enum(MODELS),
   resolution: z.enum(["1k", "2k", "4k"]),
   quality: z.enum(["low", "medium", "high", "xhigh", "max"]),
