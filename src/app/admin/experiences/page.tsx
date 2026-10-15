@@ -24,6 +24,7 @@ export default async function Page() {
         <p className="text-sm text-muted-foreground">
           Ce qui s’affiche sur la page publique /experiences. Une expérience cachée disparaît du catalogue et ne peut plus
           être ouverte par un lien <code>?play=</code>. Une nouvelle expérience ajoutée au code reste cachée jusqu’à son activation ici.
+          Le <strong>hero</strong> passe en tête de page : le Photobooth avant le catalogue, ou l’expérience choisie ouverte dans le lecteur du haut.
         </p>
       </div>
       {error ? (

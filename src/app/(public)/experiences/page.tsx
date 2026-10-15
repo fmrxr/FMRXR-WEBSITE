@@ -4,7 +4,7 @@ import { PageHero } from "@/components/site/PageHero";
 import { ExperienceCatalog } from "@/components/site/ExperienceCatalog";
 import { PhotoboothCTA } from "@/components/site/PhotoboothCTA";
 import { getSiteSettings } from "@/lib/public-data";
-import { PHOTOBOOTH_SLUG, isVisible, visibleExperiences } from "@/lib/experiences";
+import { PHOTOBOOTH_SLUG, heroSlug, isVisible, visibleExperiences } from "@/lib/experiences";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,10 @@ export default async function Experiences() {
   const { experiences_visible: visible = null } = await getSiteSettings();
   const playable = visibleExperiences(visible).length > 0;
   const booth = isVisible(PHOTOBOOTH_SLUG, visible);
+  // Hero choisi dans le CMS : le Photobooth passe alors avant le catalogue ;
+  // une expérience du catalogue s'ouvre, elle, dans le lecteur du haut.
+  const boothFirst = booth && heroSlug(visible) === PHOTOBOOTH_SLUG;
+  const boothBlock = booth && <PhotoboothCTA index="For your event" source="experiences" />;
 
   return (
     <>
@@ -42,13 +46,14 @@ export default async function Experiences() {
           intro="Interactive systems we bring to brand activations, launches and festivals, run under live conditions."
         />
       )}
+      {boothFirst && boothBlock}
       {playable && (
         // useSearchParams exige une frontière Suspense pour le prérendu.
         <Suspense>
           <ExperienceCatalog visible={visible} />
         </Suspense>
       )}
-      {booth && <PhotoboothCTA index="For your event" source="experiences" />}
+      {!boothFirst && boothBlock}
     </>
   );
 }

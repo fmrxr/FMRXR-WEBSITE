@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ProjectRow } from "@/components/site/ProjectRow";
 import { CardFilm } from "@/components/site/CardFilm";
 import { track } from "@/lib/track";
-import { allowFor, experiencesByRow, featuredExperience, findExperience, visibleExperiences, type Experience } from "@/lib/experiences";
+import { allowFor, experiencesByRow, featuredExperience, findExperience, heroSlug, visibleExperiences, type Experience } from "@/lib/experiences";
 
 // Le catalogue de /experiences, à la manière d'un service de streaming : un
 // grand lecteur en haut, des rangées dessous. Cliquer une carte la charge dans
@@ -42,7 +42,8 @@ export function ExperienceCatalog({ visible }: { visible: string[] | null }) {
   // L'URL fait foi (?play=slug) : lien partagé, retour arrière et clic sur une
   // carte passent tous par elle. « En lecture » veut dire que l'expérience
   // lancée est celle affichée : en changer arrête donc la précédente.
-  const current = findExperience(params.get("play"), list) ?? featuredExperience(list);
+  const current =
+    findExperience(params.get("play"), list) ?? findExperience(heroSlug(visible), list) ?? featuredExperience(list);
   const [launched, setLaunched] = useState<string | null>(null);
   const playing = launched === current.slug;
   const setPlaying = (on: boolean) => setLaunched(on ? current.slug : null);

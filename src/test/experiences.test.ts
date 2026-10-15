@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { EXPERIENCES, ROWS, findExperience, featuredExperience, experiencesByRow, allowFor, visibleExperiences, isVisible, PHOTOBOOTH_SLUG } from "@/lib/experiences";
+import { EXPERIENCES, ROWS, findExperience, featuredExperience, experiencesByRow, allowFor, visibleExperiences, isVisible, heroSlug, PHOTOBOOTH_SLUG } from "@/lib/experiences";
 
 describe("experiences registry", () => {
   it("has unique slugs", () => {
@@ -72,5 +72,13 @@ describe("visibilité réglée dans le CMS", () => {
   });
   it("une slug inconnue dans le réglage est ignorée", () => {
     expect(visibleExperiences(["nope"])).toEqual([]);
+  });
+});
+
+describe("hero réglé dans le CMS", () => {
+  it("la première de la liste est le hero", () => {
+    expect(heroSlug(["spicy-airport", PHOTOBOOTH_SLUG])).toBe("spicy-airport");
+    expect(heroSlug([])).toBeNull();
+    expect(heroSlug(null)).toBeNull();
   });
 });

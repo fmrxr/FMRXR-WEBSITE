@@ -113,6 +113,15 @@ export function visibleExperiences(visible: readonly string[] | null | undefined
   return EXPERIENCES.filter((e) => visible.includes(e.slug));
 }
 
+/**
+ * L'expérience mise en avant en haut de /experiences : la première de la liste
+ * réglée dans le CMS (l'ordre fait foi). null = pas de réglage, le catalogue
+ * garde sa mise en avant par défaut (featured dans le code).
+ */
+export function heroSlug(visible: readonly string[] | null | undefined): string | null {
+  return visible?.[0] ?? null;
+}
+
 export function isVisible(slug: string, visible: readonly string[] | null | undefined): boolean {
   return visible == null || visible.includes(slug);
 }

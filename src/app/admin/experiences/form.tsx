@@ -7,7 +7,9 @@ import { saveExperienceVisibility } from "@/app/actions/experiences";
 export type Item = { slug: string; title: string; group: string; poster: string; pitch: string };
 
 // Une bascule par expérience, enregistrée aussitôt : la page publique suit
-// au rechargement suivant.
+// au rechargement suivant. L'ordre de la liste fait foi : la première est le
+// hero de /experiences (Photobooth en tête de page, ou expérience ouverte
+// dans le lecteur du haut).
 export function VisibilityForm({ items, initial }: { items: Item[]; initial: string[] }) {
   const [visible, setVisible] = useState<string[]>(initial);
   const [pending, start] = useTransition();
@@ -28,6 +30,11 @@ export function VisibilityForm({ items, initial }: { items: Item[]; initial: str
   const toggle = (slug: string, on: boolean) =>
     save(on ? [...visible, slug] : visible.filter((s) => s !== slug));
 
+  // Mettre en hero une expérience cachée l'affiche du même coup.
+  const makeHero = (slug: string) => save([slug, ...visible.filter((s) => s !== slug)]);
+  const hero = visible[0] ?? null;
+  const heroTitle = items.find((i) => i.slug === hero)?.title;
+
   const groups = [...new Set(items.map((i) => i.group))];
   const shown = items.filter((i) => visible.includes(i.slug)).length;
 
@@ -36,6 +43,7 @@ export function VisibilityForm({ items, initial }: { items: Item[]; initial: str
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm">
         <span>
           <strong>{shown}</strong> / {items.length} affichées{shown === 0 && " · la page n’affichera que son titre"}
+          {heroTitle && <> · hero : <strong data-testid="exp-hero">{heroTitle}</strong></>}
         </span>
         <span className="flex gap-2">
           <button type="button" disabled={pending} onClick={() => save(items.map((i) => i.slug))} className="rounded-md border px-3 py-1.5 hover:border-foreground/40 disabled:opacity-50">
@@ -64,7 +72,20 @@ export function VisibilityForm({ items, initial }: { items: Item[]; initial: str
                     <span className="block text-sm font-semibold">{i.title}</span>
                     <span className="block truncate text-xs text-muted-foreground">{i.pitch}</span>
                   </span>
-                  <span className="text-xs text-muted-foreground">{on ? "Visible" : "Caché"}</span>
+                  {i.slug === hero ? (
+                    <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">Hero</span>
+                  ) : (
+                    <button
+                      type="button"
+                      data-testid={`hero-${i.slug}`}
+                      disabled={pending}
+                      onClick={(e) => { e.preventDefault(); makeHero(i.slug); }}
+                      className="rounded-full border px-2.5 py-1 text-[11px] text-muted-foreground hover:border-foreground/40 hover:text-foreground disabled:opacity-50"
+                    >
+                      Mettre en hero
+                    </button>
+                  )}
+                  <span className="w-12 text-right text-xs text-muted-foreground">{on ? "Visible" : "Caché"}</span>
                   <Switch checked={on} disabled={pending} onCheckedChange={(v) => toggle(i.slug, v)} />
                 </label>
               );
