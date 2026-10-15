@@ -39,11 +39,12 @@ export async function POST(req: Request) {
   if (!parsed.success) return err("INVALID_REQUEST", 400);
   const { slug, k, session, idem } = parsed.data;
 
-  let answers: [string, string, string];
+  let answers: string[];
   try {
     const a = JSON.parse(parsed.data.answers);
-    if (!Array.isArray(a) || a.length !== 3 || !a.every((x) => typeof x === "string")) throw 0;
-    answers = a as [string, string, string];
+    // Le nombre exact est verifie contre la campagne (buildMoodProfile).
+    if (!Array.isArray(a) || a.length < 1 || a.length > 3 || !a.every((x) => typeof x === "string")) throw 0;
+    answers = a;
   } catch {
     return err("INVALID_ANSWERS", 400);
   }

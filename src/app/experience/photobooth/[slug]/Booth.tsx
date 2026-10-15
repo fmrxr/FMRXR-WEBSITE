@@ -108,7 +108,7 @@ export function Booth({
   const err = ERRORS[locale];
   const rtl = locale === "ar";
   const mood = useMemo(
-    () => (answers.length === 3 ? buildMoodProfile(answers as Answers, config) : null),
+    () => (answers.length === config.questions.length ? buildMoodProfile(answers as Answers, config) : null),
     [answers, config],
   );
 
@@ -234,13 +234,13 @@ export function Booth({
     window.setTimeout(() => {
       setAnswers((a) => {
         const next = [...a.slice(0, qIndex), optionId];
-        if (next.length === 3) setStep("mood");
+        if (next.length === config.questions.length) setStep("mood");
         else setQIndex(next.length);
         return next;
       });
       setChosen(null);
     }, 650);
-  }, [chosen, qIndex]);
+  }, [chosen, qIndex, config.questions.length]);
 
   const chooseShot = useCallback((id: string) => {
     if (chosen) return;
@@ -800,14 +800,14 @@ export function Booth({
           <section key={qIndex} className={`${s.enter} mt-auto flex flex-col gap-3 p-4 pb-6 md:gap-6 md:p-10`}>
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">
-                {t.question} <bdi dir="ltr">{qIndex + 1} / 3</bdi>
+                {t.question} <bdi dir="ltr">{qIndex + 1} / {config.questions.length}</bdi>
               </p>
               <h2 className="fm-display mt-2 text-[clamp(1.4rem,5.5vw,4.5rem)] md:mt-3">{question.prompt[locale]}</h2>
               <p className="mt-2 text-xs text-fmfg/70 md:mt-3 md:text-sm md:text-fmmuted">
                 {tracker === "failed" ? t.manualOnly : lowLight ? t.lowLight : live.gesture ? t.gestureHint : t.noHand}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
+            <div className={`grid grid-cols-2 gap-2 md:gap-3 ${question.options.length === 4 ? "md:grid-cols-4" : question.options.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
               {question.options.map((o) => {
                 const active = live.gesture === o.gesture;
                 const picked = chosen === o.id;

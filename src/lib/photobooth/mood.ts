@@ -12,7 +12,7 @@ import { STYLES, type StyleId } from "./styles";
 // Rien ici ne lit le visage : le profil vient des choix explicites, et de la
 // lecture d'expression faite sur l'appareil quand elle existe.
 
-export type Answers = [string, string, string]; // ids d'options, dans l'ordre des questions
+export type Answers = string[]; // ids d'options, une par question, dans l'ordre
 
 /** Portrait seul ou photo de groupe, choisi par le visiteur apres le scan. */
 export type Shot = "solo" | "group";
@@ -51,6 +51,7 @@ export type MoodProfile = {
 };
 
 function pick(config: CampaignConfig, answers: Answers) {
+  if (answers.length !== config.questions.length) throw new Error("INVALID_ANSWER_COUNT");
   return config.questions.map((q, i) => {
     const o = q.options.find((opt) => opt.id === answers[i]);
     if (!o) throw new Error(`INVALID_ANSWER:${q.id}`);
@@ -93,19 +94,18 @@ export function buildMoodProfile(
     const idx = hashSeed(`${seed}:${config.questions[i].id}`) % list.length;
     return { o, idx, f: { ...o.fragments, ...list[idx] } };
   });
-  const [energy, world, style] = chosen;
-  const f = (k: string) => energy.f[k] ?? world.f[k] ?? style.f[k] ?? "";
+  // Un fragment vient de la premiere reponse qui le definit, dans l'ordre des questions.
+  const f = (k: string) => chosen.find((c) => c.f[k] !== undefined)?.f[k] ?? "";
   const word = (loc: Locale) =>
-    [energy.o.title?.[loc], style.o.title?.[loc]].filter(Boolean).join(" · ");
-  const desc = (loc: Locale) =>
-    [energy.o.label[loc], world.o.label[loc], style.o.label[loc]].join(" · ");
+    chosen.map((c) => c.o.title?.[loc]).filter(Boolean).join(" · ");
+  const desc = (loc: Locale) => chosen.map((c) => c.o.label[loc]).join(" · ");
 
   return {
     id: answers.join("."),
     variant: chosen.map((c) => `${c.o.id}#${c.idx < 0 ? "-" : c.idx}`).join("."),
     title: { fr: word("fr"), en: word("en"), ar: word("ar") },
     description: { fr: desc("fr"), en: desc("en"), ar: desc("ar") },
-    palette: world.o.palette ?? [],
+    palette: chosen.find((c) => c.o.palette?.length)?.o.palette ?? [],
     atmosphere: f("atmosphere"),
     expression: f("expression"),
     contrast: f("contrast"),

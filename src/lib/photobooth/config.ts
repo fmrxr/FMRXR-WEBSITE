@@ -26,13 +26,13 @@ const optionSchema = z.object({
   fragments: z.record(z.string(), z.string()), // lighting, atmosphere, texture...
   // Banque de mises en scene : une variante tiree par photo (voir mood.ts).
   // Absente = banque par defaut de cette reponse (prompt-bank.ts) ; [] = aucune.
-  variants: z.array(z.record(z.string(), z.string())).max(20).optional(),
+  variants: z.array(z.record(z.string(), z.string())).max(50).optional(), // 50 : grands evenements (IQOS, 300 a 500 invites)
 });
 
 const questionSchema = z.object({
   id: z.string().regex(/^[a-z0-9_]+$/),
   prompt: localized,
-  options: z.array(optionSchema).length(4),
+  options: z.array(optionSchema).min(2).max(4),
 });
 
 export const MODELS = ["flare", "sunburst", "grok", "qwen"] as const;
@@ -61,7 +61,8 @@ export const campaignConfigSchema = z.object({
   locales: z.array(z.enum(LOCALES)).min(1),
   defaultLocale: z.enum(LOCALES),
   clientLogoUrl: z.string().url().or(z.literal("")),
-  questions: z.array(questionSchema).length(3),
+  // 1 a 3 questions de 2 a 4 reponses (ex. IQOS : une seule question, deux ambiances).
+  questions: z.array(questionSchema).min(1).max(3),
   // Direction visuelle commune a toutes les images de la campagne.
   styleBrief: z.string().max(1500),
   negative: z.string().max(800),
@@ -255,7 +256,7 @@ export function resolveConfig(override: unknown):
   const c = parsed.data;
   for (const q of c.questions) {
     const g = new Set(q.options.map((o) => o.gesture));
-    if (g.size !== 4) return { ok: false, error: `questions.${q.id}: chaque reponse doit avoir un geste different` };
+    if (g.size !== q.options.length) return { ok: false, error: `questions.${q.id}: chaque reponse doit avoir un geste different` };
   }
   if (!c.locales.includes(c.defaultLocale)) {
     return { ok: false, error: "defaultLocale doit faire partie de locales" };
