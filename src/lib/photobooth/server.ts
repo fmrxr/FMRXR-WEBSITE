@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveConfig, type CampaignConfig } from "./config";
 import { createHiggsfieldProvider, type ImageProvider } from "./higgsfield";
-import type { PhotoboothDb } from "./service";
+import { pollGeneration, type PhotoboothDb } from "./service";
 
 // Cote serveur uniquement : client service_role, cle Higgsfield.
 
@@ -172,4 +172,20 @@ export async function relayImage(url: string, filename: string | null) {
   });
   if (filename) headers.set("Content-Disposition", `attachment; filename="${filename}.${ext}"`);
   return new Response(up.body, { headers });
+}
+
+/**
+ * Reconciliation automatique : une generation dont personne ne suit plus le
+ * statut (page rechargee, borne eteinte) resterait « en cours » et occuperait
+ * une place du quota. Avant chaque nouvelle demande, on interroge Higgsfield
+ * pour celles de la campagne qui attendent depuis plus de 90 s. Borne a 3 par
+ * appel pour ne jamais ralentir le visiteur.
+ */
+export async function reconcileStale(campaignId: string, provider: ImageProvider, db: PhotoboothDb) {
+  const before = new Date(Date.now() - 90_000).toISOString();
+  const { data } = await getSupabaseAdmin()
+    .from("photobooth_usage").select("id")
+    .eq("campaign_id", campaignId).in("status", ["processing", "unknown"])
+    .lt("created_at", before).order("created_at").limit(3);
+  await Promise.all((data ?? []).map((u) => pollGeneration(u.id, null, { db, provider }).catch(() => null)));
 }

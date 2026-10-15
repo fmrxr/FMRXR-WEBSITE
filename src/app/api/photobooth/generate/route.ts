@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sniffImage } from "@/lib/photobooth/image";
-import { campaignAvailability, clientIp, createSupabaseDb, getProvider, loadCampaign, rateLimited } from "@/lib/photobooth/server";
+import { campaignAvailability, clientIp, createSupabaseDb, getProvider, loadCampaign, rateLimited, reconcileStale } from "@/lib/photobooth/server";
 import { startGeneration } from "@/lib/photobooth/service";
 import { EXPRESSIONS, type ExpressionId } from "@/lib/photobooth/expression";
 
@@ -65,9 +65,13 @@ export async function POST(req: Request) {
   const provider = getProvider();
   if (!provider) return err("PROVIDER_NOT_CONFIGURED", 503);
 
+  const db = createSupabaseDb();
+  // Libere ou finalise d'abord les generations abandonnees (page rechargee...).
+  await reconcileStale(loaded.campaign.id, provider, db);
+
   const r = await startGeneration(
     { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression },
-    { db: createSupabaseDb(), provider },
+    { db, provider },
   );
   if (!r.ok) {
     const status = /QUOTA|LIMIT|CAMPAIGN/.test(r.error) ? 409 : r.error.startsWith("INVALID") ? 400 : 502;
