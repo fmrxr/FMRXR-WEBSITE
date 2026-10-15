@@ -15,7 +15,7 @@ Borne de portraits IA par campagne, avec quota d'images vérifié en base avant 
 | Logique | `src/lib/photobooth/` : `config` (textes, questions, modèle), `mood` (moteur déterministe), `gestures`, `higgsfield` (adaptateur), `service` (orchestration), `server` (Supabase service-role) |
 | Admin | `/admin/photobooth` (rôle admin uniquement) |
 | Base | `supabase/migrations/0017_photobooth.sql` |
-| MediaPipe | `public/photobooth/mediapipe/` (wasm + `hand_landmarker.task`, hébergés sur le site, version npm 1.0.1) |
+| MediaPipe | `public/photobooth/mediapipe/` (wasm + `gesture_recognizer.task`, hébergés sur le site, version npm 1.0.1) |
 
 Pas d'Edge Functions : fmrxr.com tourne déjà en Node chez Hostinger, les routes Next suffisent.
 
@@ -74,6 +74,34 @@ Budget : chaque image réserve le « coût réservé par image » réglé dans l
 **Galerie admin** `/admin/photobooth/<id>/galerie` : portraits réussis, téléchargement. Images relayées par `/api/photobooth/image/<id>` (admin vérifié dans la route).
 
 Migration : `0018_photobooth_v2.sql` (appliquée le 15/10/2026).
+
+## Gestes : calibrage (15/10/2026)
+
+La borne utilise le modèle officiel **GestureRecognizer** de MediaPipe (`Open_Palm`, `Closed_Fist`, `Thumb_Up`, `Victory`), plus une vérification géométrique de la main (`src/lib/photobooth/gestures.ts`, `decideGesture`).
+
+Calibré sur les images de test officielles MediaPipe (`src/test/fixtures/hands.json`), en 9 variantes chacune : miroir, rotation ±25°, main petite, très petite, sombre à 60 et 80 %, basse résolution.
+
+- Bonne catégorie dans 40 cas sur 45, **aucune confusion entre deux de nos gestes**. Refus : main minuscule, poing dans le noir à 80 %, signe de paix incliné de −25°.
+- Scores corrects : de 0,48 à 0,95. La main ouverte est la plus faible : 0,53 à 0,69.
+- Règle retenue : score ≥ **0,50**, ou bien score ≥ 0,35 et géométrie concordante. Le geste doit être tenu **900 ms**. Les deux valeurs se règlent par campagne.
+- Pointer l'index ne répond à rien.
+
+Vérifié dans la borne réelle avec une caméra simulée à partir de ces photos : les 3 questions répondues **par gestes seuls**, en 8 à 12 s, sur ordinateur (31 analyses/s) et sur mobile émulé (Android, tactile, 15 analyses/s, bridé volontairement). Squelette aligné sur la main malgré recadrage et miroir. La main ouverte n'est pas reconnue si les doigts sortent du cadre : la consigne demande « la main entière dans l'image ».
+
+**Sur place :** ouvrir la borne avec `&debug=1` → panneau de calibrage (squelette, catégorie et score, geste retenu, images analysées par seconde, lumière, imprimante). Sous 55/255 de lumière, la borne affiche une consigne d'éclairage.
+
+## Impression
+
+Deux modes par campagne (admin → Impression) :
+
+- **Agent local** (recommandé) : `tools/photobooth-print-agent/`. Il détecte les imprimantes (prête, hors ligne, erreur papier selon le pilote) et imprime sans dialogue, plein papier. Voir son README.
+- **Navigateur** : boîte d'impression du système, page CSS au format choisi, seul le portrait est imprimé. Aucune détection possible depuis une page web. Silencieux avec Chrome `--kiosk --kiosk-printing`. C'est le seul mode possible sur tablette (AirPrint, Mopria).
+
+Limite d'impressions par portrait (1 par défaut). L'écran d'accueil montre l'état de l'imprimante à l'équipe.
+
+## Mobile
+
+Vérifié en émulation Android (Chromium, 412 × 915, tactile) : parcours complet par gestes, pas de débordement horizontal, impression désactivée proprement sans agent. **Non vérifié** : Safari iOS sur un vrai iPhone ou iPad, et les vraies caméras de téléphone. À faire sur un appareil avant un événement.
 
 ## Limites connues
 

@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
-  GESTURES, LOCALES, MODELS, resolveConfig,
+  GESTURES, LOCALES, MODELS, PAPERS, resolveConfig,
   type CampaignConfig, type Locale, type Localized,
 } from "@/lib/photobooth/config";
 
@@ -161,6 +161,66 @@ export function ConfigEditor({ value, onChange }: { value: CampaignConfig; onCha
           <Label>À éviter</Label>
           <Textarea rows={2} value={c.negative} onChange={(e) => set({ negative: e.target.value })} />
         </div>
+      </fieldset>
+
+      <fieldset className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
+        <legend className="px-1 text-sm font-medium">Reconnaissance des gestes</legend>
+        <div className="flex flex-col gap-2">
+          <Label>Score minimal du modèle ({c.gestureMinScore.toFixed(2)})</Label>
+          <input type="range" min={0.35} max={0.95} step={0.05} value={c.gestureMinScore} onChange={(e) => set({ gestureMinScore: Number(e.target.value) })} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Maintien du geste ({c.gestureHoldMs} ms)</Label>
+          <input type="range" min={300} max={3000} step={100} value={c.gestureHoldMs} onChange={(e) => set({ gestureHoldMs: Number(e.target.value) })} />
+        </div>
+        <p className="text-xs text-muted-foreground md:col-span-2">
+          Calibré sur les images de test officielles MediaPipe : 0,50 et 900 ms. Monter le score rend la borne plus stricte (moins d’erreurs,
+          mais la main ouverte, notée 0,53 à 0,69, peut ne plus passer). Sur place, ouvrez la borne avec <code>&amp;debug=1</code> pour voir
+          le squelette, le score, la lumière et l’imprimante.
+        </p>
+      </fieldset>
+
+      <fieldset className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
+        <legend className="px-1 text-sm font-medium">Impression</legend>
+        <label className="flex items-center gap-2 text-sm md:col-span-2">
+          <input type="checkbox" checked={c.print.enabled} onChange={(e) => set({ print: { ...c.print, enabled: e.target.checked } })} />
+          Bouton « Imprimer » sur l’écran résultat
+        </label>
+        {c.print.enabled && (
+          <>
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <Label>Mode</Label>
+              {select(c.print.mode, (v) => set({ print: { ...c.print, mode: v as CampaignConfig["print"]["mode"] } }), [
+                ["agent", "Agent local : détecte l’imprimante, imprime sans dialogue (recommandé)"],
+                ["browser", "Navigateur : boîte d’impression, aucune détection possible"],
+              ])}
+            </div>
+            {c.print.mode === "agent" && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <Label>Adresse de l’agent</Label>
+                  <Input value={c.print.agentUrl} onChange={(e) => set({ print: { ...c.print, agentUrl: e.target.value } })} className="font-mono text-xs" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Imprimante (vide = celle par défaut)</Label>
+                  <Input value={c.print.printer} onChange={(e) => set({ print: { ...c.print, printer: e.target.value } })} />
+                </div>
+              </>
+            )}
+            <div className="flex flex-col gap-2">
+              <Label>Papier</Label>
+              {select(c.print.paper, (v) => set({ print: { ...c.print, paper: v as CampaignConfig["print"]["paper"] } }), PAPERS.map((p) => [p, p === "10x15" ? "10 × 15 cm (photo)" : p === "13x18" ? "13 × 18 cm" : p]))}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Cadrage</Label>
+              {select(c.print.fit, (v) => set({ print: { ...c.print, fit: v as CampaignConfig["print"]["fit"] } }), [["cover", "Plein papier (bords recadrés)"], ["contain", "Image entière (marges)"]])}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Impressions max par portrait</Label>
+              <Input type="number" min={1} max={10} value={c.print.maxPrints} onChange={(e) => set({ print: { ...c.print, maxPrints: Number(e.target.value) } })} />
+            </div>
+          </>
+        )}
       </fieldset>
 
       {c.questions.map((q, qi) => (

@@ -314,3 +314,65 @@ describe("partage", () => {
     expect(resolveConfig({ model: "qwen" }).ok).toBe(true);
   });
 });
+
+// ---------- calibrage sur de vraies mains (images de test officielles MediaPipe) ----------
+import hands from "./fixtures/hands.json";
+import { decideGesture, RECOGNIZER_MAP } from "@/lib/photobooth/gestures";
+
+describe("calibrage sur vraies mains", () => {
+  const lm = hands.landmarks as Record<string, Point[]>;
+  it("la geometrie reconnait les 4 gestes sur de vrais landmarks", () => {
+    expect(classifyGesture(lm.open_palm)).toBe("open_palm");
+    expect(classifyGesture(lm.fist)).toBe("fist");
+    expect(classifyGesture(lm.thumb_up)).toBe("thumb_up");
+    expect(classifyGesture(lm.victory)).toBe("peace");
+    expect(classifyGesture(lm.pointing_up)).toBeNull();
+  });
+  it("le modele ne confond jamais deux de nos gestes (45 variantes)", () => {
+    const expected: Record<string, string> = { open_palm: "Open_Palm", fist: "Closed_Fist", thumb_up: "Thumb_Up", victory: "Victory", pointing_up: "Pointing_Up" };
+    for (const r of hands.recognizer) {
+      if (r.category === "-" || r.category === "None") continue;
+      expect(r.category).toBe(expected[r.image]);
+    }
+  });
+  it("au seuil retenu : 33 variantes sur 36 acceptees, la geometrie rattrape le pouce dans la penombre", () => {
+    const ours = hands.recognizer.filter((r) => r.image !== "pointing_up");
+    expect(ours).toHaveLength(36);
+    const withGeometry = ours.filter((r) => decideGesture({ categoryName: r.category, score: r.score }, lm[r.image]));
+    const modelOnly = ours.filter((r) => decideGesture({ categoryName: r.category, score: r.score }, undefined));
+    expect(withGeometry).toHaveLength(33); // refus : main minuscule, poing a 80 % de noir, paix inclinee -25 deg
+    expect(modelOnly).toHaveLength(32);
+  });
+  it("pointer l'index ne repond a aucune question", () => {
+    expect(decideGesture({ categoryName: "Pointing_Up", score: 0.95 }, lm.pointing_up)).toBeNull();
+    expect(Object.keys(RECOGNIZER_MAP)).not.toContain("Pointing_Up");
+  });
+  it("score faible sans confirmation geometrique : refuse", () => {
+    expect(decideGesture({ categoryName: "Thumb_Up", score: 0.4 }, lm.fist)).toBeNull();
+    expect(decideGesture({ categoryName: "Thumb_Up", score: 0.4 }, lm.thumb_up)).toBe("thumb_up");
+    expect(decideGesture({ categoryName: "Thumb_Up", score: 0.3 }, lm.thumb_up)).toBeNull();
+  });
+});
+
+// ---------- impression et reglages des gestes ----------
+describe("reglages impression et gestes", () => {
+  it("valeurs par defaut : impression coupee, agent local, 10x15, seuil calibre", () => {
+    const r = resolveConfig({});
+    expect(r.ok && r.config.print).toMatchObject({ enabled: false, mode: "agent", agentUrl: "http://127.0.0.1:7341", paper: "10x15", maxPrints: 1 });
+    expect(r.ok && r.config.gestureMinScore).toBe(0.5);
+    expect(r.ok && r.config.gestureHoldMs).toBe(900);
+  });
+  it("une surcharge partielle de print garde les autres valeurs", () => {
+    const r = resolveConfig({ print: { enabled: true } });
+    expect(r.ok && r.config.print).toMatchObject({ enabled: true, mode: "agent", paper: "10x15" });
+  });
+  it("l'agent ne peut etre qu'en local (pas d'adresse externe)", () => {
+    expect(resolveConfig({ print: { agentUrl: "http://evil.example:7341" } }).ok).toBe(false);
+    expect(resolveConfig({ print: { agentUrl: "http://192.168.1.20:7341" } }).ok).toBe(false);
+    expect(resolveConfig({ print: { agentUrl: "http://localhost:7341" } }).ok).toBe(true);
+  });
+  it("seuil de geste borne", () => {
+    expect(resolveConfig({ gestureMinScore: 0.2 }).ok).toBe(false);
+    expect(resolveConfig({ gestureMinScore: 0.6 }).ok).toBe(true);
+  });
+});

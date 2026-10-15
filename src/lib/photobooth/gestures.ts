@@ -79,3 +79,35 @@ export class GestureStabilizer {
     return Math.min(1, (now - this.since) / this.holdMs);
   }
 }
+
+// ---------- decision : modele officiel + controle geometrique ----------
+// Calibre le 15/10/2026 sur les images de test officielles MediaPipe
+// (src/test/fixtures/hands.json) : GestureRecognizer donne la bonne categorie
+// dans 40 cas sur 45 (miroir, rotation +-25 deg, main petite, sombre, basse
+// resolution), sans jamais confondre deux de nos gestes. Scores corrects
+// observes : 0,48 a 0,95, main ouverte 0,53 a 0,69.
+
+/** Categories du modele officiel gesture_recognizer -> nos gestes. Les autres (Pointing_Up, ILoveYou, Thumb_Down, None) sont ignorees. */
+export const RECOGNIZER_MAP: Record<string, Gesture> = {
+  Open_Palm: "open_palm",
+  Closed_Fist: "fist",
+  Thumb_Up: "thumb_up",
+  Victory: "peace",
+};
+
+export const DEFAULT_MIN_SCORE = 0.5;
+/** Sous le seuil, on accepte quand meme si la geometrie de la main confirme, jusqu'a ce plancher. */
+export const AGREEMENT_FLOOR = 0.35;
+
+export function decideGesture(
+  top: { categoryName: string; score: number } | undefined,
+  landmarks: Point[] | undefined,
+  minScore = DEFAULT_MIN_SCORE,
+): Gesture | null {
+  if (!top) return null;
+  const mapped = RECOGNIZER_MAP[top.categoryName];
+  if (!mapped) return null;
+  if (top.score >= minScore) return mapped;
+  if (top.score >= AGREEMENT_FLOOR && landmarks && classifyGesture(landmarks) === mapped) return mapped;
+  return null;
+}

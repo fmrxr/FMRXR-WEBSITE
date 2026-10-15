@@ -33,6 +33,21 @@ const questionSchema = z.object({
 export const MODELS = ["flare", "sunburst", "grok", "qwen"] as const;
 export type ModelKey = (typeof MODELS)[number];
 
+// Impression : "browser" = boite d'impression du navigateur (ou silencieuse
+// en Chrome --kiosk-printing), aucune detection possible depuis une page web ;
+// "agent" = agent local sur le PC de la borne (tools/photobooth-print-agent),
+// qui detecte l'imprimante et imprime sans dialogue.
+export const PAPERS = ["10x15", "13x18", "A6", "A5", "A4"] as const;
+const printSchema = z.object({
+  enabled: z.boolean(),
+  mode: z.enum(["browser", "agent"]),
+  agentUrl: z.string().regex(/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/, "agentUrl : http://127.0.0.1:<port> uniquement"),
+  printer: z.string().max(200), // vide = imprimante par defaut
+  paper: z.enum(PAPERS),
+  fit: z.enum(["cover", "contain"]),
+  maxPrints: z.number().int().min(1).max(10), // par portrait
+});
+
 export const campaignConfigSchema = z.object({
   title: localized,
   intro: localized,
@@ -51,6 +66,12 @@ export const campaignConfigSchema = z.object({
   aspectRatio: z.enum(["3:4", "2:3", "1:1", "9:16"]), // ratios communs aux quatre modeles,
   countdownSeconds: z.number().int().min(0).max(10),
   shareEnabled: z.boolean(), // QR de partage sur l'ecran resultat
+  // Reconnaissance des gestes (calibrage : voir gestures.ts). Le seuil est le
+  // score minimal du modele officiel ; le maintien, le temps pendant lequel le
+  // geste doit etre tenu avant d'etre accepte.
+  gestureMinScore: z.number().min(0.35).max(0.95),
+  gestureHoldMs: z.number().int().min(300).max(3000),
+  print: printSchema,
   maxUploadBytes: z.number().int().min(200_000).max(8_000_000),
 });
 export type CampaignConfig = z.infer<typeof campaignConfigSchema>;
@@ -179,6 +200,17 @@ export const DEFAULT_CONFIG: CampaignConfig = {
   aspectRatio: "3:4",
   countdownSeconds: 3,
   shareEnabled: true,
+  gestureMinScore: 0.5,
+  gestureHoldMs: 900,
+  print: {
+    enabled: false,
+    mode: "agent",
+    agentUrl: "http://127.0.0.1:7341",
+    printer: "",
+    paper: "10x15",
+    fit: "cover",
+    maxPrints: 1,
+  },
   maxUploadBytes: 4_000_000,
 };
 
@@ -190,9 +222,11 @@ export const DEFAULT_CONFIG: CampaignConfig = {
 export function resolveConfig(override: unknown):
   | { ok: true; config: CampaignConfig }
   | { ok: false; error: string } {
+  const o = (override && typeof override === "object" ? override : {}) as Record<string, unknown>;
   const merged = {
     ...DEFAULT_CONFIG,
-    ...(override && typeof override === "object" ? (override as object) : {}),
+    ...o,
+    print: { ...DEFAULT_CONFIG.print, ...((o.print && typeof o.print === "object" ? o.print : {}) as object) },
   };
   const parsed = campaignConfigSchema.safeParse(merged);
   if (!parsed.success) {

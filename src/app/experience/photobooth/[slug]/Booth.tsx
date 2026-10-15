@@ -1,12 +1,13 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { HandLandmarker } from "@mediapipe/tasks-vision";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import type { GestureRecognizer } from "@mediapipe/tasks-vision";
 import QRCode from "qrcode";
 import type { CampaignConfig, Gesture, Locale } from "@/lib/photobooth/config";
-import { classifyGesture, GestureStabilizer } from "@/lib/photobooth/gestures";
+import { decideGesture, GestureStabilizer, type Point } from "@/lib/photobooth/gestures";
 import { buildMoodProfile, type Answers } from "@/lib/photobooth/mood";
 import { ERROR_ALIAS, ERRORS, GESTURE_GLYPH, UI } from "./strings";
 import s from "./booth.module.css";
+import { PAGE_SIZE, usePrinter } from "./usePrinter";
 
 type Step = "attract" | "camera" | "scan" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
 type Tracker = "idle" | "loading" | "ready" | "failed";
@@ -37,7 +38,24 @@ export function Booth({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const landmarkerRef = useRef<HandLandmarker | null>(null);
+  const landmarkerRef = useRef<GestureRecognizer | null>(null);
+  const delegateRef = useRef<"GPU" | "CPU" | null>(null);
+  // Mode calibrage operateur : ?debug=1 affiche squelette, score, fps, lumiere.
+  const debug = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("debug") === "1",
+    () => false,
+  );
+  // Statut imprimante surveille a l'accueil (pour l'equipe) et sur le resultat.
+  const printer = usePrinter(config.print, step === "attract" || step === "result" || debug);
+  const resetPrints = printer.reset;
+  const debugRef = useRef<{ category: string; score: number; decided: Gesture | null; fps: number; landmarks: Point[] | null }>(
+    { category: "-", score: 0, decided: null, fps: 0, landmarks: null },
+  );
+  const [calib, setCalib] = useState({ delegate: "-", cam: "0×0", fps: 0, luma: 0, category: "-", score: 0, decided: null as Gesture | null });
+  const [lowLight, setLowLight] = useState(false);
+  const lumaRef = useRef(0);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef(uuid());
   const idemRef = useRef<string | null>(null);
   const usageRef = useRef<string | null>(null);
@@ -68,17 +86,22 @@ export function Booth({
     if (landmarkerRef.current) return setTracker("ready");
     setTracker("loading");
     try {
-      const { FilesetResolver, HandLandmarker } = await import("@mediapipe/tasks-vision");
+      // Modele officiel GestureRecognizer (il contient aussi le suivi de la main).
+      const { FilesetResolver, GestureRecognizer } = await import("@mediapipe/tasks-vision");
       const files = await FilesetResolver.forVisionTasks("/photobooth/mediapipe/wasm");
-      const make = (delegate: "GPU" | "CPU") =>
-        HandLandmarker.createFromOptions(files, {
-          baseOptions: { modelAssetPath: "/photobooth/mediapipe/hand_landmarker.task", delegate },
+      const make = async (delegate: "GPU" | "CPU") => {
+        const r = await GestureRecognizer.createFromOptions(files, {
+          baseOptions: { modelAssetPath: "/photobooth/mediapipe/gesture_recognizer.task", delegate },
           runningMode: "VIDEO",
           numHands: 1,
-          minHandDetectionConfidence: 0.6,
-          minHandPresenceConfidence: 0.6,
+          minHandDetectionConfidence: 0.5,
+          minHandPresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
         });
+        delegateRef.current = delegate;
+        return r;
+      };
+      // GPU (WebGL) d'abord ; certains telephones et navigateurs le refusent : CPU.
       landmarkerRef.current = await make("GPU").catch(() => make("CPU"));
       setTracker("ready");
     } catch {
@@ -120,6 +143,7 @@ export function Booth({
     setPhoto(null);
     setResultUrl(null);
     setQr(null);
+    resetPrints();
     setAnswers([]);
     setQIndex(0);
     setChosen(null);
@@ -129,7 +153,7 @@ export function Booth({
     usageRef.current = null;
     sessionRef.current = uuid();
     setStep("attract");
-  }, [photo, stopCamera]);
+  }, [photo, stopCamera, resetPrints]);
 
   // Scan : animation de calibrage, puis quiz.
   useEffect(() => {
@@ -164,7 +188,13 @@ export function Booth({
     if (step !== "quiz" || tracker !== "ready") return;
     const lm = landmarkerRef.current!;
     const v = videoRef.current!;
-    const stab = new GestureStabilizer(900, 250);
+    const stab = new GestureStabilizer(config.gestureHoldMs, 250);
+    // Ecrans tactiles (telephones, tablettes) : ~15 analyses/s pour garder la
+    // fluidite et la batterie ; poste fixe : a chaque image.
+    const minInterval = window.matchMedia("(pointer: coarse)").matches ? 66 : 0;
+    let lastRun = 0;
+    let frames = 0;
+    let fpsSince = performance.now();
     const question = config.questions[qIndex];
     let raf = 0;
     let lastTime = -1;
@@ -178,12 +208,27 @@ export function Booth({
 
     const loop = () => {
       raf = requestAnimationFrame(loop);
-      if (v.readyState < 2 || v.currentTime === lastTime) return;
+      const now = performance.now();
+      if (v.readyState < 2 || v.currentTime === lastTime || now - lastRun < minInterval) return;
       lastTime = v.currentTime;
+      lastRun = now;
       let g: Gesture | null = null;
       try {
-        const res = lm.detectForVideo(v, performance.now());
-        g = res.landmarks?.[0] ? classifyGesture(res.landmarks[0]) : null;
+        const res = lm.recognizeForVideo(v, now);
+        const top = res.gestures?.[0]?.[0];
+        const marks = res.landmarks?.[0] as Point[] | undefined;
+        g = decideGesture(top, marks, config.gestureMinScore);
+        frames++;
+        const d = debugRef.current;
+        d.category = top?.categoryName ?? "-";
+        d.score = top?.score ?? 0;
+        d.decided = g;
+        d.landmarks = marks ?? null;
+        if (now - fpsSince > 1000) {
+          d.fps = Math.round((frames * 1000) / (now - fpsSince));
+          frames = 0;
+          fpsSince = now;
+        }
       } catch {
         return;
       }
@@ -204,7 +249,79 @@ export function Booth({
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [step, tracker, qIndex, config.questions, answers, choose]);
+  }, [step, tracker, qIndex, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose]);
+
+  // Lumiere : luminance moyenne de l'image, mesuree sur une vignette.
+  // Sous ~55/255 la reconnaissance chute (calibrage : poing perdu a 80 % de noir).
+  useEffect(() => {
+    if (!["quiz", "capture", "scan"].includes(step)) return;
+    const c = document.createElement("canvas");
+    c.width = 32;
+    c.height = 18;
+    const ctx = c.getContext("2d", { willReadFrequently: true })!;
+    const id = window.setInterval(() => {
+      const v = videoRef.current;
+      if (!v || v.readyState < 2) return;
+      ctx.drawImage(v, 0, 0, 32, 18);
+      const px = ctx.getImageData(0, 0, 32, 18).data;
+      let sum = 0;
+      for (let i = 0; i < px.length; i += 4) sum += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+      lumaRef.current = sum / (px.length / 4);
+      setLowLight(lumaRef.current < 55);
+    }, 700);
+    return () => window.clearInterval(id);
+  }, [step]);
+
+  // Calibrage : dessine le squelette de la main et rafraichit le panneau.
+  useEffect(() => {
+    if (!debug) return;
+    let raf = 0;
+    let last = 0;
+    const BONES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12],
+      [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]];
+    const draw = (t: number) => {
+      raf = requestAnimationFrame(draw);
+      const cv = overlayRef.current;
+      if (!cv) return;
+      const w = (cv.width = cv.clientWidth);
+      const h = (cv.height = cv.clientHeight);
+      const ctx = cv.getContext("2d")!;
+      ctx.clearRect(0, 0, w, h);
+      const v = videoRef.current;
+      const m = debugRef.current.landmarks;
+      if (v && v.videoWidth && m) {
+        // meme cadrage que la video : object-cover puis miroir
+        const scale = Math.max(w / v.videoWidth, h / v.videoHeight);
+        const dw = v.videoWidth * scale;
+        const dh = v.videoHeight * scale;
+        const ox = (w - dw) / 2;
+        const oy = (h - dh) / 2;
+        const P = (p: Point) => [w - (ox + p.x * dw), oy + p.y * dh];
+        ctx.strokeStyle = debugRef.current.decided ? "#7bef7b" : "#f5f5f8";
+        ctx.lineWidth = 3;
+        for (const [a, b] of BONES) {
+          const [x1, y1] = P(m[a]);
+          const [x2, y2] = P(m[b]);
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+      }
+      if (t - last > 200) {
+        last = t;
+        const d = debugRef.current;
+        setCalib({
+          delegate: delegateRef.current ?? "-",
+          cam: `${v?.videoWidth ?? 0}×${v?.videoHeight ?? 0}`,
+          fps: d.fps, luma: Math.round(lumaRef.current),
+          category: d.category, score: d.score, decided: d.decided,
+        });
+      }
+    };
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, [debug]);
 
   // ---------- capture ----------
   const snap = useCallback(() => {
@@ -333,6 +450,19 @@ export function Booth({
         style={{ opacity: cameraOn ? 1 : 0, filter: step === "mood" ? "blur(18px) brightness(0.5)" : "none" }}
       />
       <div className={s.veil} />
+      {debug && <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 z-[5] h-full w-full" />}
+      {debug && (
+        <div data-testid="calibration" className="absolute left-3 top-16 z-30 rounded-md bg-black/80 p-3 font-mono text-[11px] leading-relaxed text-fmfg">
+          <p className="text-fmaccent">CALIBRAGE</p>
+          <p>modèle {tracker} · {calib.delegate}</p>
+          <p>caméra {calib.cam}</p>
+          <p>analyse {calib.fps} img/s</p>
+          <p>lumière {calib.luma}/255 {calib.luma < 55 ? "⚠ trop sombre" : "ok"}</p>
+          <p data-testid="calib-seen">vu {calib.category} {calib.score.toFixed(2)}</p>
+          <p>imprimante {printer.state.kind}{"name" in printer.state ? ` · ${printer.state.name}` : ""}</p>
+          <p data-testid="calib-decided">retenu {calib.decided ?? "—"} (seuil {config.gestureMinScore}, maintien {config.gestureHoldMs} ms)</p>
+        </div>
+      )}
       {flash && <div className={s.flash} />}
 
       {/* barre haute : marque + langues */}
@@ -344,6 +474,16 @@ export function Booth({
             <img src={config.clientLogoUrl} alt="" className="h-7 w-auto opacity-90" />
           )}
         </div>
+        {step === "attract" && config.print.enabled && config.print.mode === "agent" && (
+          <span
+            data-testid="printer-badge"
+            title={"name" in printer.state ? printer.state.name : ""}
+            className="ms-auto me-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fmmuted"
+          >
+            <span className={`size-2 rounded-full ${printer.state.kind === "ready" ? "bg-fmaccent" : printer.state.kind === "checking" ? "bg-fmmuted" : "bg-red-500"}`} />
+            {t[`printer_${printer.state.kind}`] ?? printer.state.kind}
+          </span>
+        )}
         {step === "attract" && config.locales.length > 1 && (
           <div className="flex gap-1 font-mono text-xs">
             {config.locales.map((l) => (
@@ -409,7 +549,7 @@ export function Booth({
               </p>
               <h2 className="fm-display mt-3 text-[clamp(2rem,5.5vw,4.5rem)]">{question.prompt[locale]}</h2>
               <p className="mt-3 text-sm text-fmmuted">
-                {tracker === "failed" ? t.manualOnly : live.gesture ? t.gestureHint : t.noHand}
+                {tracker === "failed" ? t.manualOnly : lowLight ? t.lowLight : live.gesture ? t.gestureHint : t.noHand}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -536,10 +676,42 @@ export function Booth({
               <a href={`${resultUrl}&dl=1`} className="rounded-full bg-fmfg px-8 py-3.5 font-semibold text-fmbg transition hover:bg-fmaccent">
                 {t.download}
               </a>
+              {config.print.enabled && (
+                <button
+                  data-testid="print"
+                  onClick={() => printer.print(resultUrl, usageRef.current ?? sessionRef.current)}
+                  disabled={!printer.canPrint}
+                  className="rounded-full border border-fmfg/70 px-8 py-3.5 font-semibold text-fmfg transition hover:bg-fmfg hover:text-fmbg disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-fmfg"
+                >
+                  {printer.busy ? t.printing : printer.count >= config.print.maxPrints ? t.printed : t.print}
+                </button>
+              )}
               <button onClick={reset} className="rounded-full border border-fmborder px-8 py-3.5 text-fmfg/80 hover:border-fmfg/50">
                 {t.done}
               </button>
             </div>
+            {config.print.enabled && (
+              <p data-testid="print-status" className="text-xs text-fmmuted">
+                {printer.error ? t.printFailed
+                  : printer.count > 0 ? t.printDone
+                  : printer.state.kind === "ready" || printer.state.kind === "browser" ? ""
+                  : t.printUnavailable}
+              </p>
+            )}
+            {/* Copie destinee a l'impression navigateur : seule visible sur papier. */}
+            <div id="pb-print" aria-hidden className="hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={resultUrl} alt="" />
+            </div>
+            <style>{`
+              @page { size: ${PAGE_SIZE[config.print.paper]}; margin: 0; }
+              @media print {
+                body * { visibility: hidden !important; }
+                #pb-print, #pb-print * { visibility: visible !important; }
+                #pb-print { display: block !important; position: fixed; inset: 0; }
+                #pb-print img { width: 100%; height: 100%; object-fit: ${config.print.fit}; }
+              }
+            `}</style>
           </section>
         )}
 
