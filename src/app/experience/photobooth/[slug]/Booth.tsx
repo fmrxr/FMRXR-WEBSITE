@@ -609,8 +609,9 @@ export function Booth({
         <div className="flex items-center gap-4">
           <span dir="ltr" className="fm-display text-sm tracking-[0.06em]">FMRXR<span className="text-fmaccent">{"//"}</span></span>
           {config.clientLogoUrl && (
+            // Logo officiel tel quel, sur plaque blanche (logos faits pour fond clair).
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={config.clientLogoUrl} alt="" className="h-7 w-auto opacity-90" />
+            <img src={config.clientLogoUrl} alt="" className="h-9 w-auto rounded-md bg-white object-contain p-1" />
           )}
         </div>
         {step === "attract" && config.print.enabled && config.print.mode === "agent" && (

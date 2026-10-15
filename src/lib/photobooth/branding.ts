@@ -5,8 +5,11 @@ import { FMRXR_LOGO_DARK_SVG } from "./brand-logo";
 // Branding de la photo finale, applique cote serveur a toutes les sorties
 // (ecran resultat, telechargement, page de partage, impression, galerie).
 // Automatique, sans reglage : une bande sombre discrete en bas, le logo du
-// client a gauche s'il est fourni (fichier officiel, utilise tel quel, jamais
-// recolore ni recadre), le logo FMRXR// officiel a droite.
+// client a gauche s'il est fourni, le logo FMRXR// officiel a droite.
+// Logo client : fichier officiel utilise tel quel (jamais redessine ni
+// recolore), pose sur une petite plaque blanche arrondie, car la plupart des
+// logos officiels sont faits pour fond clair (ex. IQOS : texte gris fonce).
+// Seule la marge blanche vide autour du logo est retiree.
 
 const CACHE = new Map<string, Buffer>(); // portrait source -> portrait brande
 const LOGOS = new Map<string, Buffer | null>(); // url du logo client -> image
@@ -32,7 +35,7 @@ async function clientLogo(url: string): Promise<Buffer | null> {
 export const BRAND_LAYOUT = {
   band: 0.15, // hauteur du degrade sombre en bas
   fmrxr: 0.032, // hauteur du logo FMRXR//
-  client: 0.045, // hauteur max du logo client
+  client: 0.05, // hauteur max du logo client (dans sa plaque)
   margin: 0.04, // marge laterale et basse (fraction de la largeur)
 };
 
@@ -72,12 +75,23 @@ export async function brandPortrait(source: Buffer, clientLogoUrl: string): Prom
     if (raw) {
       try {
         const maxH = Math.round(H * L.client);
-        const logo = await sharp(raw, { density: 400 })
-          .resize({ height: maxH, width: Math.round(W * 0.4), fit: "inside" })
+        // retire seulement la marge vide (couleur uniforme) autour du logo
+        const trimmed = await sharp(raw, { density: 400 }).trim({ threshold: 12 }).png().toBuffer().catch(() => raw);
+        const logo = await sharp(trimmed)
+          .resize({ height: maxH, width: Math.round(W * 0.3), fit: "inside" })
           .png()
           .toBuffer();
         const m = await sharp(logo).metadata();
-        layers.push({ input: logo, top: H - margin - (m.height ?? maxH), left: margin });
+        const lw = m.width ?? maxH;
+        const lh = m.height ?? maxH;
+        const pad = Math.round(maxH * 0.22);
+        const pw = lw + pad * 2;
+        const ph = lh + pad * 2;
+        const plate = Buffer.from(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${ph}"><rect width="${pw}" height="${ph}" rx="${Math.round(ph * 0.14)}" fill="#ffffff"/></svg>`,
+        );
+        const top = H - margin - ph;
+        layers.push({ input: plate, top, left: margin }, { input: logo, top: top + pad, left: margin + pad });
       } catch {
         // fichier illisible : on n'invente rien, FMRXR seul
       }
