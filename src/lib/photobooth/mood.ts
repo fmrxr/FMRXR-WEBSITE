@@ -164,23 +164,48 @@ export const POSE_LOCK =
   "Keep the exact body pose of the photo: same shoulders, arms, hands and fingers in the same positions, including any hand gesture or hand near the face. " +
   "Do not add, remove, move or re-pose any limb, do not put hands in pockets, do not turn the body into a model pose.";
 
+// Longueur maximale du prompt chez Higgsfield (Flare) : 5 000 caracteres,
+// mesure le 16/10/2026 sur l'API (5 000 acceptes, 5 001 refuses en 400
+// « is too long »), non publie dans la documentation.
+export const PROMPT_MAX = 5000;
+
+/**
+ * Ramene le prompt sous la limite sans toucher a l'essentiel : on retire
+ * d'abord les derniers elements de la liste « Avoid », puis la ligne de
+ * realisme photo ; en tout dernier recours on coupe la fin.
+ */
+export function fitPrompt(prompt: string, max = PROMPT_MAX): string {
+  if (prompt.length <= max) return prompt;
+  const lines = prompt.split("\n");
+  const ai = lines.findIndex((l) => l.startsWith("Avoid: "));
+  if (ai >= 0) {
+    const items = lines[ai].slice("Avoid: ".length).replace(/\.$/, "").split(", ");
+    while (items.length > 1 && lines.join("\n").length > max) {
+      items.pop();
+      lines[ai] = `Avoid: ${items.join(", ")}.`;
+    }
+  }
+  const ri = lines.findIndex((l) => l.startsWith("Photographic realism"));
+  if (lines.join("\n").length > max && ri >= 0) lines.splice(ri, 1);
+  return lines.join("\n").slice(0, max);
+}
+
 // Images de marque jointes a la photo (config brandReferences) : le modele
 // sait a quoi ressemble la vraie marque et n'en invente pas une fausse. Le
 // logo est pose ensuite sur la bande du bas, pas dans l'image generee.
 export function brandReferenceLine(n: number): string {
   if (n <= 0) return "";
-  const which = n === 1 ? "Image 2 shows" : `Images 2 to ${n + 1} show`;
-  return `BRAND REFERENCE: image 1 is the photo to edit. ${which} the official logo of the event's brand, given only so you know the real mark. ` +
-    "Never invent any other logo, emblem, monogram, wordmark or brand-like sign, and do not place this logo in the image yourself (it is added afterwards). " +
-    "The set may echo its shapes and colours.";
+  const which = n === 1 ? "image 2 is" : `images 2 to ${n + 1} are`;
+  return `BRAND REFERENCE: image 1 is the photo to edit; ${which} the brand's official logo, for reference only. ` +
+    "Never invent any other logo or brand-like sign, and do not place this logo in the image (it is added afterwards).";
 }
 
 // Visage petit ou flou (photo en pied, contre-jour) : le modele comblait le
 // manque de detail en inventant des traits (test IQOS du 16/10, visage d'une
 // centaine de pixels). On lui demande de nettoyer, jamais de redessiner.
 export const FACE_FIDELITY =
-  "If a face in the photo is small, soft, noisy or dimly lit, keep it as it is and only clean it up (exposure, noise, gentle sharpening): " +
-  "never redraw or re-imagine the facial features to add detail. A slightly soft but true face is better than a sharp face that looks like someone else.";
+  "If a face is small, soft or dim, only clean it up (exposure, noise, gentle sharpening) and never redraw its features: " +
+  "a slightly soft true face beats a sharp different one.";
 
 // Decor detaille : plusieurs plans de profondeur lisibles, pas un flou.
 export const SET_DEPTH =

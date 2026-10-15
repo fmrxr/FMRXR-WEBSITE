@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DEFAULT_CONFIG, resolveConfig } from "@/lib/photobooth/config";
-import { buildMoodProfile, buildPortraitPrompt, FACE_FIDELITY, type Answers } from "@/lib/photobooth/mood";
+import { buildMoodProfile, buildPortraitPrompt, FACE_FIDELITY, fitPrompt, PROMPT_MAX, type Answers } from "@/lib/photobooth/mood";
 import { buildRequestBody, type ImageProvider } from "@/lib/photobooth/higgsfield";
 import { brandReferenceUrls, resetBrandCache, startGeneration, type PhotoboothDb } from "@/lib/photobooth/service";
 
@@ -58,7 +58,7 @@ describe("prompt", () => {
   const mood = buildMoodProfile(answers, DEFAULT_CONFIG, "k-1");
   it("explique l'image 2 et interdit toute fausse marque", () => {
     const p = buildPortraitPrompt(mood, DEFAULT_CONFIG, { brandRefs: 1 });
-    expect(p).toContain("BRAND REFERENCE: image 1 is the photo to edit. Image 2 shows the official logo");
+    expect(p).toContain("BRAND REFERENCE: image 1 is the photo to edit; image 2 is the brand's official logo");
     expect(p).toContain("Never invent any other logo");
   });
   it("sans image de marque : aucune ligne", () => {
@@ -87,6 +87,24 @@ describe("generation", () => {
     const call = vi.mocked(p.submit).mock.calls[0][0];
     expect(call.imageUrl).toBe("https://cdn/upload-1.png");
     expect(call.extraImageUrls).toEqual(["https://cdn/upload-2.png"]);
-    expect(call.prompt).toContain("Image 2 shows the official logo");
+    expect(call.prompt).toContain("image 2 is the brand's official logo");
+  });
+});
+
+describe("limite de longueur Higgsfield (5 000 caracteres)", () => {
+  const head = "Edit the reference photo.\nIDENTITY (must not change): keep the face.\nPOSE (must not change): keep the pose.";
+  const long = `${head}\nPhotographic realism, like a real photo shoot.\nAvoid: ${Array.from({ length: 900 }, (_, i) => `thing${i}`).join(", ")}.`;
+  it("un prompt trop long est ramene sous la limite", () => {
+    expect(long.length).toBeGreaterThan(PROMPT_MAX);
+    expect(fitPrompt(long).length).toBeLessThanOrEqual(PROMPT_MAX);
+  });
+  it("on retire la fin de la liste Avoid, jamais l'identite ni la pose", () => {
+    const f = fitPrompt(long);
+    expect(f.startsWith(head)).toBe(true);
+    expect(f).toContain("Avoid: thing0, thing1");
+    expect(f).not.toContain("thing899");
+  });
+  it("un prompt sous la limite ne change pas", () => {
+    expect(fitPrompt(head)).toBe(head);
   });
 });

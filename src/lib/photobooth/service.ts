@@ -1,6 +1,6 @@
 import type { CampaignConfig } from "./config";
 import type { ImageProvider } from "./higgsfield";
-import { buildMoodProfile, buildPortraitPrompt, validateMoodProfile, type Answers, type MoodProfile, type Shot } from "./mood";
+import { buildMoodProfile, buildPortraitPrompt, fitPrompt, validateMoodProfile, type Answers, type MoodProfile, type Shot } from "./mood";
 import type { ExpressionId } from "./expression";
 import type { StyleId } from "./styles";
 
@@ -125,7 +125,8 @@ export async function startGeneration(input: StartInput, deps: { db: PhotoboothD
   }
 
   const brandRefs = await brandReferenceUrls(input.config, deps.provider);
-  const prompt = buildPortraitPrompt(mood, input.config, { brandRefs: brandRefs.length });
+  // Au-dela de 5 000 caracteres, Higgsfield refuse la requete (PROVIDER_REJECTED).
+  const prompt = fitPrompt(buildPortraitPrompt(mood, input.config, { brandRefs: brandRefs.length }));
   // L'identifiant de la ligne sert de cle d'idempotence chez Higgsfield.
   const sub = await deps.provider.submit({
     model: input.config.model, prompt, imageUrl, extraImageUrls: brandRefs,
@@ -230,7 +231,7 @@ async function retryAfterNsfw(
     return null;
   }
   const brandRefs = await brandReferenceUrls(ctx.config, deps.provider);
-  const prompt = buildPortraitPrompt(mood, ctx.config, { soften: true, brandRefs: brandRefs.length });
+  const prompt = fitPrompt(buildPortraitPrompt(mood, ctx.config, { soften: true, brandRefs: brandRefs.length }));
   const config = ctx.submission.aspect ? { ...ctx.config, aspectRatio: ctx.submission.aspect } : ctx.config;
   // Cle propre a la relance : deux lectures simultanees (borne + reconciliation)
   // retombent sur la meme requete Higgsfield, jamais deux.
