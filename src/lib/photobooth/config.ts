@@ -97,9 +97,9 @@ export const DEFAULT_CONFIG: CampaignConfig = {
     "ثلاث إشارات وصورة واحدة. يركّب النظام بورتريه تحريرياً انطلاقاً من اختياراتك.",
   ),
   privacy: L(
-    "La caméra ne s'active qu'après votre accord. Vos gestes et votre expression sont lus sur cet appareil, rien n'en est envoyé ni enregistré. Seule la photo que vous confirmez est transmise à notre fournisseur d'images (Higgsfield) pour générer le portrait.",
-    "The camera only starts after you agree. Your gestures and expression are read on this device, nothing of them is sent or stored. Only the photo you confirm is sent to our image provider (Higgsfield) to generate the portrait.",
-    "لا تعمل الكاميرا إلا بعد موافقتك. تُقرأ إشاراتك وتعبيرك على هذا الجهاز ولا يُرسل منها شيء ولا يُحفظ. الصورة التي تؤكّدها فقط تُرسل إلى مزوّد الصور (Higgsfield) لتوليد البورتريه.",
+    "La caméra ne s'active qu'après votre accord. Vos gestes et votre expression sont lus sur cet appareil, rien n'en est envoyé ni enregistré. Seule la photo que vous confirmez est transmise à notre fournisseur d'images (Higgsfield) pour générer le portrait, qui reste accessible 7 jours à l'organisateur (partage, impression).",
+    "The camera only starts after you agree. Your gestures and expression are read on this device, nothing of them is sent or stored. Only the photo you confirm is sent to our image provider (Higgsfield) to generate the portrait, which the organiser can access for 7 days (sharing, printing).",
+    "لا تعمل الكاميرا إلا بعد موافقتك. تُقرأ إشاراتك وتعبيرك على هذا الجهاز ولا يُرسل منها شيء ولا يُحفظ. الصورة التي تؤكّدها فقط تُرسل إلى مزوّد الصور (Higgsfield) لتوليد البورتريه، ويبقى متاحاً للمنظّم 7 أيام (المشاركة والطباعة).",
   ),
   quotaMessage: L(
     "Cette expérience a atteint son nombre de portraits disponibles. Merci d'être passé·e.",

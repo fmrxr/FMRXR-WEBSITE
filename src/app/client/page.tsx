@@ -67,6 +67,12 @@ export default async function ClientHome() {
               </div>
             )}
 
+            <div className="mt-4">
+              <a href={`/client/galerie/${c.id}`} className="text-sm text-fmaccent hover:underline">
+                Galerie des portraits (QR, téléchargement, impression) →
+              </a>
+            </div>
+
             {c.recent.length > 0 && (
               <details className="mt-6">
                 <summary className="cursor-pointer text-sm text-fmmuted">Dernières générations</summary>

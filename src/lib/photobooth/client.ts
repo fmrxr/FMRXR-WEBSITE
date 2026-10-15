@@ -2,12 +2,14 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveConfig } from "./config";
 import { quotaState } from "./quota";
+import { isShareActive, shareUrl } from "./server";
 
 // Donnees de l'espace client. Lues en service_role, mais seulement pour les
 // campagnes dont l'utilisateur est membre : l'appartenance est verifiee ici,
 // a chaque appel, et jamais deduite d'un identifiant venu du navigateur.
-// Le client ne recoit que des compteurs et des etats, jamais les portraits
-// des visiteurs ni les jetons de partage.
+// Tableau de bord : compteurs et etats. Galerie (clientGallery) : les
+// portraits de SA campagne, 7 jours (retention Higgsfield), pour le QR et
+// l'impression des demandes tardives ; les visiteurs en sont informes.
 
 export type ClientCampaign = {
   id: string;
@@ -63,4 +65,43 @@ export async function clientCampaigns(userId: string, origin: string): Promise<C
         .map((h) => ({ date: h.created_at, status: h.status, error: h.error_code })),
     };
   });
+}
+
+export type GalleryItem = { id: string; completedAt: string; title: string; shareUrl: string | null };
+
+/** L'utilisateur est-il membre de la campagne (ou admin) ? */
+export async function canSeeCampaign(userId: string, campaignId: string, isAdmin: boolean): Promise<boolean> {
+  if (isAdmin) return true;
+  const { count } = await getSupabaseAdmin()
+    .from("photobooth_campaign_members").select("*", { count: "exact", head: true })
+    .eq("campaign_id", campaignId).eq("user_id", userId);
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Portraits reussis de la campagne, des 7 derniers jours (au-dela, l'image
+ * n'est plus garantie chez Higgsfield). Appartenance verifiee par l'appelant.
+ */
+export async function clientGallery(campaignId: string) {
+  const sb = getSupabaseAdmin();
+  const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const [{ data: campaign }, { data: rows }] = await Promise.all([
+    sb.from("photobooth_campaigns").select("id, name, config").eq("id", campaignId).maybeSingle(),
+    sb.from("photobooth_usage").select("id, completed_at, share_token, mood")
+      .eq("campaign_id", campaignId).eq("status", "succeeded").gte("completed_at", since)
+      .order("completed_at", { ascending: false }).limit(300),
+  ]);
+  if (!campaign) return null;
+  const cfg = resolveConfig(campaign.config);
+  const share = cfg.ok && cfg.config.shareEnabled;
+  const items: GalleryItem[] = (rows ?? []).filter((r) => isShareActive(r.completed_at)).map((r) => {
+    const mood = r.mood as { title?: Record<string, string> } | null;
+    return {
+      id: r.id,
+      completedAt: r.completed_at!,
+      title: mood?.title?.fr ?? "",
+      shareUrl: share && r.share_token ? shareUrl(r.share_token) : null,
+    };
+  });
+  return { name: campaign.name, print: cfg.ok ? cfg.config.print : null, items };
 }
