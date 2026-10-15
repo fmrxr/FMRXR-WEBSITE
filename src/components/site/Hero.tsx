@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { BoothPreview } from "./BoothPreview";
 
 type Clip = { url: string; poster?: string; title?: string; description?: string };
 
@@ -10,7 +9,7 @@ type Clip = { url: string; poster?: string; title?: string; description?: string
 // lancements produit, rendus par un composant anime plutot qu'une video.
 type Slide =
   | ({ kind: "video" } & Clip)
-  | { kind: "product"; title: string; description: string; href: string };
+  | { kind: "product"; title: string; description: string; href: string; image: string };
 
 const PRODUCTS: Extract<Slide, { kind: "product" }>[] = [
   {
@@ -18,6 +17,7 @@ const PRODUCTS: Extract<Slide, { kind: "product" }>[] = [
     title: "AI Photobooth",
     description: "New release · branded AI portraits for events, driven by gestures, 14 styles.",
     href: "/photobooth",
+    image: "/photobooth/hero-photobooth.webp",
   },
 ];
 
@@ -58,10 +58,15 @@ export function Hero({ clips }: { clips: Clip[] }) {
               key={c.title}
               className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${idx === i ? "opacity-100" : "opacity-0"}`}
             >
-              {/* aperçu anime de la borne, en grand a droite (en fond sur mobile) */}
-              <div className="absolute inset-x-5 top-24 h-[52vh] opacity-60 md:inset-x-auto md:right-[6%] md:top-[14%] md:h-[60vh] md:w-[min(40vw,520px)] md:opacity-100">
-                {idx === i && <BoothPreview hud={false} />}
-              </div>
+              {/* visuel produit genere sur Higgsfield (Flare), logo FMRXR//
+                  officiel incruste ensuite sur la borne, pas redessine */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={c.image}
+                alt=""
+                loading={idx === 0 ? "eager" : "lazy"}
+                className="absolute inset-0 h-full w-full object-cover object-[77%_center] md:object-center"
+              />
             </div>
           ) : (
             // eslint-disable-next-line jsx-a11y/media-has-caption
