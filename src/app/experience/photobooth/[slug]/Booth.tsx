@@ -12,7 +12,7 @@ import { useExpressionReader } from "./useExpression";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
 import { STYLES, type StyleId } from "@/lib/photobooth/styles";
 
-type Step = "attract" | "camera" | "scan" | "shot" | "style" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
+type Step = "attract" | "camera" | "scan" | "howto" | "shot" | "style" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
 type Tracker = "idle" | "loading" | "ready" | "failed";
 
 const POLL_MS = 3000;
@@ -27,6 +27,18 @@ const SHOT_OPTIONS: { id: Shot; gesture: Gesture; labelKey: "shotSolo" | "shotGr
   { id: "solo", gesture: "open_palm", labelKey: "shotSolo" },
   { id: "group", gesture: "peace", labelKey: "shotGroup" },
 ];
+
+// Tutoriel des gestes : les visiteurs n'ont jamais repondu avec la main.
+// Ils s'entrainent sur la main ouverte pour passer a la suite.
+const HOWTO_OPTIONS: { id: string; gesture: Gesture }[] = [{ id: "go", gesture: "open_palm" }];
+// Apres le quiz, tout se fait aussi a la main : pouce leve = valider, V = reprendre.
+const MOOD_OPTIONS: { id: string; gesture: Gesture }[] = [{ id: "continue", gesture: "thumb_up" }];
+const CAPTURE_OPTIONS: { id: string; gesture: Gesture }[] = [{ id: "shoot", gesture: "thumb_up" }];
+const CONFIRM_OPTIONS: { id: string; gesture: Gesture }[] = [
+  { id: "confirm", gesture: "thumb_up" },
+  { id: "retake", gesture: "peace" },
+];
+const GESTURE_STEPS = ["howto", "shot", "quiz", "mood", "capture", "confirm"];
 
 /**
  * Moteur de detection de la main : GPU (WebGL) par defaut, CPU en secours.
@@ -91,8 +103,15 @@ export function Booth({
   const resetPrints = printer.reset;
   // Lecture d'expression locale pendant le scan et le debut du quiz.
   // En groupe, la lecture d'expression (un seul visage) n'a pas de sens.
-  const expression = useExpressionReader(videoRef, (step === "scan" || step === "shot" || step === "quiz") && shot !== "group");
+  const expression = useExpressionReader(videoRef, (step === "scan" || step === "howto" || step === "shot" || step === "quiz") && shot !== "group");
   const resetExpression = expression.reset;
+  // Dernier geste qui a valide une etape : tant qu'il reste tenu, l'etape
+  // suivante ne s'arme pas (un pouce leve ne valide pas deux ecrans d'affilee).
+  const lastGestureRef = useRef<Gesture | null>(null);
+  // Actions declarees plus bas (photo, generation) : la boucle les lit ici.
+  const actionsRef = useRef<{ shoot: () => void; confirm: () => void; retake: () => void }>({
+    shoot: () => {}, confirm: () => {}, retake: () => {},
+  });
   const debugRef = useRef<{ category: string; score: number; decided: Gesture | null; fps: number; landmarks: Point[] | null }>(
     { category: "-", score: 0, decided: null, fps: 0, landmarks: null },
   );
@@ -200,6 +219,7 @@ export function Booth({
   // ---------- flow ----------
   const reset = useCallback(() => {
     stopCamera();
+    lastGestureRef.current = null;
     if (pollRef.current) window.clearTimeout(pollRef.current);
     if (photo) URL.revokeObjectURL(photo.url);
     setPhoto(null);
@@ -224,7 +244,7 @@ export function Booth({
   // Scan : animation de calibrage, puis quiz.
   useEffect(() => {
     if (step !== "scan") return;
-    const id = window.setTimeout(() => setStep("shot"), 2800);
+    const id = window.setTimeout(() => setStep("howto"), 2800);
     return () => window.clearTimeout(id);
   }, [step]);
 
@@ -249,6 +269,15 @@ export function Booth({
     }, 650);
   }, [chosen, qIndex, config.questions.length]);
 
+  const leaveHowto = useCallback(() => {
+    if (chosen) return;
+    setChosen("go");
+    window.setTimeout(() => {
+      setChosen(null);
+      setStep("shot");
+    }, 650);
+  }, [chosen]);
+
   const chooseShot = useCallback((id: string) => {
     if (chosen) return;
     setChosen(id);
@@ -264,9 +293,10 @@ export function Booth({
     }, 650);
   }, [chosen, config.aspectRatio, config.styles.length]);
 
-  // Boucle de detection pendant le choix portrait/groupe et le quiz.
+  // Boucle de detection : tutoriel, choix portrait/groupe, quiz, puis
+  // validation de l'ambiance, prise de vue et confirmation.
   useEffect(() => {
-    if ((step !== "quiz" && step !== "shot") || tracker !== "ready") return;
+    if (!GESTURE_STEPS.includes(step) || tracker !== "ready") return;
     const lm = landmarkerRef.current!;
     // Le modele analyse une vignette de largeur fixe plutot que l'image pleine
     // resolution de la camera : plus leger pour le GPU, et la taille d'entree
@@ -284,18 +314,29 @@ export function Booth({
     let lastRun = 0;
     let frames = 0;
     let fpsSince = performance.now();
-    const options = step === "shot" ? SHOT_OPTIONS : config.questions[qIndex].options;
-    const onConfirm = step === "shot" ? chooseShot : choose;
+    const options: { id: string; gesture: Gesture }[] =
+      step === "howto" ? HOWTO_OPTIONS
+      : step === "shot" ? SHOT_OPTIONS
+      : step === "quiz" ? config.questions[qIndex].options
+      : step === "mood" ? MOOD_OPTIONS
+      : step === "capture" ? CAPTURE_OPTIONS
+      : CONFIRM_OPTIONS;
+    const onConfirm = (id: string) => {
+      if (step === "howto") return leaveHowto();
+      if (step === "shot") return chooseShot(id);
+      if (step === "quiz") return choose(id);
+      if (step === "mood") return setStep("capture");
+      if (step === "capture") return actionsRef.current.shoot();
+      return id === "retake" ? actionsRef.current.retake() : actionsRef.current.confirm();
+    };
     let raf = 0;
     let lastTime = -1;
     // Arme seulement quand la main a change ou disparu : un geste tenu ne
-    // repond pas a la question suivante tout seul.
-    let armed = step === "shot";
-    const previous = step === "shot"
-      ? null
-      : qIndex > 0
-        ? config.questions[qIndex - 1].options.find((o) => o.id === answers[qIndex - 1])?.gesture ?? null
-        : SHOT_OPTIONS.find((o) => o.id === shot)?.gesture ?? null;
+    // repond pas a l'etape suivante tout seul (ex. la main ouverte du
+    // tutoriel ne choisit pas « seul·e », le pouce qui lance la photo ne la
+    // valide pas).
+    let armed = step === "howto";
+    const previous = step === "howto" ? null : lastGestureRef.current;
     let lastUi = "";
 
     const loop = () => {
@@ -356,6 +397,7 @@ export function Booth({
         const opt = options.find((o) => o.gesture === r.gesture);
         if (opt) {
           cancelAnimationFrame(raf);
+          lastGestureRef.current = r.gesture;
           onConfirm(opt.id);
         }
       }
@@ -367,12 +409,12 @@ export function Booth({
       dbg.landmarks = null;
       dbg.decided = null;
     };
-  }, [step, tracker, qIndex, shot, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose, chooseShot, loadTracker]);
+  }, [step, tracker, qIndex, shot, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose, chooseShot, leaveHowto, loadTracker]);
 
   // Lumiere : luminance moyenne de l'image, mesuree sur une vignette.
   // Sous ~55/255 la reconnaissance chute (calibrage : poing perdu a 80 % de noir).
   useEffect(() => {
-    if (!["quiz", "capture", "scan"].includes(step)) return;
+    if (!["quiz", "capture", "scan", "howto", "shot"].includes(step)) return;
     const c = document.createElement("canvas");
     c.width = 32;
     c.height = 18;
@@ -606,6 +648,11 @@ export function Booth({
     }
   }, [accessKey, answers, fail, photo, poll, slug, expression.reading, shot, style, locale]);
 
+  // La boucle des gestes (declaree plus haut) declenche ces actions.
+  useEffect(() => {
+    actionsRef.current = { shoot: startCountdown, confirm: generate, retake };
+  }, [startCountdown, generate, retake]);
+
   const resumeCheck = useCallback(() => {
     if (!usageRef.current) return reset();
     setStep("generating");
@@ -613,8 +660,28 @@ export function Booth({
   }, [poll, reset]);
 
   // ---------- render ----------
-  const cameraOn = ["scan", "shot", "quiz", "mood", "capture"].includes(step);
+  const cameraOn = ["scan", "howto", "shot", "quiz", "mood", "capture"].includes(step);
   const question = config.questions[qIndex];
+  // Gestes que ce parcours demande vraiment (choix seul/groupe + questions), pour le tutoriel.
+  const usedGestures = (Object.keys(GESTURE_GLYPH) as Gesture[]).filter((g) =>
+    [...SHOT_OPTIONS, ...CONFIRM_OPTIONS].some((o) => o.gesture === g) || config.questions.some((q) => q.options.some((o) => o.gesture === g)));
+  // Progression du geste en cours sur un bouton (anneau), comme les reponses du quiz.
+  const ring = (g: Gesture) => {
+    const C = 2 * Math.PI * 22;
+    return (
+      <span className="relative grid size-9 shrink-0 place-items-center text-lg">
+        <svg className="absolute inset-0 -rotate-90" viewBox="0 0 50 50" aria-hidden>
+          <circle cx="25" cy="25" r="22" fill="none" stroke="currentColor" strokeOpacity="0.15" strokeWidth="2" />
+          <circle
+            cx="25" cy="25" r="22" fill="none" stroke="var(--color-fmaccent)" strokeWidth="3"
+            strokeDasharray={C} strokeDashoffset={C * (1 - (live.gesture === g ? live.progress : 0))}
+            className={s.ring}
+          />
+        </svg>
+        <span aria-hidden>{GESTURE_GLYPH[g]}</span>
+      </span>
+    );
+  };
   const errorText = errorCode === "QUOTA_EXHAUSTED"
     ? config.quotaMessage[locale]
     : err[errorCode ?? "DEFAULT"] ?? err.DEFAULT;
@@ -725,7 +792,7 @@ export function Booth({
           </>
         )}
 
-        {(step === "quiz" || step === "shot") && tracker !== "failed" && !live.gesture && (
+        {(step === "quiz" || step === "shot" || step === "howto") && tracker !== "failed" && !live.gesture && (
           // Zone ou montrer la main : a hauteur du visage, au-dessus des reponses.
           // Sur telephone tenu a la main, la main libre arrive sinon en bas, sous
           // les cartes et a moitie hors champ, et le modele ne voit pas de geste.
@@ -735,6 +802,56 @@ export function Booth({
           >
             <span className="rounded-full bg-black/55 px-3 py-1 text-xs text-fmfg/90">{t.handHere}</span>
           </div>
+        )}
+        {step === "howto" && (
+          <section className={`${s.enter} mt-auto flex flex-col gap-3 p-4 pb-6 md:gap-5 md:p-10`}>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">{t.howtoLabel}</p>
+              <h2 className="fm-display mt-2 text-[clamp(1.4rem,5.5vw,4.5rem)] md:mt-3">{t.howtoTitle}</h2>
+            </div>
+            <ol className="grid gap-2 md:grid-cols-3 md:gap-3">
+              {[t.howto1, t.howto2, t.howto3].map((line, i) => (
+                <li key={i} className="flex items-start gap-3 rounded-xl border border-fmborder bg-fmcard/60 p-3 backdrop-blur-md md:p-4">
+                  <span className="font-mono text-sm text-fmaccent md:text-base">{i + 1}</span>
+                  <span className="text-sm leading-snug md:text-lg">{line}</span>
+                </li>
+              ))}
+            </ol>
+            <ul className="flex flex-wrap gap-2" aria-label={t.howtoGestures}>
+              {usedGestures.map((g) => (
+                <li key={g} className="flex items-center gap-2 rounded-full border border-fmborder bg-fmcard/60 px-3 py-1.5 text-sm backdrop-blur-md">
+                  <span aria-hidden>{GESTURE_GLYPH[g]}</span>
+                  {t[`g_${g}`]}
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-wrap items-center gap-3 md:gap-5">
+              <button
+                data-testid="howto-go"
+                onClick={leaveHowto}
+                className={`flex items-center gap-3 rounded-full border py-2 ps-2 pe-6 font-semibold transition ${
+                  chosen === "go" ? "border-fmaccent bg-fmaccent/20" : "border-fmfg/60 bg-fmcard/80 hover:border-fmaccent/70"
+                }`}
+              >
+                <span className="relative grid size-11 shrink-0 place-items-center text-xl">
+                  <svg className="absolute inset-0 -rotate-90" viewBox="0 0 50 50" aria-hidden>
+                    <circle cx="25" cy="25" r="22" fill="none" stroke="rgba(245,245,248,0.12)" strokeWidth="2" />
+                    <circle
+                      cx="25" cy="25" r="22" fill="none" stroke="var(--color-fmaccent)" strokeWidth="2.5"
+                      strokeDasharray={2 * Math.PI * 22}
+                      strokeDashoffset={2 * Math.PI * 22 * (1 - (chosen === "go" ? 1 : live.gesture === "open_palm" ? live.progress : 0))}
+                      className={s.ring}
+                    />
+                  </svg>
+                  <span aria-hidden>{GESTURE_GLYPH.open_palm}</span>
+                </span>
+                {t.howtoGo}
+              </button>
+              <p className="text-xs text-fmfg/70 md:text-sm md:text-fmmuted">
+                {tracker === "failed" ? t.manualOnly : lowLight ? t.lowLight : `${t.howtoTry} ${t.howtoTouch}`}
+              </p>
+            </div>
+          </section>
         )}
         {step === "shot" && (
           <section className={`${s.enter} mt-auto flex flex-col gap-3 p-4 pb-6 md:gap-6 md:p-10`}>
@@ -858,6 +975,7 @@ export function Booth({
               ))}
             </div>
             <p className="text-fmfg/80">{mood.description[locale]}</p>
+            {tracker === "ready" && <p className="text-sm text-fmmuted">{t.moodGesture}</p>}
             {expression.reading && shot !== "group" && (
               <p data-testid="expression" className="rounded-full border border-fmborder bg-fmcard/70 px-4 py-2 text-sm">
                 {t.yourExpression} <strong className="text-fmaccent">{EXPRESSION_LABEL[expression.reading][locale]}</strong>
@@ -865,7 +983,8 @@ export function Booth({
               </p>
             )}
             <div className="flex flex-wrap justify-center gap-3">
-              <button onClick={() => setStep("capture")} className="rounded-full bg-fmfg px-8 py-3.5 font-semibold text-fmbg transition hover:bg-fmaccent">
+              <button onClick={() => setStep("capture")} className="flex items-center gap-2 rounded-full bg-fmfg py-2 ps-3 pe-8 font-semibold text-fmbg transition hover:bg-fmaccent">
+                {ring("thumb_up")}
                 {t.continue}
               </button>
               <button onClick={() => { setAnswers([]); setQIndex(0); setStep("quiz"); }} className="rounded-full border border-fmborder px-8 py-3.5 text-fmfg/80 hover:border-fmfg/50">
@@ -885,6 +1004,9 @@ export function Booth({
             )}
             <section className="mt-auto flex flex-col items-center gap-4 p-8 text-center">
               <p className="text-fmfg/80">{t.frame}</p>
+              {tracker === "ready" && count === null && (
+                <p className="flex items-center gap-2 text-sm text-fmfg/80">{ring("thumb_up")}{t.shootGesture}</p>
+              )}
               <button
                 onClick={startCountdown}
                 disabled={count !== null}
@@ -903,13 +1025,16 @@ export function Booth({
             <img src={photo.url} alt="" className="max-h-[58vh] rounded-xl border border-fmborder object-contain" />
             <p className="max-w-md text-xs text-fmmuted">{t.confirmNote}</p>
             <div className="flex flex-wrap justify-center gap-3">
-              <button onClick={generate} className="rounded-full bg-fmfg px-8 py-3.5 font-semibold text-fmbg transition hover:bg-fmaccent">
+              <button onClick={generate} className="flex items-center gap-2 rounded-full bg-fmfg py-2 ps-3 pe-8 font-semibold text-fmbg transition hover:bg-fmaccent">
+                {ring("thumb_up")}
                 {t.confirm}
               </button>
-              <button onClick={retake} className="rounded-full border border-fmborder px-8 py-3.5 text-fmfg/80 hover:border-fmfg/50">
+              <button onClick={retake} className="flex items-center gap-2 rounded-full border border-fmborder py-2 ps-3 pe-8 text-fmfg/80 hover:border-fmfg/50">
+                {ring("peace")}
                 {t.retake}
               </button>
             </div>
+            {tracker === "ready" && <p className="text-sm text-fmmuted">{t.confirmGesture}</p>}
           </section>
         )}
 
