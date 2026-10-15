@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { STYLE_IDS, STYLES } from "@/lib/photobooth/styles";
 import {
   GESTURES, LOCALES, PAPERS, resolveConfig,
   type CampaignConfig, type Locale, type Localized,
@@ -119,6 +120,44 @@ export function ConfigEditor({ value, onChange }: { value: CampaignConfig; onCha
           <Label>Logo client (URL https, fichier officiel fourni par le client)</Label>
           <Input value={c.clientLogoUrl} placeholder="https://…" onChange={(e) => set({ clientLogoUrl: e.target.value })} />
         </div>
+      </fieldset>
+
+      <fieldset className="grid gap-3 rounded-lg border p-4">
+        <legend className="px-1 text-sm font-medium">Styles proposés au visiteur</legend>
+        <p className="text-xs text-muted-foreground">
+          Un seul style coché : pas d’écran de choix. Plusieurs : le visiteur choisit parmi eux.
+        </p>
+        {(["editorial", "transform"] as const).map((fam) => (
+          <div key={fam} className="flex flex-col gap-2">
+            <p className="text-xs font-medium">
+              {fam === "editorial"
+                ? "Éditoriaux · le visage reste exact"
+                : "Transformations · ressemblance reconnaissable, mais pas exacte"}
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {STYLE_IDS.filter((id) => STYLES[id].family === fam).map((id) => {
+                const on = c.styles.includes(id);
+                return (
+                  <label key={id} className={`flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-sm ${on ? "border-fmaccent/60 bg-fmaccent/5" : ""}`}>
+                    <input
+                      type="checkbox" className="mt-0.5" checked={on}
+                      onChange={(e) => {
+                        const next = e.target.checked ? [...c.styles, id] : c.styles.filter((x) => x !== id);
+                        // garde l'ordre du registre, et au moins un style
+                        if (next.length) set({ styles: STYLE_IDS.filter((x) => next.includes(x)) });
+                      }}
+                    />
+                    <span>
+                      <span className="font-medium">{STYLES[id].label.fr}</span>
+                      {STYLES[id].layout !== "none" && <span className="ml-1 text-[10px] uppercase text-muted-foreground">mise en page</span>}
+                      <span className="block text-xs text-muted-foreground">{STYLES[id].blurb.fr}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </fieldset>
 
       <fieldset className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">

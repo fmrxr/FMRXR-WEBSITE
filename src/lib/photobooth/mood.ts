@@ -1,6 +1,7 @@
 import type { CampaignConfig, Locale, Localized } from "./config";
 import { PROMPT_BANK, type Variant } from "./prompt-bank";
 import { EXPRESSION_PROMPT, type ExpressionId } from "./expression";
+import { STYLES, type StyleId } from "./styles";
 
 // Moteur d'ambiance : traduit les trois reponses en une direction visuelle.
 // Titre, palette et description dependent uniquement des reponses.
@@ -44,6 +45,9 @@ export type MoodProfile = {
   /** Lecture d'expression faite sur l'appareil (categorie seulement), si disponible. */
   expressionReading: ExpressionId | null;
   shot: Shot;
+  style: StyleId;
+  /** Langue du visiteur : textes des mises en page. */
+  locale?: string;
 };
 
 function pick(config: CampaignConfig, answers: Answers) {
@@ -80,6 +84,7 @@ export function buildMoodProfile(
   seed?: string,
   expressionReading: ExpressionId | null = null,
   shot: Shot = "solo",
+  styleId: StyleId = "mood",
 ): MoodProfile {
   const opts = pick(config, answers);
   const chosen = opts.map((o, i) => {
@@ -113,6 +118,7 @@ export function buildMoodProfile(
     // En groupe, une lecture d'expression ne vaudrait que pour un visage : ignoree.
     expressionReading: shot === "group" ? null : expressionReading,
     shot,
+    style: styleId,
   };
 }
 
@@ -150,7 +156,10 @@ export const GROUP_IDENTITY_LOCK =
  * qui change (lumiere, decor, tenue, etalonnage), puis le rendu attendu.
  */
 export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig): string {
-  if (p.shot === "group") return buildGroupPrompt(p, config);
+  const style = STYLES[p.style] ?? STYLES.mood;
+  if (style.family === "transform") return buildTransformPrompt(p, config);
+  if (p.shot === "group") return buildGroupPrompt(withStyle(p), config);
+  p = withStyle(p);
   const expression = p.expressionReading
     ? `Keep the person's own expression (${EXPRESSION_PROMPT[p.expressionReading]}); nuance it at most slightly toward: ${p.expression}.`
     : `Keep the person's own expression; nuance it at most slightly toward: ${p.expression}.`;
@@ -170,6 +179,7 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig): str
     `MOOD: ${p.atmosphere}.`,
     `FINISH: ${p.texture}. ${config.styleBrief}`,
     "Photographic realism, like a real photo shoot with professional lighting. Keep the same framing as the reference, as if shot on a medium telephoto lens.",
+    (p as MoodProfile & { extra?: string }).extra ?? "",
     `Avoid: wide-angle distortion, changed face, different person, ${config.negative}.`,
   ].filter(Boolean).join("\n");
 }
@@ -190,6 +200,43 @@ function buildGroupPrompt(p: MoodProfile, config: CampaignConfig): string {
     `MOOD: ${p.atmosphere}.`,
     `FINISH: ${p.texture}. ${config.styleBrief}`,
     "Photographic realism, like a real group photo shoot with professional lighting. Keep the same framing as the reference so that nobody is cropped out.",
+    (p as MoodProfile & { extra?: string }).extra ?? "",
     `Avoid: wide-angle distortion, changed faces, missing or added people, ${negative}.`,
   ].filter(Boolean).join("\n");
+}
+
+/** Style editorial : impose son traitement et sa finition, ajoute sa consigne de cadre. */
+function withStyle(p: MoodProfile): MoodProfile & { extra?: string } {
+  const st = STYLES[p.style] ?? STYLES.mood;
+  return {
+    ...p,
+    treatment: st.treatment ?? p.treatment,
+    texture: st.finish ?? p.texture,
+    extra: st.extra,
+  };
+}
+
+/**
+ * Transformations (anime, peinture, figurine...) : la personne est
+ * reinterpretee. On exige la ressemblance (traits, teint, coiffure,
+ * accessoires, expression), sans pouvoir garantir l'exactitude d'une edition.
+ * L'ambiance choisie donne encore la palette et l'atmosphere.
+ */
+function buildTransformPrompt(p: MoodProfile, config: CampaignConfig): string {
+  const st = STYLES[p.style];
+  const group = p.shot === "group";
+  const who = group ? "every person in the reference photo" : "the person in the reference photo";
+  return [
+    `Turn ${who} into ${st.transform}.`,
+    `LIKENESS (most important): the result must stay clearly recognisable as ${group ? "these exact people" : "this exact person"}. ` +
+      "Keep each face shape, eye shape, eyebrows, nose, lips, skin tone, age, hairstyle and hair colour, facial hair, glasses and headwear, and their expression. " +
+      (group ? "Keep the same number of people and their positions; do not add or remove anyone. " : "") +
+      "Keep the pose and framing close to the reference photo.",
+    `COLOUR: palette of ${p.paletteWords}${p.grade ? `; ${p.grade}` : ""}.`,
+    `MOOD: ${p.atmosphere}.`,
+    "Original artwork: no existing characters, franchises, celebrities, brands, emblems or logos.",
+    // De la liste « a eviter » de la campagne, seuls texte, lettres, logos et filigrane
+    // valent pour une transformation (« cartoon », « plastic skin » la contrediraient).
+    `Avoid: ${["text, letters, watermark", ...config.negative.split(",").map((x) => x.trim()).filter((x) => /logo|watermark|text|letter/i.test(x))].join(", ")}, ${group ? "missing or added people" : "extra people"}, deformed hands, distorted face.`,
+  ].join("\n");
 }

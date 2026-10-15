@@ -4,7 +4,10 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveConfig, type CampaignConfig } from "./config";
 import { createHiggsfieldProvider, type ImageProvider } from "./higgsfield";
 import { pollGeneration, type PhotoboothDb } from "./service";
-import { brandedFromUrl } from "./branding";
+import { finalFromUrl, type FinalOptions } from "./branding";
+import { STYLES, isStyleId } from "./styles";
+import { EXPRESSION_LABEL, EXPRESSIONS, type ExpressionId } from "./expression";
+import type { Locale } from "./config";
 
 // Cote serveur uniquement : client service_role, cle Higgsfield.
 
@@ -130,13 +133,13 @@ export function isShareActive(completedAt: string | null, now = Date.now()) {
 
 /** Portrait partage : reussi, de moins de 7 jours, campagne qui autorise le partage. */
 export async function findShared(token: string): Promise<
-  | { ok: true; resultUrl: string; title: Record<string, string> | null; campaignName: string; expiresAt: string; clientLogoUrl: string }
+  | { ok: true; usageId: string; resultUrl: string; title: Record<string, string> | null; campaignName: string; expiresAt: string; clientLogoUrl: string }
   | { ok: false; reason: "NOT_FOUND" | "EXPIRED" }
 > {
   if (!/^[0-9a-f]{32}$/.test(token)) return { ok: false, reason: "NOT_FOUND" };
   const { data } = await getSupabaseAdmin()
     .from("photobooth_usage")
-    .select("status, result_url, completed_at, mood, campaign:photobooth_campaigns(name, config)")
+    .select("id, status, result_url, completed_at, mood, campaign:photobooth_campaigns(name, config)")
     .eq("share_token", token)
     .maybeSingle();
   if (!data || data.status !== "succeeded" || !data.result_url) return { ok: false, reason: "NOT_FOUND" };
@@ -147,6 +150,7 @@ export async function findShared(token: string): Promise<
   const mood = data.mood as { title?: Record<string, string> } | null;
   return {
     ok: true,
+    usageId: data.id,
     resultUrl: data.result_url,
     title: mood?.title ?? null,
     campaignName: campaign?.name ?? "",
@@ -192,22 +196,56 @@ export async function reconcileStale(campaignId: string, provider: ImageProvider
   await Promise.all((data ?? []).map((u) => pollGeneration(u.id, null, { db, provider }).catch(() => null)));
 }
 
-/** Logo client de la campagne (fichier officiel saisi dans l'admin), vide sinon. */
-export async function campaignLogoUrl(campaignId: string): Promise<string> {
-  const { data } = await getSupabaseAdmin()
-    .from("photobooth_campaigns").select("config").eq("id", campaignId).maybeSingle();
-  const cfg = resolveConfig(data?.config);
-  return cfg.ok ? cfg.config.clientLogoUrl : "";
-}
+const STAT_LABELS: Record<"fr" | "en", [string, string, string, string]> = {
+  fr: ["Énergie", "Univers", "Style", "Expression"],
+  en: ["Energy", "World", "Style", "Expression"],
+};
 
 /**
- * Relaie le portrait AVEC le branding (bande, logo client, FMRXR//). Si la
- * composition echoue, on renvoie l'image brute plutot que rien.
+ * Tout ce qu'il faut pour rendre l'image finale d'une generation : style,
+ * textes de mise en page (titre d'ambiance, description, campagne, date) et
+ * logo client. L'arabe tombe sur l'anglais dans les mises en page (police
+ * embarquee latine).
  */
-export async function relayPortrait(resultUrl: string, clientLogoUrl: string, filename: string | null) {
+export async function finalOptionsForUsage(usageId: string): Promise<FinalOptions | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("photobooth_usage")
+    .select("mood, completed_at, campaign:photobooth_campaigns(name, config)")
+    .eq("id", usageId).maybeSingle();
+  if (!data) return null;
+  const campaign = (Array.isArray(data.campaign) ? data.campaign[0] : data.campaign) as { name: string; config: unknown } | null;
+  const cfg = resolveConfig(campaign?.config);
+  const mood = (data.mood ?? {}) as {
+    title?: Record<string, string>; description?: Record<string, string>;
+    style?: string; locale?: string; expressionReading?: string;
+  };
+  const loc: "fr" | "en" = mood.locale === "en" || mood.locale === "ar" ? "en" : "fr";
+  const style = isStyleId(mood.style) ? STYLES[mood.style] : STYLES.mood;
+  const parts = (mood.description?.[loc] ?? "").split(" · ");
+  const labels = STAT_LABELS[loc];
+  const stats: [string, string][] = parts.slice(0, 3).map((v, i) => [labels[i], v]);
+  const expr = mood.expressionReading && (EXPRESSIONS as readonly string[]).includes(mood.expressionReading)
+    ? EXPRESSION_LABEL[mood.expressionReading as ExpressionId][loc as Locale] : null;
+  if (expr) stats.push([labels[3], expr]);
+  const d = data.completed_at ? new Date(data.completed_at) : new Date();
+  return {
+    clientLogoUrl: cfg.ok ? cfg.config.clientLogoUrl : "",
+    layout: style.layout,
+    text: {
+      title: mood.title?.[loc] ?? "",
+      subtitle: mood.description?.[loc] ?? "",
+      masthead: cfg.ok ? cfg.config.title[loc] : campaign?.name ?? "",
+      stats,
+      date: `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`,
+    },
+  };
+}
+
+export async function relayPortrait(resultUrl: string, usageId: string, filename: string | null) {
   if (!resultUrl.startsWith("https://")) return new Response("Expired", { status: 410 });
   try {
-    const out = await brandedFromUrl(resultUrl, clientLogoUrl);
+    const o = await finalOptionsForUsage(usageId);
+    const out = o ? await finalFromUrl(resultUrl, o) : null;
     if (!out) return new Response("Expired", { status: 410 });
     const headers = new Headers({
       "Content-Type": "image/jpeg",

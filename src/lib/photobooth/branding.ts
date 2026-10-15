@@ -1,6 +1,8 @@
 import "server-only";
 import sharp from "sharp";
 import { FMRXR_LOGO_DARK_SVG } from "./brand-logo";
+import { renderLayout, type LayoutText } from "./layouts";
+import type { Layout } from "./styles";
 
 // Branding de la photo finale, applique cote serveur a toutes les sorties
 // (ecran resultat, telechargement, page de partage, impression, galerie).
@@ -35,7 +37,7 @@ async function clientLogo(url: string): Promise<Buffer | null> {
 export const BRAND_LAYOUT = {
   band: 0.15, // hauteur du degrade sombre en bas
   fmrxr: 0.032, // hauteur du logo FMRXR//
-  client: 0.05, // hauteur max du logo client (dans sa plaque)
+  client: 0.075, // hauteur max du logo client (dans sa plaque ; logos carres = symbole + nom)
   margin: 0.04, // marge laterale et basse (fraction de la largeur)
 };
 
@@ -101,9 +103,15 @@ export async function brandPortrait(source: Buffer, clientLogoUrl: string): Prom
   return img.composite(layers).jpeg({ quality: 92, mozjpeg: true }).toBuffer();
 }
 
-/** Portrait brande, avec cache memoire (un portrait est relu par l'ecran, le QR, l'impression). */
-export async function brandedFromUrl(resultUrl: string, clientLogoUrl: string): Promise<Buffer | null> {
-  const key = `${resultUrl}|${clientLogoUrl}`;
+export type FinalOptions = { clientLogoUrl: string; layout: Layout; text: LayoutText };
+
+/**
+ * Image finale : mise en page du style (couverture, affiche, carte, Polaroid)
+ * ou, sans mise en page, la bande de branding. Cache memoire : un portrait
+ * est relu par l'ecran, le QR, l'impression et la galerie.
+ */
+export async function finalFromUrl(resultUrl: string, o: FinalOptions): Promise<Buffer | null> {
+  const key = `${resultUrl}|${o.clientLogoUrl}|${o.layout}|${o.text.title}|${o.text.masthead}`;
   const hit = CACHE.get(key);
   if (hit) return hit;
   let src: Buffer;
@@ -114,7 +122,9 @@ export async function brandedFromUrl(resultUrl: string, clientLogoUrl: string): 
   } catch {
     return null;
   }
-  const out = await brandPortrait(src, clientLogoUrl);
+  const out = o.layout === "none"
+    ? await brandPortrait(src, o.clientLogoUrl)
+    : await renderLayout(o.layout, src, o.text, o.clientLogoUrl ? await clientLogo(o.clientLogoUrl) : null);
   CACHE.set(key, out);
   if (CACHE.size > MAX_CACHE) CACHE.delete(CACHE.keys().next().value!);
   return out;

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PROMPT_BANK } from "./prompt-bank";
+import { DEFAULT_STYLES, STYLE_IDS } from "./styles";
 
 // Configuration d'une campagne photobooth. Tout ce qui est texte, question,
 // ambiance ou reglage de modele vit ici et peut etre surcharge par campagne
@@ -71,6 +72,8 @@ export const campaignConfigSchema = z.object({
   countdownSeconds: z.number().int().min(0).max(10),
   shareEnabled: z.boolean(), // QR de partage sur l'ecran resultat
   promptVariety: z.boolean(), // une variante de mise en scene tiree par photo
+  // Styles proposes au visiteur pour cette campagne (styles.ts). Un seul = pas d'ecran de choix.
+  styles: z.array(z.enum(STYLE_IDS)).min(1).max(STYLE_IDS.length),
   // Reconnaissance des gestes (calibrage : voir gestures.ts). Le seuil est le
   // score minimal du modele officiel ; le maintien, le temps pendant lequel le
   // geste doit etre tenu avant d'etre accepte.
@@ -209,6 +212,7 @@ export const DEFAULT_CONFIG: CampaignConfig = {
   countdownSeconds: 3,
   shareEnabled: true,
   promptVariety: true,
+  styles: DEFAULT_STYLES,
   gestureMinScore: 0.5,
   gestureHoldMs: 900,
   print: {

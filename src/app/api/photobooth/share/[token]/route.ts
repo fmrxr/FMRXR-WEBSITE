@@ -11,5 +11,5 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
   const { token } = await ctx.params;
   const s = await findShared(token);
   if (!s.ok) return new NextResponse(s.reason === "EXPIRED" ? "Expired" : "Not found", { status: s.reason === "EXPIRED" ? 410 : 404 });
-  return relayPortrait(s.resultUrl, s.clientLogoUrl, req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${token.slice(0, 8)}` : null);
+  return relayPortrait(s.resultUrl, s.usageId, req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${token.slice(0, 8)}` : null);
 }

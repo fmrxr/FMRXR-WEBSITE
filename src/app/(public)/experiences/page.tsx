@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageHero } from "@/components/site/PageHero";
 import { ExperienceCatalog } from "@/components/site/ExperienceCatalog";
+import { PhotoboothCTA } from "@/components/site/PhotoboothCTA";
 
 export const metadata: Metadata = {
   title: "Experiences · Playable web works by FMRXR",
@@ -28,6 +29,7 @@ export default function Experiences() {
       <Suspense>
         <ExperienceCatalog />
       </Suspense>
+      <PhotoboothCTA index="For your event" source="experiences" />
     </>
   );
 }

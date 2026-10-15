@@ -103,6 +103,17 @@ Limite d'impressions par portrait (1 par défaut). L'écran d'accueil montre l'�
 
 Vérifié en émulation Android (Chromium, 412 × 915, tactile) : parcours complet par gestes, pas de débordement horizontal, impression désactivée proprement sans agent. **Non vérifié** : Safari iOS sur un vrai iPhone ou iPad, et les vraies caméras de téléphone. À faire sur un appareil avant un événement.
 
+## Styles (15/10/2026)
+
+14 styles (`src/lib/photobooth/styles.ts`), activés par campagne dans le CMS (« Styles proposés au visiteur »). Un seul style coché : pas d'écran de choix ; plusieurs : écran « Choisissez votre style » dans la borne, après le choix portrait/groupe.
+
+- **Éditoriaux (visage exact)** : Mood Portrait, Film argentique, Polaroid, Couverture magazine, Affiche de film, Carte à collectionner. Prompt verrouillé (seuls lumière, décor, étalonnage, finition changent).
+- **Transformations (ressemblance reconnaissable, pas exacte)** : Voyage dans le temps 70s, Anime, Pop art, Peinture à l'huile, Figurine 3D, Pâte à modeler, Super-héros, Cyberpunk. Ni personnage existant, ni marque, ni célébrité.
+- **Mises en page** (Polaroid, magazine, affiche, carte) : composées par le serveur après génération (`layouts.ts`, sharp + polices Geist embarquées, OFL, `public/photobooth/fonts/`). Le texte n'est jamais demandé à l'IA. Les mises en page en arabe tombent sur l'anglais (police latine).
+- Écartés : portrait animé (modèle vidéo), échange de visage sur un personnage existant (risque juridique).
+
+Page vitrine `/photobooth`, appel à l'action sur l'accueil et sur `/experiences` (`PhotoboothCTA`), vers le brief prérempli `/start?ref=photobooth`.
+
 ## Limites connues
 
 - Limite de débit par IP en mémoire (un seul processus Node). Les vrais plafonds sont en base.

@@ -5,6 +5,7 @@ import { campaignAvailability, clientIp, createSupabaseDb, getProvider, loadCamp
 import { startGeneration } from "@/lib/photobooth/service";
 import { EXPRESSIONS, type ExpressionId } from "@/lib/photobooth/expression";
 import { chooseAspect, SHOTS, type Shot } from "@/lib/photobooth/mood";
+import { isStyleId, type StyleId } from "@/lib/photobooth/styles";
 import sharp from "sharp";
 
 // POST /api/photobooth/generate — multipart : slug, k, session, idem, answers (JSON), image.
@@ -70,6 +71,12 @@ export async function POST(req: Request) {
   const dims = await sharp(bytes).metadata().catch(() => null);
   const aspect = chooseAspect(shot, dims?.width ?? 0, dims?.height ?? 0, loaded.config.aspectRatio);
 
+  // Style : seulement parmi ceux actives pour la campagne, sinon le premier.
+  const styleRaw = form.get("style");
+  const style: StyleId = isStyleId(styleRaw) && loaded.config.styles.includes(styleRaw) ? styleRaw : loaded.config.styles[0];
+  const localeRaw = form.get("locale");
+  const locale = typeof localeRaw === "string" && ["fr", "en", "ar"].includes(localeRaw) ? localeRaw : loaded.config.defaultLocale;
+
   const provider = getProvider();
   if (!provider) return err("PROVIDER_NOT_CONFIGURED", 503);
 
@@ -78,7 +85,7 @@ export async function POST(req: Request) {
   await reconcileStale(loaded.campaign.id, provider, db);
 
   const r = await startGeneration(
-    { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression, shot, aspect },
+    { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression, shot, aspect, style, locale },
     { db, provider },
   );
   if (!r.ok) {

@@ -1,0 +1,54 @@
+import Link from "next/link";
+
+// Appel a l'action « AI Photobooth », pose sur l'accueil et sur /experiences.
+// Deux sorties : la page vitrine, et le formulaire de brief prerempli
+// (ref=photobooth, ajoute au message de la demande).
+
+export function PhotoboothCTA({ index, source }: { index: string; source: string }) {
+  return (
+    <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
+      <div className="fm-glass-card grid gap-8 overflow-hidden rounded-2xl p-6 md:grid-cols-[1.3fr_1fr] md:p-10">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-fmaccent">{index} · AI Photobooth</p>
+          <h2 className="fm-display mt-3 text-[clamp(2rem,5vw,3.6rem)] text-fmfg">
+            Your guests, portrayed by your brand.
+          </h2>
+          <p className="fm-grotesk mt-5 max-w-xl text-[15px] leading-relaxed text-fmfg/80">
+            Three gestures, one photo, a high-end portrait in under a minute. Editorial looks, magazine covers,
+            film posters, collectible cards or full transformations, branded with your logo, printed on site
+            and shared by QR code. Every image is counted against your package, never beyond it.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/photobooth"
+              data-cta={`photobooth-discover-${source}`}
+              className="rounded-full bg-fmfg px-6 py-3 text-sm font-semibold text-fmbg transition hover:bg-fmaccent"
+            >
+              Discover the photobooth
+            </Link>
+            <Link
+              href="/start?ref=photobooth"
+              data-cta={`photobooth-start-${source}`}
+              className="rounded-full border border-fmborder px-6 py-3 text-sm text-fmfg/85 transition hover:border-fmfg/50"
+            >
+              Book it for your event
+            </Link>
+          </div>
+        </div>
+        <ul className="grid content-center gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder text-sm">
+          {[
+            ["Gesture-driven", "Hand tracking on the device, FR · EN · AR"],
+            ["14 styles", "Activated per client from the CMS"],
+            ["Your brand on every image", "Logo, print, QR sharing"],
+            ["Package control", "Image quota and budget, enforced server-side"],
+          ].map(([k, v]) => (
+            <li key={k} className="bg-fmbg p-4">
+              <p className="fm-display text-sm text-fmfg">{k}</p>
+              <p className="fm-grotesk mt-1 text-[13px] text-fmmuted">{v}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentRoles } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { campaignLogoUrl, relayPortrait } from "@/lib/photobooth/server";
+import { relayPortrait } from "@/lib/photobooth/server";
 
 // GET /api/photobooth/image/<usageId> — portrait vu depuis la galerie admin.
 // Reserve au role admin, verifie ici et pas seulement par la page.
@@ -19,5 +19,5 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const { data } = await getSupabaseAdmin()
     .from("photobooth_usage").select("status, result_url, campaign_id").eq("id", id).maybeSingle();
   if (!data || data.status !== "succeeded" || !data.result_url) return new NextResponse("Not found", { status: 404 });
-  return relayPortrait(data.result_url, await campaignLogoUrl(data.campaign_id), req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${id.slice(0, 8)}` : null);
+  return relayPortrait(data.result_url, id, req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${id.slice(0, 8)}` : null);
 }

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { campaignLogoUrl, createSupabaseDb, relayPortrait } from "@/lib/photobooth/server";
+import { createSupabaseDb, relayPortrait } from "@/lib/photobooth/server";
 
 // GET /api/photobooth/download/<usageId>?session=<id>[&dl=1]
 // Relaie l'image generee (meme origine, donc telechargeable et affichable sans
@@ -19,5 +19,5 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!u || u.session_id !== session || u.status !== "succeeded" || !u.result_url) {
     return new NextResponse("Not found", { status: 404 });
   }
-  return relayPortrait(u.result_url, await campaignLogoUrl(u.campaign_id), req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${id.slice(0, 8)}` : null);
+  return relayPortrait(u.result_url, id, req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${id.slice(0, 8)}` : null);
 }

@@ -507,3 +507,53 @@ describe("portrait ou groupe", () => {
     expect(buildRequestBody("flare", "p", "u", { ...DEFAULT_CONFIG, aspectRatio: "4:3" })).toMatchObject({ aspect_ratio: "4:3" });
   });
 });
+
+// ---------- styles ----------
+import { STYLES, STYLE_IDS, isStyleId } from "@/lib/photobooth/styles";
+
+describe("styles", () => {
+  const answers: Answers = ["bold", "cinematic", "cinema"];
+  it("14 styles, une campagne propose Mood Portrait par defaut", () => {
+    expect(STYLE_IDS).toHaveLength(14);
+    const r = resolveConfig({});
+    expect(r.ok && r.config.styles).toEqual(["mood"]);
+    expect(resolveConfig({ styles: [] }).ok).toBe(false);
+    expect(resolveConfig({ styles: ["mood", "nope"] }).ok).toBe(false);
+    expect(isStyleId("anime")).toBe(true);
+    expect(isStyleId("x")).toBe(false);
+  });
+  it("chaque style a un nom et une description dans les 3 langues", () => {
+    for (const id of STYLE_IDS) for (const loc of ["fr", "en", "ar"] as const) {
+      expect(STYLES[id].label[loc].length).toBeGreaterThan(1);
+      expect(STYLES[id].blurb[loc].length).toBeGreaterThan(5);
+    }
+  });
+  it("les styles editoriaux gardent le verrou d'identite et la tenue", () => {
+    for (const id of STYLE_IDS.filter((x) => STYLES[x].family === "editorial")) {
+      const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "s1", null, "solo", id), DEFAULT_CONFIG);
+      expect(p).toMatch(/IDENTITY \(must not change\)/);
+      expect(p).toMatch(/WARDROBE: keep the person's own clothing/);
+      if (STYLES[id].finish) expect(p).toContain(STYLES[id].finish!);
+    }
+  });
+  it("les mises en page ne demandent jamais de texte a l'IA", () => {
+    for (const id of STYLE_IDS.filter((x) => STYLES[x].layout !== "none")) {
+      const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "s1", null, "solo", id), DEFAULT_CONFIG);
+      expect(p).toMatch(/No text in the image|Avoid: .*text/);
+    }
+  });
+  it("les transformations exigent la ressemblance, sans personnage existant", () => {
+    for (const id of STYLE_IDS.filter((x) => STYLES[x].family === "transform")) {
+      const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "s1", null, "solo", id), DEFAULT_CONFIG);
+      expect(p).toMatch(/LIKENESS \(most important\)/);
+      expect(p).toMatch(/no existing characters, franchises, celebrities, brands/);
+      expect(p).toContain(STYLES[id].transform!);
+      expect(p).not.toMatch(/cartoon or illustration look/); // contredirait anime, pop art...
+    }
+  });
+  it("transformation en groupe : chaque personne, ni ajout ni retrait", () => {
+    const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "s1", null, "group", "anime"), DEFAULT_CONFIG);
+    expect(p).toMatch(/every person in the reference photo/);
+    expect(p).toMatch(/do not add or remove anyone/);
+  });
+});

@@ -10,8 +10,9 @@ import s from "./booth.module.css";
 import { PAGE_SIZE, usePrinter } from "./usePrinter";
 import { useExpressionReader } from "./useExpression";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
+import { STYLES, type StyleId } from "@/lib/photobooth/styles";
 
-type Step = "attract" | "camera" | "scan" | "shot" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
+type Step = "attract" | "camera" | "scan" | "shot" | "style" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
 type Tracker = "idle" | "loading" | "ready" | "failed";
 
 const POLL_MS = 3000;
@@ -61,6 +62,8 @@ export function Booth({
   const [qIndex, setQIndex] = useState(0);
   // Portrait seul ou photo de groupe (ecran apres le scan), et format de capture.
   const [shot, setShot] = useState<Shot | null>(null);
+  // Style choisi parmi ceux actives pour la campagne (un seul = pas d'ecran).
+  const [style, setStyle] = useState<StyleId>(config.styles[0]);
   const [captureAspect, setCaptureAspect] = useState<CampaignConfig["aspectRatio"]>(config.aspectRatio);
   const [answers, setAnswers] = useState<string[]>([]);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -200,6 +203,7 @@ export function Booth({
     setAnswers([]);
     setQIndex(0);
     setShot(null);
+    setStyle(config.styles[0]);
     setCaptureAspect(config.aspectRatio);
     setChosen(null);
     setErrorCode(null);
@@ -208,7 +212,7 @@ export function Booth({
     usageRef.current = null;
     sessionRef.current = uuid();
     setStep("attract");
-  }, [photo, stopCamera, resetPrints, resetExpression, config.aspectRatio]);
+  }, [photo, stopCamera, resetPrints, resetExpression, config.aspectRatio, config.styles]);
 
   // Scan : animation de calibrage, puis quiz.
   useEffect(() => {
@@ -249,9 +253,9 @@ export function Booth({
       // personne (le serveur refait ce calcul d'apres la photo recue).
       setCaptureAspect(id === "group" && landscape ? "4:3" : config.aspectRatio);
       setChosen(null);
-      setStep("quiz");
+      setStep(config.styles.length > 1 ? "style" : "quiz");
     }, 650);
-  }, [chosen, config.aspectRatio]);
+  }, [chosen, config.aspectRatio, config.styles.length]);
 
   // Boucle de detection pendant le choix portrait/groupe et le quiz.
   useEffect(() => {
@@ -580,6 +584,8 @@ export function Booth({
     fd.set("idem", idemRef.current);
     fd.set("answers", JSON.stringify(answers));
     fd.set("shot", shot ?? "solo");
+    fd.set("style", style);
+    fd.set("locale", locale);
     if (expression.reading && shot !== "group") fd.set("expr", expression.reading);
     fd.set("image", photo.blob, "portrait.jpg");
     try {
@@ -591,7 +597,7 @@ export function Booth({
     } catch {
       fail("DEFAULT");
     }
-  }, [accessKey, answers, fail, photo, poll, slug, expression.reading, shot]);
+  }, [accessKey, answers, fail, photo, poll, slug, expression.reading, shot, style, locale]);
 
   const resumeCheck = useCallback(() => {
     if (!usageRef.current) return reset();
@@ -765,6 +771,31 @@ export function Booth({
           </section>
         )}
 
+        {step === "style" && (
+          <section className={`${s.enter} mt-auto flex max-h-full flex-col gap-3 overflow-y-auto p-4 pb-6 md:gap-5 md:p-10`}>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">{t.styleLabel}</p>
+              <h2 className="fm-display mt-2 text-[clamp(1.4rem,5.5vw,4.5rem)] md:mt-3">{t.styleTitle}</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
+              {config.styles.map((id) => {
+                const st = STYLES[id];
+                return (
+                  <button
+                    key={id}
+                    data-testid={`style-${id}`}
+                    onClick={() => { setStyle(id); setStep("quiz"); }}
+                    className="flex min-h-20 flex-col justify-center gap-1 rounded-xl border border-fmborder bg-fmcard/70 p-3 text-start backdrop-blur-md transition hover:border-fmaccent/60 md:min-h-28 md:p-4"
+                  >
+                    <span className="text-sm font-semibold leading-snug md:text-lg">{st.label[locale]}</span>
+                    <span className="text-[11px] leading-snug text-fmmuted md:text-sm">{st.blurb[locale]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {step === "quiz" && question && (
           <section key={qIndex} className={`${s.enter} mt-auto flex flex-col gap-3 p-4 pb-6 md:gap-6 md:p-10`}>
             <div>
@@ -810,7 +841,9 @@ export function Booth({
 
         {step === "mood" && mood && (
           <section className={`${s.enter} m-auto flex max-w-3xl flex-col items-center gap-7 px-6 text-center`}>
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">{t.moodLabel}</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">
+              {t.moodLabel}{config.styles.length > 1 ? ` · ${STYLES[style].label[locale]}` : ""}
+            </p>
             <h2 className="fm-display text-[clamp(2.5rem,8vw,6.5rem)]">{mood.title[locale]}</h2>
             <div className="flex gap-2">
               {mood.palette.map((c) => (

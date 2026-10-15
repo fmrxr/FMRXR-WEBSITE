@@ -6,6 +6,7 @@ import { Hero } from "@/components/site/Hero";
 import { StartRequest } from "@/components/site/StartRequest";
 import { Rail } from "@/components/site/Rail";
 import { ScrollFilm } from "@/components/site/ScrollFilm";
+import { PhotoboothCTA } from "@/components/site/PhotoboothCTA";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -133,6 +134,9 @@ export default async function Home() {
             campaign starts from parameters, not from a blank file.
           </p>
         </section>
+
+        {/* ===== AI PHOTOBOOTH ===== */}
+        <PhotoboothCTA index="New" source="home" />
 
         {/* ===== CLIENTS ===== */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
