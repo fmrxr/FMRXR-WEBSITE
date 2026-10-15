@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Tester depuis un telephone sur le Wi-Fi (borne photobooth, camera) :
+  // DEV_LAN_ORIGIN=<ip du PC> dans .env.local, puis `npm run dev:lan`.
+  // Sans la variable, rien n'est ouvert (dev uniquement, sans effet en prod).
+  allowedDevOrigins: process.env.DEV_LAN_ORIGIN ? [process.env.DEV_LAN_ORIGIN] : [],
   async redirects() {
     return [
       // Le projet était enregistré sous « Art Basel Paris ». L'exposition réelle

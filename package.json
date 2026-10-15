@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev:lan": "next dev --experimental-https -H 0.0.0.0 -p 3443"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
