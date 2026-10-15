@@ -474,3 +474,36 @@ describe("lecture d'expression", () => {
     expect(none).toMatch(/Keep the person's own expression; nuance it at most slightly/);
   });
 });
+
+// ---------- portrait ou photo de groupe ----------
+import { chooseAspect } from "@/lib/photobooth/mood";
+
+describe("portrait ou groupe", () => {
+  const answers: Answers = ["calm", "natural", "editorial"];
+  it("groupe devant une camera paysage -> 4:3 ; sinon format de la campagne", () => {
+    expect(chooseAspect("group", 1920, 1080, "3:4")).toBe("4:3");
+    expect(chooseAspect("group", 720, 1280, "3:4")).toBe("3:4");
+    expect(chooseAspect("solo", 1920, 1080, "3:4")).toBe("3:4");
+  });
+  it("le prompt de groupe verrouille chaque visage et le nombre de personnes", () => {
+    const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "g1", null, "group"), DEFAULT_CONFIG);
+    expect(p).toMatch(/same number of people/);
+    expect(p).toMatch(/do not add, remove, merge or swap anyone/);
+    expect(p).toMatch(/Every person must stay exactly the same/);
+    expect(p).toMatch(/nobody is cropped out/);
+    expect(p).not.toMatch(/extra people/);
+  });
+  it("en groupe, la lecture d'expression (un seul visage) est ignoree", () => {
+    const m = buildMoodProfile(answers, DEFAULT_CONFIG, "g1", "radiant", "group");
+    expect(m.expressionReading).toBeNull();
+  });
+  it("le portrait seul reste inchange", () => {
+    const solo = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "g1", null, "solo"), DEFAULT_CONFIG);
+    const def = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "g1"), DEFAULT_CONFIG);
+    expect(solo).toBe(def);
+    expect(solo).toMatch(/of the same person/);
+  });
+  it("le format 4:3 passe bien dans le corps de requete Flare", () => {
+    expect(buildRequestBody("flare", "p", "u", { ...DEFAULT_CONFIG, aspectRatio: "4:3" })).toMatchObject({ aspect_ratio: "4:3" });
+  });
+});

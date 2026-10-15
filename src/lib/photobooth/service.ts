@@ -1,6 +1,6 @@
 import type { CampaignConfig } from "./config";
 import type { ImageProvider } from "./higgsfield";
-import { buildMoodProfile, buildPortraitPrompt, validateMoodProfile, type Answers, type MoodProfile } from "./mood";
+import { buildMoodProfile, buildPortraitPrompt, validateMoodProfile, type Answers, type MoodProfile, type Shot } from "./mood";
 import type { ExpressionId } from "./expression";
 
 // Orchestration d'une generation. Les dependances (base, fournisseur) sont
@@ -33,6 +33,9 @@ export type StartInput = {
   idempotencyKey: string;
   image: { bytes: Uint8Array; type: string };
   expression?: ExpressionId | null;
+  shot?: Shot;
+  /** Format decide par le serveur (chooseAspect), sinon celui de la campagne. */
+  aspect?: CampaignConfig["aspectRatio"];
 };
 
 export type StartResult =
@@ -43,7 +46,7 @@ export async function startGeneration(input: StartInput, deps: { db: PhotoboothD
   let mood: MoodProfile;
   try {
     // Graine = cle de la photo : une relance retombe sur la meme mise en scene.
-    mood = buildMoodProfile(input.answers, input.config, input.idempotencyKey, input.expression ?? null);
+    mood = buildMoodProfile(input.answers, input.config, input.idempotencyKey, input.expression ?? null, input.shot ?? "solo");
   } catch {
     return { ok: false, error: "INVALID_ANSWERS" };
   }
@@ -72,7 +75,9 @@ export async function startGeneration(input: StartInput, deps: { db: PhotoboothD
   const prompt = buildPortraitPrompt(mood, input.config);
   // L'identifiant de la ligne sert de cle d'idempotence chez Higgsfield.
   const sub = await deps.provider.submit({
-    model: input.config.model, prompt, imageUrl, config: input.config, idempotencyKey: usageId,
+    model: input.config.model, prompt, imageUrl,
+    config: input.aspect ? { ...input.config, aspectRatio: input.aspect } : input.config,
+    idempotencyKey: usageId,
   });
 
   if (sub.kind === "accepted") {

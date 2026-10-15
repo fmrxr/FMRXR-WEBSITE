@@ -4,6 +4,8 @@ import { sniffImage } from "@/lib/photobooth/image";
 import { campaignAvailability, clientIp, createSupabaseDb, getProvider, loadCampaign, rateLimited, reconcileStale } from "@/lib/photobooth/server";
 import { startGeneration } from "@/lib/photobooth/service";
 import { EXPRESSIONS, type ExpressionId } from "@/lib/photobooth/expression";
+import { chooseAspect, SHOTS, type Shot } from "@/lib/photobooth/mood";
+import sharp from "sharp";
 
 // POST /api/photobooth/generate — multipart : slug, k, session, idem, answers (JSON), image.
 // Ordre : validation -> reservation atomique du quota -> seulement ensuite Higgsfield.
@@ -62,6 +64,12 @@ export async function POST(req: Request) {
   const expression = typeof exprRaw === "string" && (EXPRESSIONS as readonly string[]).includes(exprRaw)
     ? (exprRaw as ExpressionId) : null;
 
+  // Portrait ou groupe ; le format est decide ici d'apres la photo reelle.
+  const shotRaw = form.get("shot");
+  const shot: Shot = typeof shotRaw === "string" && (SHOTS as readonly string[]).includes(shotRaw) ? (shotRaw as Shot) : "solo";
+  const dims = await sharp(bytes).metadata().catch(() => null);
+  const aspect = chooseAspect(shot, dims?.width ?? 0, dims?.height ?? 0, loaded.config.aspectRatio);
+
   const provider = getProvider();
   if (!provider) return err("PROVIDER_NOT_CONFIGURED", 503);
 
@@ -70,7 +78,7 @@ export async function POST(req: Request) {
   await reconcileStale(loaded.campaign.id, provider, db);
 
   const r = await startGeneration(
-    { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression },
+    { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression, shot, aspect },
     { db, provider },
   );
   if (!r.ok) {

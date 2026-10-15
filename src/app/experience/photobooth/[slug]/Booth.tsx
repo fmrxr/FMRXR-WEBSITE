@@ -4,14 +4,14 @@ import type { GestureRecognizer } from "@mediapipe/tasks-vision";
 import QRCode from "qrcode";
 import type { CampaignConfig, Gesture, Locale } from "@/lib/photobooth/config";
 import { decideGesture, GestureStabilizer, type Point } from "@/lib/photobooth/gestures";
-import { buildMoodProfile, type Answers } from "@/lib/photobooth/mood";
+import { buildMoodProfile, type Answers, type Shot } from "@/lib/photobooth/mood";
 import { ERROR_ALIAS, ERRORS, GESTURE_GLYPH, UI } from "./strings";
 import s from "./booth.module.css";
 import { PAGE_SIZE, usePrinter } from "./usePrinter";
 import { useExpressionReader } from "./useExpression";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
 
-type Step = "attract" | "camera" | "scan" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
+type Step = "attract" | "camera" | "scan" | "shot" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
 type Tracker = "idle" | "loading" | "ready" | "failed";
 
 const POLL_MS = 3000;
@@ -20,6 +20,12 @@ const IDLE_MS = 90_000;
 const MAX_SIDE = 1536;
 
 const uuid = () => crypto.randomUUID();
+
+// Portrait seul ou photo de groupe : memes gestes que le quiz.
+const SHOT_OPTIONS: { id: Shot; gesture: Gesture; labelKey: "shotSolo" | "shotGroup" }[] = [
+  { id: "solo", gesture: "open_palm", labelKey: "shotSolo" },
+  { id: "group", gesture: "peace", labelKey: "shotGroup" },
+];
 
 /**
  * Moteur de detection de la main : GPU (WebGL) par defaut, CPU en secours.
@@ -53,6 +59,9 @@ export function Booth({
   const [step, setStep] = useState<Step>("attract");
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [qIndex, setQIndex] = useState(0);
+  // Portrait seul ou photo de groupe (ecran apres le scan), et format de capture.
+  const [shot, setShot] = useState<Shot | null>(null);
+  const [captureAspect, setCaptureAspect] = useState<CampaignConfig["aspectRatio"]>(config.aspectRatio);
   const [answers, setAnswers] = useState<string[]>([]);
   const [chosen, setChosen] = useState<string | null>(null);
   const [tracker, setTracker] = useState<Tracker>("idle");
@@ -77,7 +86,8 @@ export function Booth({
   const printer = usePrinter(config.print, step === "attract" || step === "result" || debug);
   const resetPrints = printer.reset;
   // Lecture d'expression locale pendant le scan et le debut du quiz.
-  const expression = useExpressionReader(videoRef, step === "scan" || step === "quiz");
+  // En groupe, la lecture d'expression (un seul visage) n'a pas de sens.
+  const expression = useExpressionReader(videoRef, (step === "scan" || step === "shot" || step === "quiz") && shot !== "group");
   const resetExpression = expression.reset;
   const debugRef = useRef<{ category: string; score: number; decided: Gesture | null; fps: number; landmarks: Point[] | null }>(
     { category: "-", score: 0, decided: null, fps: 0, landmarks: null },
@@ -189,6 +199,8 @@ export function Booth({
     resetExpression();
     setAnswers([]);
     setQIndex(0);
+    setShot(null);
+    setCaptureAspect(config.aspectRatio);
     setChosen(null);
     setErrorCode(null);
     setCount(null);
@@ -196,12 +208,12 @@ export function Booth({
     usageRef.current = null;
     sessionRef.current = uuid();
     setStep("attract");
-  }, [photo, stopCamera, resetPrints, resetExpression]);
+  }, [photo, stopCamera, resetPrints, resetExpression, config.aspectRatio]);
 
   // Scan : animation de calibrage, puis quiz.
   useEffect(() => {
     if (step !== "scan") return;
-    const id = window.setTimeout(() => setStep("quiz"), 2800);
+    const id = window.setTimeout(() => setStep("shot"), 2800);
     return () => window.clearTimeout(id);
   }, [step]);
 
@@ -226,9 +238,24 @@ export function Booth({
     }, 650);
   }, [chosen, qIndex]);
 
-  // Boucle de detection pendant le quiz.
+  const chooseShot = useCallback((id: string) => {
+    if (chosen) return;
+    setChosen(id);
+    const v = videoRef.current;
+    const landscape = (v?.videoWidth ?? 0) > (v?.videoHeight ?? 0);
+    window.setTimeout(() => {
+      setShot(id as Shot);
+      // Groupe devant une camera en paysage : 4:3 horizontal pour ne couper
+      // personne (le serveur refait ce calcul d'apres la photo recue).
+      setCaptureAspect(id === "group" && landscape ? "4:3" : config.aspectRatio);
+      setChosen(null);
+      setStep("quiz");
+    }, 650);
+  }, [chosen, config.aspectRatio]);
+
+  // Boucle de detection pendant le choix portrait/groupe et le quiz.
   useEffect(() => {
-    if (step !== "quiz" || tracker !== "ready") return;
+    if ((step !== "quiz" && step !== "shot") || tracker !== "ready") return;
     const lm = landmarkerRef.current!;
     // Le modele analyse une vignette de largeur fixe plutot que l'image pleine
     // resolution de la camera : plus leger pour le GPU, et la taille d'entree
@@ -246,15 +273,18 @@ export function Booth({
     let lastRun = 0;
     let frames = 0;
     let fpsSince = performance.now();
-    const question = config.questions[qIndex];
+    const options = step === "shot" ? SHOT_OPTIONS : config.questions[qIndex].options;
+    const onConfirm = step === "shot" ? chooseShot : choose;
     let raf = 0;
     let lastTime = -1;
     // Arme seulement quand la main a change ou disparu : un geste tenu ne
     // repond pas a la question suivante tout seul.
-    let armed = qIndex === 0;
-    const previous = qIndex > 0
-      ? config.questions[qIndex - 1].options.find((o) => o.id === answers[qIndex - 1])?.gesture ?? null
-      : null;
+    let armed = step === "shot";
+    const previous = step === "shot"
+      ? null
+      : qIndex > 0
+        ? config.questions[qIndex - 1].options.find((o) => o.id === answers[qIndex - 1])?.gesture ?? null
+        : SHOT_OPTIONS.find((o) => o.id === shot)?.gesture ?? null;
     let lastUi = "";
 
     const loop = () => {
@@ -312,10 +342,10 @@ export function Booth({
         setLive({ gesture: r.gesture, progress: r.progress });
       }
       if (r.confirmed && r.gesture) {
-        const opt = question.options.find((o) => o.gesture === r.gesture);
+        const opt = options.find((o) => o.gesture === r.gesture);
         if (opt) {
           cancelAnimationFrame(raf);
-          choose(opt.id);
+          onConfirm(opt.id);
         }
       }
     };
@@ -326,7 +356,7 @@ export function Booth({
       dbg.landmarks = null;
       dbg.decided = null;
     };
-  }, [step, tracker, qIndex, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose, loadTracker]);
+  }, [step, tracker, qIndex, shot, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose, chooseShot, loadTracker]);
 
   // Lumiere : luminance moyenne de l'image, mesuree sur une vignette.
   // Sous ~55/255 la reconnaissance chute (calibrage : poing perdu a 80 % de noir).
@@ -463,7 +493,7 @@ export function Booth({
   const snap = useCallback(() => {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return fail("CAPTURE_FAILED");
-    const [aw, ah] = config.aspectRatio.split(":").map(Number);
+    const [aw, ah] = captureAspect.split(":").map(Number);
     const target = aw / ah;
     let sw = v.videoWidth;
     let sh = v.videoHeight;
@@ -488,7 +518,7 @@ export function Booth({
       idemRef.current = uuid(); // une photo confirmee = une cle = au plus une image facturee
       setStep("confirm");
     }, "image/jpeg", 0.92);
-  }, [config.aspectRatio, config.maxUploadBytes, fail]);
+  }, [captureAspect, config.maxUploadBytes, fail]);
 
   const startCountdown = useCallback(() => {
     if (count !== null) return;
@@ -549,7 +579,8 @@ export function Booth({
     fd.set("session", sessionRef.current);
     fd.set("idem", idemRef.current);
     fd.set("answers", JSON.stringify(answers));
-    if (expression.reading) fd.set("expr", expression.reading);
+    fd.set("shot", shot ?? "solo");
+    if (expression.reading && shot !== "group") fd.set("expr", expression.reading);
     fd.set("image", photo.blob, "portrait.jpg");
     try {
       const r = await fetch("/api/photobooth/generate", { method: "POST", body: fd });
@@ -560,7 +591,7 @@ export function Booth({
     } catch {
       fail("DEFAULT");
     }
-  }, [accessKey, answers, fail, photo, poll, slug, expression.reading]);
+  }, [accessKey, answers, fail, photo, poll, slug, expression.reading, shot]);
 
   const resumeCheck = useCallback(() => {
     if (!usageRef.current) return reset();
@@ -670,7 +701,7 @@ export function Booth({
 
         {step === "scan" && (
           <>
-            <div className={s.frame} style={{ aspectRatio: config.aspectRatio.replace(":", "/") }}>
+            <div className={s.frame} style={{ aspectRatio: captureAspect.replace(":", "/") }}>
               <div className="absolute inset-0 overflow-hidden"><div className={s.scanLine} /></div>
             </div>
             <div className={s.field} />
@@ -681,7 +712,7 @@ export function Booth({
           </>
         )}
 
-        {step === "quiz" && tracker === "ready" && !live.gesture && (
+        {(step === "quiz" || step === "shot") && tracker === "ready" && !live.gesture && (
           // Zone ou montrer la main : a hauteur du visage, au-dessus des reponses.
           // Sur telephone tenu a la main, la main libre arrive sinon en bas, sous
           // les cartes et a moitie hors champ, et le modele ne voit pas de geste.
@@ -692,6 +723,48 @@ export function Booth({
             <span className="rounded-full bg-black/55 px-3 py-1 text-xs text-fmfg/90">{t.handHere}</span>
           </div>
         )}
+        {step === "shot" && (
+          <section className={`${s.enter} mt-auto flex flex-col gap-3 p-4 pb-6 md:gap-6 md:p-10`}>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">{t.shotLabel}</p>
+              <h2 className="fm-display mt-2 text-[clamp(1.4rem,5.5vw,4.5rem)] md:mt-3">{t.shotTitle}</h2>
+              <p className="mt-2 text-xs text-fmfg/70 md:mt-3 md:text-sm md:text-fmmuted">
+                {tracker === "failed" ? t.manualOnly : lowLight ? t.lowLight : live.gesture ? t.gestureHint : t.noHand}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 md:mx-auto md:w-full md:max-w-3xl md:gap-3">
+              {SHOT_OPTIONS.map((o) => {
+                const active = live.gesture === o.gesture;
+                const picked = chosen === o.id;
+                const C = 2 * Math.PI * 22;
+                return (
+                  <button
+                    key={o.id}
+                    data-testid={`shot-${o.id}`}
+                    onClick={() => chooseShot(o.id)}
+                    className={`flex min-h-16 items-center gap-2.5 rounded-xl border p-2.5 text-start backdrop-blur-md transition md:min-h-28 md:gap-4 md:p-4 ${
+                      picked ? "border-fmaccent bg-fmaccent/20" : active ? "border-fmfg/60 bg-fmcard/80" : "border-fmborder bg-fmcard/60 hover:border-fmfg/40"
+                    }`}
+                  >
+                    <span className="relative grid size-11 shrink-0 place-items-center text-xl md:size-14 md:text-2xl">
+                      <svg className="absolute inset-0 -rotate-90" viewBox="0 0 50 50" aria-hidden>
+                        <circle cx="25" cy="25" r="22" fill="none" stroke="rgba(245,245,248,0.12)" strokeWidth="2" />
+                        <circle
+                          cx="25" cy="25" r="22" fill="none" stroke="var(--color-fmaccent)" strokeWidth="2.5"
+                          strokeDasharray={C} strokeDashoffset={C * (1 - (picked ? 1 : active ? live.progress : 0))}
+                          className={s.ring}
+                        />
+                      </svg>
+                      <span aria-hidden>{GESTURE_GLYPH[o.gesture]}</span>
+                    </span>
+                    <span className="text-sm leading-snug md:text-lg">{t[o.labelKey]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {step === "quiz" && question && (
           <section key={qIndex} className={`${s.enter} mt-auto flex flex-col gap-3 p-4 pb-6 md:gap-6 md:p-10`}>
             <div>
@@ -745,7 +818,7 @@ export function Booth({
               ))}
             </div>
             <p className="text-fmfg/80">{mood.description[locale]}</p>
-            {expression.reading && (
+            {expression.reading && shot !== "group" && (
               <p data-testid="expression" className="rounded-full border border-fmborder bg-fmcard/70 px-4 py-2 text-sm">
                 {t.yourExpression} <strong className="text-fmaccent">{EXPRESSION_LABEL[expression.reading][locale]}</strong>
                 <span className="mt-0.5 block text-[11px] text-fmmuted">{t.expressionNote}</span>
@@ -764,7 +837,7 @@ export function Booth({
 
         {step === "capture" && (
           <>
-            <div className={s.frame} style={{ aspectRatio: config.aspectRatio.replace(":", "/") }} />
+            <div className={s.frame} style={{ aspectRatio: captureAspect.replace(":", "/") }} />
             {count !== null && (
               <div className="pointer-events-none absolute inset-0 grid place-items-center">
                 <span key={count} className={`${s.enter} fm-display text-[30vh] text-fmfg/90`}>{count}</span>

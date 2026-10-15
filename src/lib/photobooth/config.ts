@@ -67,7 +67,7 @@ export const campaignConfigSchema = z.object({
   model: z.enum(MODELS),
   resolution: z.enum(["1k", "2k", "4k"]),
   quality: z.enum(["low", "medium", "high", "xhigh", "max"]),
-  aspectRatio: z.enum(["3:4", "2:3", "1:1", "9:16"]), // ratios communs aux quatre modeles,
+  aspectRatio: z.enum(["3:4", "2:3", "1:1", "9:16", "4:3"]), // ratios communs aux quatre modeles (4:3 : groupe en paysage),
   countdownSeconds: z.number().int().min(0).max(10),
   shareEnabled: z.boolean(), // QR de partage sur l'ecran resultat
   promptVariety: z.boolean(), // une variante de mise en scene tiree par photo

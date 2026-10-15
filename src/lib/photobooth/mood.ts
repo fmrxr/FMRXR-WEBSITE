@@ -13,6 +13,19 @@ import { EXPRESSION_PROMPT, type ExpressionId } from "./expression";
 
 export type Answers = [string, string, string]; // ids d'options, dans l'ordre des questions
 
+/** Portrait seul ou photo de groupe, choisi par le visiteur apres le scan. */
+export type Shot = "solo" | "group";
+export const SHOTS: readonly Shot[] = ["solo", "group"];
+
+/**
+ * Format de sortie. Un groupe pris par une camera en paysage (borne, poste
+ * fixe) sort en 4:3 horizontal pour ne couper personne ; sinon le format de
+ * la campagne (portrait 3:4 par defaut).
+ */
+export function chooseAspect(shot: Shot, width: number, height: number, campaignAspect: CampaignConfig["aspectRatio"]): CampaignConfig["aspectRatio"] {
+  return shot === "group" && width > height ? "4:3" : campaignAspect;
+}
+
 export type MoodProfile = {
   id: string; // ex. "calm.cinematic.editorial"
   variant: string; // ex. "calm#2.cinematic#4.editorial#0" ("#-" = sans variante)
@@ -30,6 +43,7 @@ export type MoodProfile = {
   texture: string;
   /** Lecture d'expression faite sur l'appareil (categorie seulement), si disponible. */
   expressionReading: ExpressionId | null;
+  shot: Shot;
 };
 
 function pick(config: CampaignConfig, answers: Answers) {
@@ -65,6 +79,7 @@ export function buildMoodProfile(
   config: CampaignConfig,
   seed?: string,
   expressionReading: ExpressionId | null = null,
+  shot: Shot = "solo",
 ): MoodProfile {
   const opts = pick(config, answers);
   const chosen = opts.map((o, i) => {
@@ -95,7 +110,9 @@ export function buildMoodProfile(
     paletteWords: f("palette"),
     treatment: f("treatment"),
     texture: f("texture"),
-    expressionReading,
+    // En groupe, une lecture d'expression ne vaudrait que pour un visage : ignoree.
+    expressionReading: shot === "group" ? null : expressionReading,
+    shot,
   };
 }
 
@@ -120,12 +137,20 @@ export const IDENTITY_LOCK =
   "and any glasses, cap or headwear they wear. Keep the original head position, head tilt, gaze direction, camera angle, distance and framing, " +
   "with the same facial proportions. Do not reshape, slim, smooth into plastic, or idealise the face, and do not change the pose.";
 
+// Version groupe : chaque visage est verrouille, et le nombre de personnes aussi.
+export const GROUP_IDENTITY_LOCK =
+  "This is a photo edit, not a new photo. Keep exactly the same people, the same number of people and their same positions: do not add, remove, merge or swap anyone. " +
+  "Every person must stay exactly the same and instantly recognisable: same face shape, jawline, eyes, eyebrows, nose, lips, skin tone, age, hairline and hair, facial hair, " +
+  "and any glasses, cap or headwear. Keep each person's head position, head tilt, gaze direction, the camera angle, distance and framing, with the same facial proportions. " +
+  "Do not reshape, slim, smooth into plastic, or idealise any face, and do not change anyone's pose.";
+
 /**
  * Prompt d'edition envoye avec la photo de reference, ecrit comme un brief de
  * plateau : d'abord ce qui est verrouille (identite, pose, cadrage), puis ce
  * qui change (lumiere, decor, tenue, etalonnage), puis le rendu attendu.
  */
 export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig): string {
+  if (p.shot === "group") return buildGroupPrompt(p, config);
   const expression = p.expressionReading
     ? `Keep the person's own expression (${EXPRESSION_PROMPT[p.expressionReading]}); nuance it at most slightly toward: ${p.expression}.`
     : `Keep the person's own expression; nuance it at most slightly toward: ${p.expression}.`;
@@ -146,5 +171,25 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig): str
     `FINISH: ${p.texture}. ${config.styleBrief}`,
     "Photographic realism, like a real photo shoot with professional lighting. Keep the same framing as the reference, as if shot on a medium telephoto lens.",
     `Avoid: wide-angle distortion, changed face, different person, ${config.negative}.`,
+  ].filter(Boolean).join("\n");
+}
+
+function buildGroupPrompt(p: MoodProfile, config: CampaignConfig): string {
+  // « extra people » n'a pas de sens pour un groupe : retire de la liste a eviter.
+  const negative = config.negative.split(",").map((x) => x.trim()).filter((x) => x && !/people/i.test(x)).join(", ");
+  return [
+    `Edit the reference photo into ${p.treatment || "a high-end editorial group portrait"} of the same group of people.`,
+    `IDENTITY (must not change): ${GROUP_IDENTITY_LOCK}`,
+    `EXPRESSIONS: keep each person's own expression; nuance the overall mood at most slightly toward: ${p.expression}.`,
+    `SKIN: ${SKIN_RETOUCH} Apply the same light retouch to everyone.`,
+    "CHANGE ONLY the lighting, the background set and the colour grade, as follows.",
+    `LIGHTING: ${p.lighting}${p.contrast ? `; ${p.contrast}` : ""}. Light every face cleanly and evenly, so that no one falls into shadow. The new light must have one consistent direction and colour on all the people and the background, like a single real lighting setup.`,
+    p.setting ? `SET: ${p.setting}, with natural depth of field behind the group.` : "",
+    "WARDROBE: keep everyone's own clothing and accessories exactly as in the photo, simply clean and well lit.",
+    `COLOUR: ${p.grade ? `${p.grade}; ` : ""}palette of ${p.paletteWords}.`,
+    `MOOD: ${p.atmosphere}.`,
+    `FINISH: ${p.texture}. ${config.styleBrief}`,
+    "Photographic realism, like a real group photo shoot with professional lighting. Keep the same framing as the reference so that nobody is cropped out.",
+    `Avoid: wide-angle distortion, changed faces, missing or added people, ${negative}.`,
   ].filter(Boolean).join("\n");
 }
