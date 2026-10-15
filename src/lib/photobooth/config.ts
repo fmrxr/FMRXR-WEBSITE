@@ -212,9 +212,19 @@ export const DEFAULT_CONFIG: CampaignConfig = {
     },
   ]),
   styleBrief:
-    "High-end editorial portrait photography for a premium brand campaign. Professional retouching, true-to-life skin texture, precise colour grading, magazine-cover quality.",
+    "Art direction: a professional, creative portrait for a contemporary fashion and art editorial, where each set is an explicit artistic reference, " +
+    "never a generic photo. Professional retouching, true-to-life skin texture, precise colour grading, magazine-cover quality.",
   negative:
-    "text, letters, logos, watermark, extra people, distorted hands, plastic skin, cartoon or illustration look, cheap neon effects",
+    "text, letters, invented logos, watermark, extra people, distorted hands, plastic skin, stock-photo cliche, generic city skyline, " +
+    "tourist postcard, religious or national symbols, hands in pockets, model pose, cheap neon effects",
+  // Lecons du photobooth IQOS (16/10/2026), valables pour toute campagne :
+  // la pose et le cadre de la photo sont gardes (le recul de camera re-posait
+  // le corps), et le decor est une direction artistique, jamais un lieu cliche.
+  framing: "keep",
+  setDirection:
+    "An art-directed set, built like a contemporary fashion or art editorial: real materials, considered light and clear depth layers behind the person, " +
+    "rich and detailed. Never a stock-photo cliche, a tourist postcard or a generic city skyline. Secular: no religious, political or national symbols, " +
+    "no signs, no text. Moderate depth of field, as at f/4: the set stays crisp and readable.",
   model: "flare",
   resolution: "2k",
   quality: "high",

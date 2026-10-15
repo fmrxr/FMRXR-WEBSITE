@@ -62,7 +62,7 @@ describe("decor de campagne", () => {
     expect(prompt).not.toContain("readable architecture");
   });
   it("sans setDirection : consigne generique inchangee", () => {
-    const r = resolveConfig({ questions: oneQuestion, styles: ["mood"] });
+    const r = resolveConfig({ questions: oneQuestion, styles: ["mood"], setDirection: "" });
     if (!r.ok) throw new Error(r.error);
     expect(buildPortraitPrompt(buildMoodProfile(["cool"], r.config, "k-1"), r.config)).toContain("readable architecture");
   });
@@ -70,7 +70,7 @@ describe("decor de campagne", () => {
 
 describe("cadrage garde (framing: keep)", () => {
   const build = (framing?: "keep" | "medium", shot: "solo" | "group" = "solo") => {
-    const r = resolveConfig({ questions: oneQuestion, styles: ["mood"], framing });
+    const r = resolveConfig({ questions: oneQuestion, styles: ["mood"], ...(framing ? { framing } : {}) });
     if (!r.ok) throw new Error(r.error);
     return buildPortraitPrompt(buildMoodProfile(["cool"], r.config, "k-1", null, shot), r.config);
   };
@@ -87,7 +87,10 @@ describe("cadrage garde (framing: keep)", () => {
     expect(p).toContain("POSES (must not change)");
     expect(p).not.toContain("pull the camera back");
   });
-  it("par defaut : recul de camera inchange", () => {
-    expect(build()).toContain("Pull the camera back to a medium shot");
+  it("par defaut : pose et cadre gardes (lecon IQOS)", () => {
+    expect(build()).toContain("POSE (must not change)");
+  });
+  it("framing medium : recul de camera, sur demande explicite", () => {
+    expect(build("medium")).toContain("Pull the camera back to a medium shot");
   });
 });

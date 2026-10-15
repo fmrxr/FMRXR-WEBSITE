@@ -44,11 +44,19 @@ describe("mood", () => {
     const prompts = new Set(all.map((a) => buildPortraitPrompt(buildMoodProfile(a, DEFAULT_CONFIG), DEFAULT_CONFIG)));
     expect(prompts.size).toBe(64);
   });
-  it("le prompt verrouille l'identite et la pose, recule la camera et detaille le decor", () => {
+  it("par defaut : identite, pose et cadre gardes, decor de direction artistique", () => {
     const p = buildPortraitPrompt(buildMoodProfile(["calm", "natural", "editorial"], DEFAULT_CONFIG), DEFAULT_CONFIG);
     expect(p).toMatch(/IDENTITY \(must not change\)/);
     expect(p).toMatch(/Keep the original head tilt, gaze direction and camera angle/);
-    expect(p).toMatch(/do not change the pose/);
+    expect(p).toMatch(/POSE \(must not change\)/);
+    expect(p).toMatch(/CHANGE ONLY the lighting, the background set and the colour grade/);
+    expect(p).toMatch(/FRAMING: Keep exactly the original framing/);
+    expect(p).toMatch(/Never a stock-photo cliche/);
+    expect(p).not.toMatch(/Pull the camera back/);
+  });
+  it("framing medium : recul de camera et decor generique, sur demande", () => {
+    const cfg = { ...DEFAULT_CONFIG, framing: "medium" as const, setDirection: "" };
+    const p = buildPortraitPrompt(buildMoodProfile(["calm", "natural", "editorial"], cfg), cfg);
     expect(p).toMatch(/CHANGE ONLY the camera distance, the lighting, the background set and the colour grade/);
     expect(p).toMatch(/FRAMING: Pull the camera back to a medium shot/);
     expect(p).toMatch(/never an empty blur/);
@@ -504,7 +512,7 @@ describe("portrait ou groupe", () => {
     const solo = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "g1", null, "solo"), DEFAULT_CONFIG);
     const def = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "g1"), DEFAULT_CONFIG);
     expect(solo).toBe(def);
-    expect(solo).toMatch(/of the same person/);
+    expect(solo).toMatch(/keeping the same person/);
   });
   it("le format 4:3 passe bien dans le corps de requete Flare", () => {
     expect(buildRequestBody("flare", "p", "u", { ...DEFAULT_CONFIG, aspectRatio: "4:3" })).toMatchObject({ aspect_ratio: "4:3" });

@@ -236,7 +236,7 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts
     ? `Keep the person's own expression (${EXPRESSION_PROMPT[p.expressionReading]}); nuance it at most slightly toward: ${p.expression}.`
     : `Keep the person's own expression; nuance it at most slightly toward: ${p.expression}.`;
   return [
-    `Edit the reference photo into ${p.treatment || "a high-end editorial portrait"} of the same person.`,
+    `Edit this person's reference photo into ${p.treatment || "a high-end editorial portrait"}, keeping the same person.`,
     brand,
     `IDENTITY (must not change): ${IDENTITY_LOCK} ${FACE_FIDELITY}`,
     `EXPRESSION: ${expression}`,
@@ -269,7 +269,7 @@ function buildGroupPrompt(p: MoodProfile, config: CampaignConfig, brand = ""): s
   // « extra people » n'a pas de sens pour un groupe : retire de la liste a eviter.
   const negative = config.negative.split(",").map((x) => x.trim()).filter((x) => x && !/people/i.test(x)).join(", ");
   return [
-    `Edit the reference photo into ${p.treatment || "a high-end editorial group portrait"} of the same group of people.`,
+    `Edit this group's reference photo into ${p.treatment || "a high-end editorial group portrait"}, keeping the same people.`,
     brand,
     `IDENTITY (must not change): ${GROUP_IDENTITY_LOCK} ${FACE_FIDELITY}`,
     `EXPRESSIONS: keep each person's own expression; nuance the overall mood at most slightly toward: ${p.expression}.`,
@@ -324,8 +324,12 @@ function buildTransformPrompt(p: MoodProfile, config: CampaignConfig, soften: bo
     `LIKENESS (most important): the result must stay clearly recognisable as ${group ? "these exact people" : "this exact person"}. ` +
       "Keep each face shape, eye shape, eyebrows, nose, lips, skin tone, age, hairstyle and hair colour, facial hair, glasses and headwear, and their expression. " +
       (group ? "Keep the same number of people and their positions; do not add or remove anyone. " : "") +
-      "Keep the pose close to the reference photo.",
-    `FRAMING: ${group ? "pull back slightly so everyone is fully in frame with the scene visible around them" : "a medium shot from the top of the head to the waist, the person taking up about half of the frame height"}.`,
+      (config.framing === "keep"
+        ? "Keep exactly the same pose, arms, hands and any hand gesture as in the reference photo."
+        : "Keep the pose close to the reference photo."),
+    `FRAMING: ${config.framing === "keep"
+      ? "keep exactly the original framing, crop and camera distance; do not invent any part of the body outside the photo"
+      : group ? "pull back slightly so everyone is fully in frame with the scene visible around them" : "a medium shot from the top of the head to the waist, the person taking up about half of the frame height"}.`,
     "SCENE: a detailed, fully realised environment in the same style around the subject, with foreground, midground and background depth.",
     `COLOUR: palette of ${p.paletteWords}${p.grade ? `; ${p.grade}` : ""}.`,
     `MOOD: ${p.atmosphere}.`,
