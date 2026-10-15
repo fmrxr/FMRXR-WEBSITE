@@ -18,6 +18,7 @@ export function PhotoboothCTA({ index, source }: { index: string; source: string
             Your guests, portrayed by your brand.
           </p>
           <p className="fm-grotesk mt-5 max-w-xl text-[15px] leading-relaxed text-fmfg/80">
+            Runs on any existing photobooth: a link opens it on your screen, with your camera and your printer.
             Three gestures, one photo, a high-end portrait in under a minute. Editorial looks, magazine covers,
             film posters, collectible cards or full transformations, branded with your logo, printed on site
             and shared by QR code. Every image is counted against your package, never beyond it.
@@ -43,10 +44,10 @@ export function PhotoboothCTA({ index, source }: { index: string; source: string
       </div>
       <ul className="mt-3 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder text-sm sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["Gesture-driven", "Hand tracking on the device, FR · EN · AR"],
+          ["Your existing booth", "Any screen, camera and printer, nothing to install"],
           ["14 styles", "Activated per client from the CMS"],
           ["Your brand on every image", "Logo, print, QR sharing"],
-          ["Package control", "Image quota and budget, enforced server-side"],
+          ["Gesture-driven", "Hand tracking on the device, FR · EN · AR"],
         ].map(([k, v]) => (
           <li key={k} className="bg-fmbg p-4">
             <p className="fm-display text-sm text-fmfg">{k}</p>
