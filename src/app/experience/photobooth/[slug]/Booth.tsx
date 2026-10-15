@@ -220,7 +220,11 @@ export function Booth({
 
   useEffect(() => () => {
     stopCamera();
+    // Oublier le moteur ferme : sinon, au remontage (rechargement a chaud en
+    // dev, double montage de React en mode strict), la boucle lui envoie des
+    // images et MediaPipe s'arrete sur « Aborted() ».
     landmarkerRef.current?.close();
+    landmarkerRef.current = null;
     if (pollRef.current) window.clearTimeout(pollRef.current);
   }, [stopCamera]);
 
@@ -305,7 +309,13 @@ export function Booth({
   // validation de l'ambiance, prise de vue et confirmation.
   useEffect(() => {
     if (!GESTURE_STEPS.includes(step) || tracker !== "ready") return;
-    const lm = landmarkerRef.current!;
+    const lm = landmarkerRef.current;
+    // Moteur ferme entre-temps (composant remonte) : on le recharge, la boucle
+    // repartira quand il sera pret.
+    if (!lm) {
+      loadTracker();
+      return;
+    }
     // Le modele analyse une vignette de largeur fixe plutot que l'image pleine
     // resolution de la camera : plus leger pour le GPU, et la taille d'entree
     // ne change pas si la webcam renegocie sa resolution apres demarrage (cause
