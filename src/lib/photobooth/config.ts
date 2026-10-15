@@ -175,25 +175,25 @@ export const DEFAULT_CONFIG: CampaignConfig = {
           id: "editorial", gesture: "open_palm",
           label: L("Éditorial minimal", "Minimal editorial", "تحريري بسيط"),
           title: L("éditorial", "Editorial", "تحريري"),
-          fragments: { composition: "clean editorial composition, generous negative space, seamless backdrop", texture: "fine film grain, matte finish", camera: "85mm portrait lens, f/2.8" },
+          fragments: { treatment: "a high-end editorial portrait", texture: "fine film grain, matte finish" },
         },
         {
           id: "cinema", gesture: "fist",
           label: L("Portrait cinéma", "Cinematic portrait", "بورتريه سينمائي"),
           title: L("cinéma", "Cinema", "سينما"),
-          fragments: { composition: "cinematic medium close-up, anamorphic framing, environmental depth", texture: "35mm film texture, subtle halation", camera: "anamorphic 50mm, shallow depth of field" },
+          fragments: { treatment: "a still frame from a film", texture: "35mm film texture, subtle halation" },
         },
         {
           id: "digital", gesture: "thumb_up",
           label: L("Art numérique expérimental", "Experimental digital art", "فن رقمي تجريبي"),
           title: L("génératif", "Generative", "توليدي"),
-          fragments: { composition: "bold graphic composition, layered generative light forms around the subject", texture: "subtle generative patterns, refined digital texture", camera: "50mm, crisp focus on the face" },
+          fragments: { treatment: "a new-media art portrait, light used as material", texture: "refined luminous detail" },
         },
         {
           id: "scifi", gesture: "peace",
           label: L("Science-fiction raffinée", "Refined science fiction", "خيال علمي راقٍ"),
           title: L("orbital", "Orbital", "مداري"),
-          fragments: { composition: "architectural sci-fi set, precise symmetry, restrained futuristic details", texture: "polished surfaces, volumetric haze", camera: "65mm, controlled perspective" },
+          fragments: { treatment: "a production still from a refined science-fiction film", texture: "polished surfaces, light volumetric haze" },
         },
       ],
     },
@@ -201,7 +201,7 @@ export const DEFAULT_CONFIG: CampaignConfig = {
   styleBrief:
     "High-end editorial portrait photography for a premium brand campaign. Professional retouching, true-to-life skin texture, precise colour grading, magazine-cover quality.",
   negative:
-    "no text, no letters, no logos, no watermark, no extra people, no distorted hands, no plastic skin, no cartoon",
+    "text, letters, logos, watermark, extra people, distorted hands, plastic skin, cartoon or illustration look, cheap neon effects",
   model: "flare",
   resolution: "2k",
   quality: "high",

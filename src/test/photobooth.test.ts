@@ -44,9 +44,12 @@ describe("mood", () => {
     const prompts = new Set(all.map((a) => buildPortraitPrompt(buildMoodProfile(a, DEFAULT_CONFIG), DEFAULT_CONFIG)));
     expect(prompts.size).toBe(64);
   });
-  it("le prompt exige de garder l'identite", () => {
+  it("le prompt verrouille l'identite, la pose et le cadrage", () => {
     const p = buildPortraitPrompt(buildMoodProfile(["calm", "natural", "editorial"], DEFAULT_CONFIG), DEFAULT_CONFIG);
-    expect(p).toMatch(/Keep their identity/);
+    expect(p).toMatch(/IDENTITY \(must not change\)/);
+    expect(p).toMatch(/Keep the original head position, head tilt/);
+    expect(p).toMatch(/do not change the pose/);
+    expect(p).toMatch(/CHANGE ONLY the lighting, the background set and the colour grade/);
   });
   it("refuse une reponse inconnue", () => {
     expect(() => buildMoodProfile(["calm", "nope", "editorial"], DEFAULT_CONFIG)).toThrow();
@@ -410,13 +413,22 @@ describe("banque de prompts et variete", () => {
     expect([a.title, a.palette, a.description]).toEqual([c.title, c.palette, c.description]);
     expect([b.title, b.palette]).toEqual([c.title, c.palette]);
   });
-  it("le prompt contient pose, decor, stylisme et la retouche legere qui protege la teinte", () => {
+  it("le prompt contient lumiere, decor, tenue, etalonnage et la retouche legere qui protege la teinte", () => {
     const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "x1"), DEFAULT_CONFIG);
-    expect(p).toMatch(/Pose: /);
-    expect(p).toMatch(/Setting: /);
-    expect(p).toMatch(/Styling: /);
+    expect(p).toMatch(/LIGHTING: /);
+    expect(p).toMatch(/SET: /);
+    expect(p).toMatch(/WARDROBE: keep the person's own clothing/);
+    expect(p).toMatch(/COLOUR: .*grade/);
     expect(p).toMatch(/Never lighten, whiten or change the skin tone/);
-    expect(p).toMatch(/Keep their identity exactly/);
+  });
+  it("aucune variante ne change la pose, l'angle ou l'optique (cause de la derive du visage)", () => {
+    const forbidden = /(pose|profile|over-the-shoulder|low-angle|wide-angle|\d{2}mm|lens|looking up|turned away|leaning|seated|standing|arms crossed|hand )/i;
+    for (const list of Object.values(PROMPT_BANK)) for (const v of list) {
+      expect(Object.keys(v)).not.toContain("pose");
+      expect(Object.keys(v)).not.toContain("composition");
+      expect(Object.keys(v)).not.toContain("camera");
+      for (const t of Object.values(v)) expect(t).not.toMatch(forbidden);
+    }
   });
   it("sans variantes (liste vide) on garde les fragments de base", () => {
     const cfg = structuredClone(DEFAULT_CONFIG);
@@ -456,9 +468,9 @@ describe("lecture d'expression", () => {
     const answers: Answers = ["bold", "cinematic", "cinema"];
     for (const e of EXPRESSIONS) {
       const p = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "k", e), DEFAULT_CONFIG);
-      expect(p).toMatch(/keep the person's own/);
+      expect(p).toMatch(/Keep the person's own/);
     }
     const none = buildPortraitPrompt(buildMoodProfile(answers, DEFAULT_CONFIG, "k"), DEFAULT_CONFIG);
-    expect(none).not.toMatch(/keep the person's own/);
+    expect(none).toMatch(/Keep the person's own expression; nuance it at most slightly/);
   });
 });
