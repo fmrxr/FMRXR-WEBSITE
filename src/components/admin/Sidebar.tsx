@@ -26,6 +26,12 @@ const GROUPS: { title: string; links: [string, string][] }[] = [
     ],
   },
   {
+    title: "Expériences",
+    links: [
+      ["Photobooth", "/admin/photobooth"],
+    ],
+  },
+  {
     title: "Réglages",
     links: [
       ["Settings", "/admin/settings"],
