@@ -176,41 +176,141 @@ async function poster(src: Buffer, t: LayoutText, client: Buffer | null) {
 }
 
 // ---------- Carte a collectionner ----------
+// Inspiree de la carte la plus chere jamais vendue (Pikachu Illustrator PSA 10,
+// 16,49 M$, Goldin, 16/02/2026, record Guinness) : une carte de jeu des annees
+// 1998 (cadre jaune, barre de nom, fenetre d'illustration doree, bandeau
+// d'infos, boite de texte, credit d'illustrateur, rarete), presentee dans son
+// boitier de gradation. Rien de la marque Pokemon ni du label PSA : la carte
+// et l'etiquette sont les notres. Format 2:3, imprime tel quel en 10 x 15.
+function serialOf(t: LayoutText): string {
+  let h = 2166136261;
+  for (const c of `${t.title}|${t.date}|${t.masthead}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return String((h >>> 0) % 100000000).padStart(8, "0");
+}
+
 async function card(src: Buffer, t: LayoutText, client: Buffer | null) {
-  const W = 1500;
-  const H = 2100;
-  const b = 46; // bordure
-  const photoW = W - b * 2;
-  const photoH = Math.round(H * 0.6);
-  const img = await sharp(src).rotate().resize(photoW, photoH, { fit: "cover", position: sharp.strategy.attention }).toBuffer();
-  const roundMask = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${photoW}" height="${photoH}"><rect width="${photoW}" height="${photoH}" rx="34" fill="#fff"/></svg>`);
-  const photo = await sharp(img).composite([{ input: roundMask, blend: "dest-in" }]).png().toBuffer();
-  const frame = Buffer.from(
+  const W = 1600, H = 2400;
+  // boitier, etiquette, carte
+  const S = { x: 170, y: 170, w: 1260, h: 2060, r: 52 };
+  const L = { x: 210, y: 210, w: 1180, h: 270 };
+  const C = { x: 250, y: 545, w: 1100, h: 1540 };
+  const ink = "#1b1a22";
+
+  // fenetre d'illustration
+  const A = { x: 80, y: 178, w: 940, h: 700 };
+  const art = await sharp(src).rotate().resize(A.w, A.h, { fit: "cover", position: sharp.strategy.attention }).toBuffer();
+
+  const serial = serialOf(t);
+  // code-barres decoratif tire du numero de serie (pas un vrai code lisible)
+  let bars = "";
+  let bx = 0;
+  for (let i = 0; i < 46; i++) {
+    const d = Number(serial[i % 8]) + i;
+    const w = 2 + (d % 3) * 2;
+    if (i % 2 === 0) bars += `<rect x="${bx}" y="0" width="${w}" height="54" fill="${ink}"/>`;
+    bx += w + 2;
+  }
+
+  const base = Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7bef7b"/><stop offset="1" stop-color="#4d9fff"/></linearGradient></defs>
-      <rect x="6" y="6" width="${W - 12}" height="${H - 12}" rx="56" fill="#111019" stroke="url(#g)" stroke-width="12"/>
+      <defs>
+        <radialGradient id="bg" cx="0.5" cy="0.42" r="0.75"><stop offset="0" stop-color="#22202e"/><stop offset="1" stop-color="#0d0c14"/></radialGradient>
+        <linearGradient id="yel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7d84a"/><stop offset="0.5" stop-color="#f2c41c"/><stop offset="1" stop-color="#e3ab0e"/></linearGradient>
+        <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbe9a6"/><stop offset="0.45" stop-color="#c9a24a"/><stop offset="1" stop-color="#f3dc8b"/></linearGradient>
+        <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecebe6"/><stop offset="1" stop-color="#d9d6cd"/></linearGradient>
+        <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="8" height="8" fill="none"/><line x1="0" y1="0" x2="0" y2="8" stroke="#000" stroke-opacity="0.035" stroke-width="3"/></pattern>
+        <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="28"/></filter>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#bg)"/>
+      <ellipse cx="${W / 2}" cy="${S.y + S.h + 40}" rx="${S.w * 0.46}" ry="40" fill="#000" opacity="0.55" filter="url(#soft)"/>
+      <!-- boitier acrylique -->
+      <rect x="${S.x}" y="${S.y}" width="${S.w}" height="${S.h}" rx="${S.r}" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.38" stroke-width="6"/>
+      <rect x="${S.x + 18}" y="${S.y + 18}" width="${S.w - 36}" height="${S.h - 36}" rx="${S.r - 14}" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="3"/>
+      <rect x="${C.x - 26}" y="${C.y - 26}" width="${C.w + 52}" height="${C.h + 52}" rx="40" fill="#000" fill-opacity="0.22" stroke="#ffffff" stroke-opacity="0.16" stroke-width="3"/>
+      <!-- etiquette -->
+      <rect x="${L.x}" y="${L.y}" width="${L.w}" height="${L.h}" rx="18" fill="#f4f3ef" stroke="#d6d3ca" stroke-width="4"/>
+      <line x1="${L.x + 820}" y1="${L.y + 30}" x2="${L.x + 820}" y2="${L.y + L.h - 30}" stroke="#d6d3ca" stroke-width="3"/>
+      <g transform="translate(${L.x + 40},${L.y + L.h - 84})">${bars}</g>
+      <!-- carte -->
+      <g transform="translate(${C.x},${C.y})">
+        <rect width="${C.w}" height="${C.h}" rx="46" fill="url(#yel)"/>
+        <rect x="44" y="44" width="${C.w - 88}" height="${C.h - 88}" rx="20" fill="url(#panel)"/>
+        <rect x="44" y="44" width="${C.w - 88}" height="${C.h - 88}" rx="20" fill="url(#hatch)"/>
+        <circle cx="${C.w - 118}" cy="118" r="40" fill="${ink}"/>
+        <rect x="${A.x - 12}" y="${A.y - 12}" width="${A.w + 24}" height="${A.h + 24}" rx="6" fill="url(#gold)"/>
+        <rect x="${A.x - 3}" y="${A.y - 3}" width="${A.w + 6}" height="${A.h + 6}" fill="${ink}"/>
+        <rect x="${A.x + 40}" y="${A.y + A.h + 26}" width="${A.w - 80}" height="50" rx="10" fill="url(#gold)"/>
+        <rect x="80" y="985" width="${C.w - 160}" height="380" rx="10" fill="#ffffff" fill-opacity="0.45" stroke="#bdb8ab" stroke-width="2"/>
+      </g>
     </svg>`,
   );
-  const title = await text(t.title.toUpperCase(), "black", 92, "#f5f5f8", photoW - 40);
-  const layers: sharp.OverlayOptions[] = [
-    { input: photo, top: b + 150, left: b },
-    { input: title.input, top: b + 30, left: b + 20 },
-  ];
-  // stats : libelle a gauche, valeur a droite, separateurs
-  let y = b + 150 + photoH + 46;
-  for (const [k, v] of t.stats) {
-    const kk = await text(k.toUpperCase(), "mono", 30, "#7bef7b", 420, "left", 2);
-    const vv = await text(v, "medium", 42, "#f5f5f8", photoW - 480, "right");
-    layers.push({ input: kk.input, top: y + 8, left: b + 20 }, { input: vv.input, top: y, left: W - b - 20 - vv.width });
-    y += Math.max(kk.height, vv.height) + 34;
+
+  const layers: sharp.OverlayOptions[] = [{ input: art, top: C.y + A.y, left: C.x + A.x }];
+
+  // barre de nom : titre de l'ambiance, et la marque // dans le cercle a droite
+  const name = await fitText(t.title, "black", 66, ink, 760, "left");
+  layers.push({ input: name.input, top: C.y + 118 - Math.round(name.height / 2), left: C.x + 84 });
+  const mark = await text("//", "black", 40, "#7bef7b", 120, "centre");
+  layers.push({ input: mark.input, top: C.y + 118 - Math.round(mark.height / 2), left: C.x + C.w - 118 - Math.round(mark.width / 2) });
+
+  // bandeau d'infos sous l'illustration
+  const info = await fitText(`${t.masthead || "FMRXR//"} · ${t.date} · PORTRAIT 1/1`.toUpperCase(), "mono", 24, ink, A.w - 120, "centre", 1);
+  layers.push({ input: info.input, top: C.y + A.y + A.h + 51 - Math.round(info.height / 2), left: C.x + Math.round((C.w - info.width) / 2) });
+
+  // boite de texte : les reponses, comme les attaques d'une carte de jeu
+  const rows = t.stats.slice(0, 4);
+  const rowH = rows.length ? Math.floor(380 / rows.length) : 0;
+  for (const [i, [k, v]] of rows.entries()) {
+    const cy = C.y + 985 + rowH * i + Math.round(rowH / 2);
+    const kk = await fitText(k, "black", 40, ink, 360, "left");
+    const vv = await fitText(v, "medium", 40, ink, 520, "right");
+    layers.push({ input: kk.input, top: cy - Math.round(kk.height / 2), left: C.x + 116 }, { input: vv.input, top: cy - Math.round(vv.height / 2), left: C.x + C.w - 116 - vv.width });
+    if (i < rows.length - 1) {
+      layers.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${C.w - 232}" height="2"><rect width="${C.w - 232}" height="2" fill="#bdb8ab"/></svg>`), top: C.y + 985 + rowH * (i + 1), left: C.x + 116 });
+    }
   }
-  const logo = await fmrxrLogo(46);
-  const cl = await clientPlate(client, 140);
-  layers.push({ input: logo.input, top: H - b - 30 - logo.height, left: W - b - 20 - logo.width });
-  if (cl) layers.push({ input: cl.input, top: H - b - 30 - cl.height, left: b + 20 });
-  const date = await text(t.date, "mono", 26, "#7b7a8e", 500);
-  layers.push({ input: date.input, top: H - b - 30 - (cl ? cl.height + 44 : 40), left: b + 20 });
-  return sharp(frame).composite(layers).jpeg({ quality: 93, mozjpeg: true }).toBuffer();
+
+  // pied de carte : illustrateur, rarete, numerotation
+  const illus = await text("Illus. FMRXR// AI Photobooth", "mono", 22, ink, 520, "left");
+  const star = await text("★", "black", 34, ink, 60, "centre");
+  const num = await text("1/1", "mono", 24, ink, 160, "right");
+  const fy = C.y + C.h - 92;
+  layers.push(
+    { input: illus.input, top: fy, left: C.x + 84 },
+    { input: star.input, top: fy - 6, left: C.x + Math.round((C.w - star.width) / 2) },
+    { input: num.input, top: fy, left: C.x + C.w - 84 - num.width },
+  );
+
+  // etiquette du boitier : edition, campagne, serie ; a droite la note
+  const l1 = await fitText("2026 FMRXR// AI PHOTOBOOTH", "black", 34, ink, 700, "left");
+  const l2 = await fitText((t.masthead || "Portrait").toUpperCase(), "medium", 30, ink, 700, "left");
+  const l3 = await text(`${t.title.toUpperCase()} · N° ${serial}`, "mono", 22, "#4a4856", 760, "left");
+  layers.push(
+    { input: l1.input, top: L.y + 34, left: L.x + 40 },
+    { input: l2.input, top: L.y + 34 + l1.height + 10, left: L.x + 40 },
+    { input: l3.input, top: L.y + 34 + l1.height + l2.height + 22, left: L.x + 40 },
+  );
+  const gem = await text("GEM MT", "black", 34, ink, 300, "centre");
+  const ten = await text("10", "black", 132, ink, 300, "centre");
+  const gx = L.x + 820 + Math.round((L.w - 820) / 2);
+  layers.push({ input: gem.input, top: L.y + 36, left: gx - Math.round(gem.width / 2) }, { input: ten.input, top: L.y + 70, left: gx - Math.round(ten.width / 2) });
+  const cl = await clientPlate(client, 72);
+  if (cl) layers.push({ input: cl.input, top: L.y + L.h - 30 - cl.height, left: L.x + 820 - 30 - cl.width });
+
+  // reflet du verre par-dessus tout
+  const glare = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${S.w}" height="${S.h}">
+      <defs><linearGradient id="gl" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="0.32" stop-color="#fff" stop-opacity="0.03"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="0.78" stop-color="#fff" stop-opacity="0.05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+      <rect width="${S.w}" height="${S.h}" rx="${S.r}" fill="url(#gl)"/>
+    </svg>`,
+  );
+  layers.push({ input: glare, top: S.y, left: S.x });
+
+  // la marque du studio sous le boitier
+  const logo = await fmrxrLogo(40);
+  layers.push({ input: logo.input, top: H - 78, left: Math.round((W - logo.width) / 2) });
+
+  return sharp(base).composite(layers).jpeg({ quality: 93, mozjpeg: true }).toBuffer();
 }
 
 export async function renderLayout(layout: Exclude<Layout, "none">, src: Buffer, t: LayoutText, client: Buffer | null): Promise<Buffer> {

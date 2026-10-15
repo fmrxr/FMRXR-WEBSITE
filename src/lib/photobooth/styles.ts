@@ -73,7 +73,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
   card: {
     id: "card", family: "editorial", layout: "card",
     label: L("Carte à collectionner", "Collectible card", "بطاقة للجمع"),
-    blurb: L("Votre carte, avec les stats de votre ambiance.", "Your card, with your mood as stats.", "بطاقتك مع إحصاءات مزاجك."),
+    blurb: L("Une carte de jeu vintage numérotée 1/1, dans son boîtier de gradation.", "A vintage trading card numbered 1/1, in its graded case.", "بطاقة لعب كلاسيكية مرقّمة 1/1 في علبة تقييمها."),
     treatment: "a dynamic, high-energy portrait for a premium collectible card",
     extra: "Keep the face and shoulders centred with some space on all sides. No text in the image.",
   },

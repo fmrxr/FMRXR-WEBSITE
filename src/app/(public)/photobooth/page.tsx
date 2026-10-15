@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/site/PageHero";
+import { ScrollFilm } from "@/components/site/ScrollFilm";
+import { BoothIcon, type BoothIconKind } from "@/components/site/BoothIcon";
 import { STYLE_IDS, STYLES } from "@/lib/photobooth/styles";
 
 export const metadata: Metadata = {
@@ -16,26 +18,28 @@ export const metadata: Metadata = {
   },
 };
 
-const STEPS: [string, string][] = [
-  ["Raise a hand", "The camera starts only after consent. Hand tracking runs on the device: nothing is sent."],
-  ["Solo or group", "One gesture to choose a portrait or a group photo. Every face is kept."],
-  ["Three questions", "Energy, visual world, style: answered with a gesture, or a tap."],
-  ["One photo", "A countdown, a preview, and an explicit confirmation before anything leaves the booth."],
-  ["Your portrait", "Under a minute: on screen, downloadable, shared by QR code, printed on site."],
+const STEPS: [string, string, BoothIconKind][] = [
+  ["Raise a hand", "The camera starts only after consent. Hand tracking runs on the device: nothing is sent.", "hand"],
+  ["Solo or group", "One gesture to choose a portrait or a group photo. Every face is kept.", "shot"],
+  ["Three questions", "Energy, visual world, style: answered with a gesture, or a tap.", "questions"],
+  ["One photo", "A countdown, a preview, and an explicit confirmation before anything leaves the booth.", "photo"],
+  ["Your portrait", "Under a minute: on screen, downloadable, shared by QR code, printed on site.", "portrait"],
 ];
 
 // Ce qui est vrai du logiciel aujourd'hui : une page web ouverte par un lien,
 // la caméra vue par le navigateur, le toucher en repli des gestes, et
 // l'imprimante du poste via l'agent local (ou la boîte d'impression).
-const INTEGRATION: [string, string][] = [
-  ["A link, nothing to install", "The booth runs in Chrome, Edge or Safari, full screen. Open the campaign link on the booth's computer or tablet and it is live."],
-  ["Your camera", "Built-in camera, USB webcam, or a DSLR or mirrorless camera exposed as a webcam with its maker's utility."],
-  ["Your screen and enclosure", "Kiosk, mirror booth, totem, iPad stand: any screen works, touch or not. Guests answer with gestures, or a tap."],
-  ["Your printer", "A small local agent prints edge to edge on the printer already installed, on Windows, macOS or Linux. Without it, the browser print dialog takes over."],
+const MEDIA = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media`;
+
+const INTEGRATION: [string, string, BoothIconKind][] = [
+  ["A link, nothing to install", "The booth runs in Chrome, Edge or Safari, full screen. Open the campaign link on the booth's computer, tablet, iPhone or Android phone and it is live.", "link"],
+  ["Your camera", "The built-in camera of a computer, tablet, iPhone or Android phone, a USB webcam, or a DSLR or mirrorless camera exposed as a webcam with its maker's utility.", "camera"],
+  ["Your screen and enclosure", "Kiosk, mirror booth, totem, iPad stand: any screen works, touch or not. Guests answer with gestures, or a tap.", "screen"],
+  ["Your printer", "A small local agent prints edge to edge on the printer already installed, on Windows, macOS or Linux. Without it, the browser print dialog takes over.", "printer"],
 ];
 
 const FEATURES: [string, string][] = [
-  ["Likeness first", "Editorial styles edit light, set and colour grade only. The face, pose and framing stay the guest's own."],
+  ["Likeness first", "Editorial styles change the light, the set and the colour grade, and step the camera back to show the scene. The face, pose and expression stay the guest's own."],
   ["Your brand on every image", "Your official logo and ours, on the screen, the download, the shared page and the print."],
   ["Package control", "Each campaign has an image quota, a daily limit and a budget, reserved atomically before every paid request."],
   ["A client space", "Your team follows usage live: portraits made, remaining, period, booth link."],
@@ -63,6 +67,17 @@ export default function Photobooth() {
         </Link>
       </section>
 
+      {/* Le film de la borne (BRAND/Motion/fmrxr-photobooth-film) : la facilité,
+          les gestes et les styles, sur un modèle fictif passé dans la vraie chaîne. */}
+      <section className="mx-auto max-w-[1200px] px-5 md:px-8">
+        <ScrollFilm
+          src={`${MEDIA}/fmrxr-photobooth-film-16x9.mp4`}
+          poster={`${MEDIA}/fmrxr-photobooth-film-poster.jpg`}
+          label="FMRXR AI Photobooth in 40 seconds: any booth, three gestures, fourteen styles on one face"
+        />
+        <p className="mt-3 text-[11px] uppercase tracking-[0.15em] text-fmmuted">Music by Andrii Poradovskyi from Pixabay</p>
+      </section>
+
       <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:mt-16 md:px-8 md:py-24">
         <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— Integration</p>
         <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">Works with the booth you already have</h2>
@@ -71,9 +86,10 @@ export default function Photobooth() {
           Photobooth operators add AI portraits to their existing fleet, brands keep the booth they already rent.
         </p>
         <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-4">
-          {INTEGRATION.map(([title, body]) => (
+          {INTEGRATION.map(([title, body, icon]) => (
             <div key={title} className="bg-fmbg p-6">
-              <h3 className="fm-display text-lg text-fmfg">{title}</h3>
+              <BoothIcon kind={icon} />
+              <h3 className="fm-display mt-5 text-lg text-fmfg">{title}</h3>
               <p className="fm-grotesk mt-2 text-[14px] leading-relaxed text-fmmuted">{body}</p>
             </div>
           ))}
@@ -82,11 +98,16 @@ export default function Photobooth() {
 
       <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-24">
         <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— How it works</p>
+        <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">Three gestures, one portrait</h2>
+        <p className="fm-grotesk mt-4 max-w-2xl text-[15px] leading-relaxed text-fmfg/80">
+          No app, no account, no touch needed. Guests raise a hand and the booth guides them, in French, English or Arabic, to a finished portrait in under a minute.
+        </p>
         <ol className="mt-8 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-5">
-          {STEPS.map(([title, body], i) => (
+          {STEPS.map(([title, body, icon], i) => (
             <li key={title} className="bg-fmbg p-6">
-              <span className="text-[11px] tracking-[0.1em] text-fmaccent">{String(i + 1).padStart(2, "0")}</span>
-              <h3 className="fm-display mt-3 text-lg text-fmfg">{title}</h3>
+              <BoothIcon kind={icon} />
+              <span className="mt-5 block text-[11px] tracking-[0.1em] text-fmaccent">{String(i + 1).padStart(2, "0")}</span>
+              <h3 className="fm-display mt-2 text-lg text-fmfg">{title}</h3>
               <p className="fm-grotesk mt-2 text-[14px] leading-relaxed text-fmmuted">{body}</p>
             </li>
           ))}

@@ -1,0 +1,147 @@
+.icon {
+  width: 56px;
+  height: 56px;
+  color: var(--color-fmfg);
+  overflow: visible;
+}
+
+/* lien : la barre d'adresse se remplit, puis la page s'allume */
+.type {
+  stroke: var(--color-fmaccent);
+  stroke-dasharray: 27;
+  stroke-dashoffset: 27;
+  animation: type 3.2s ease-in-out infinite;
+}
+.page {
+  stroke: var(--color-fmaccent);
+  opacity: 0;
+  animation: page 3.2s ease-in-out infinite;
+}
+@keyframes type {
+  0% { stroke-dashoffset: 27; }
+  35%, 100% { stroke-dashoffset: 0; }
+}
+@keyframes page {
+  0%, 40% { opacity: 0; }
+  55%, 85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* caméra : l'objectif fait le point, le témoin clignote */
+.focus {
+  stroke: var(--color-fmaccent);
+  transform-origin: 32px 22px;
+  animation: focus 2.4s ease-in-out infinite;
+}
+@keyframes focus {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.55); }
+}
+.rec {
+  fill: var(--color-fmaccent);
+  stroke: none;
+  animation: rec 1.2s steps(2, jump-none) infinite;
+}
+@keyframes rec {
+  0% { opacity: 1; }
+  100% { opacity: 0.15; }
+}
+
+/* écran : ondes du geste devant l'écran */
+.wave {
+  stroke: var(--color-fmaccent);
+  transform-origin: 32px 24px;
+  animation: wave 2.4s ease-out infinite;
+}
+.late { animation-delay: 1.2s; }
+.dot { fill: var(--color-fmaccent); stroke: none; }
+@keyframes wave {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(4.2); opacity: 0; }
+}
+
+/* imprimante : le tirage sort de la fente */
+.print {
+  animation: print 3s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+  clip-path: inset(0 0 0 0);
+}
+.paper { fill: var(--color-fmbg); }
+.photo { fill: var(--color-fmaccent); stroke: none; opacity: 0.85; }
+@keyframes print {
+  0% { transform: translateY(-20px); opacity: 0; }
+  10% { opacity: 1; }
+  60%, 85% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+
+/* main levée : l'anneau de détection se remplit, comme sur la borne */
+.ring {
+  stroke: var(--color-fmaccent);
+  stroke-dasharray: 182.2;
+  stroke-dashoffset: 182.2;
+  transform: rotate(-90deg);
+  transform-origin: 32px 32px;
+  animation: ring 2.6s ease-in-out infinite;
+}
+@keyframes ring {
+  0% { stroke-dashoffset: 182.2; opacity: 1; }
+  70% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* portrait ou groupe : les deux états alternent */
+.solo { animation: solo 4s ease-in-out infinite; }
+.group { stroke: var(--color-fmaccent); animation: group 4s ease-in-out infinite; }
+@keyframes solo { 0%, 40% { opacity: 1; } 50%, 90% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes group { 0%, 40% { opacity: 0; } 50%, 90% { opacity: 1; } 100% { opacity: 0; } }
+
+/* trois questions : les coches tombent l'une après l'autre */
+.tick {
+  stroke: var(--color-fmaccent);
+  stroke-dasharray: 11;
+  stroke-dashoffset: 11;
+  animation: tick 3.6s ease-out infinite;
+}
+.t2 { animation-delay: 0.6s; }
+.t3 { animation-delay: 1.2s; }
+@keyframes tick {
+  0% { stroke-dashoffset: 11; }
+  15%, 80% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* une photo : compte à rebours qui se vide, puis l'éclair */
+.count {
+  stroke: var(--color-fmaccent);
+  stroke-dasharray: 138.2;
+  stroke-dashoffset: 0;
+  animation: count 3s linear infinite;
+}
+@keyframes count {
+  0% { stroke-dashoffset: 0; }
+  75%, 100% { stroke-dashoffset: 138.2; }
+}
+.flash {
+  stroke: var(--color-fmaccent);
+  opacity: 0;
+  transform-origin: 32px 32px;
+  animation: flash 3s ease-out infinite;
+}
+@keyframes flash {
+  0%, 74% { opacity: 0; transform: scale(0.8); }
+  78% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+/* votre portrait : il apparaît, puis son code QR */
+.reveal { stroke: var(--color-fmaccent); animation: reveal 3.4s ease-in-out infinite; }
+.qr { animation: qr 3.4s ease-in-out infinite; }
+@keyframes reveal { 0% { opacity: 0; transform: translateY(4px); } 30%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes qr { 0%, 40% { opacity: 0; } 55%, 85% { opacity: 1; } 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .type, .page, .focus, .rec, .wave, .print, .ring, .solo, .group, .tick, .count, .flash, .reveal, .qr { animation: none; }
+  .type, .ring, .tick { stroke-dashoffset: 0; }
+  .page, .reveal, .qr { opacity: 1; }
+  .late, .group, .flash { opacity: 0; }
+}
