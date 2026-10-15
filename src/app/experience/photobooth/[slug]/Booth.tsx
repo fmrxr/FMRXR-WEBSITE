@@ -635,7 +635,7 @@ export function Booth({
         )}
       </header>
 
-      <main className="relative z-10 flex min-h-full flex-col">
+      <main className="relative z-10 flex min-h-full flex-col overflow-x-clip">
         {step === "attract" && (
           <section className={`${s.enter} m-auto flex max-w-3xl flex-col items-center gap-8 px-6 text-center`}>
             <div className={s.field} />
@@ -799,19 +799,17 @@ export function Booth({
         )}
 
         {step === "result" && resultUrl && (
-          <section className={`${s.enter} m-auto flex w-full flex-col items-center gap-5 px-5 pb-10 pt-20 text-center md:gap-6 md:py-20`}>
+          // Paysage (ordinateur, tablette couchee) : portrait a gauche, actions a
+          // droite, tout tient sans defiler. Portrait (telephone, borne
+          // verticale) : empile, la page defile si besoin.
+          <section className={`${s.enter} m-auto grid w-full max-w-6xl items-center justify-items-center gap-5 px-5 pb-10 pt-20 text-center md:gap-6 md:py-20 landscape:md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] landscape:md:gap-10 landscape:md:py-16`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={resultUrl} alt={mood?.title[locale] ?? ""} className="max-h-[52vh] max-w-full rounded-xl object-contain shadow-2xl md:max-h-[68vh]" />
+            <img src={resultUrl} alt={mood?.title[locale] ?? ""} className="max-h-[52vh] max-w-full rounded-xl object-contain shadow-2xl portrait:md:max-h-[60vh] landscape:md:max-h-[78vh]" />
+            <div className="flex flex-col items-center gap-5 md:gap-6">
             {mood && (
               <div>
                 <p className="fm-display text-3xl md:text-5xl">{mood.title[locale]}</p>
                 <p className="mt-2 text-sm text-fmmuted">{mood.description[locale]}</p>
-              </div>
-            )}
-            {qr && (
-              <div className="flex items-center gap-4 rounded-xl border border-fmborder bg-fmcard/80 p-3 text-start">
-                <div className="size-28 shrink-0 overflow-hidden rounded-md [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} />
-                <p className="max-w-[16rem] text-sm text-fmfg/80">{t.scanToGet}</p>
               </div>
             )}
             <div className="flex flex-wrap justify-center gap-3">
@@ -840,6 +838,15 @@ export function Booth({
                   : t.printUnavailable}
               </p>
             )}
+            {qr && (
+              // Sous 640 px (telephone personnel), le QR « recuperer sur votre
+              // telephone » n'a pas de sens : le bouton Telecharger suffit.
+              <div className="hidden items-center gap-4 rounded-xl border border-fmborder bg-fmcard/80 p-3 text-start sm:flex">
+                <div className="size-28 shrink-0 overflow-hidden rounded-md [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} />
+                <p className="max-w-[16rem] text-sm text-fmfg/80">{t.scanToGet}</p>
+              </div>
+            )}
+            </div>
             {/* Copie destinee a l'impression navigateur : seule visible sur papier. */}
             <div id="pb-print" aria-hidden className="hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
