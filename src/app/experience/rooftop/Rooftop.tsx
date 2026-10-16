@@ -15,7 +15,8 @@ import { attachInput, type FloorPoint } from "@/components/stomp/input";
 
 type Phase = "attract" | "lobby" | "freeze" | "play" | "reveal" | "results";
 
-export type RooftopSettings = { size: number; seconds: number; logo: string; ws: string | null; px: number | null; ox: number | null; oy: number | null; debug: boolean };
+// solo : une seule plaque au centre, la partie part des qu'on marche dessus (tout le sol, pas d'attente).
+export type RooftopSettings = { size: number; seconds: number; logo: string; ws: string | null; px: number | null; ox: number | null; oy: number | null; debug: boolean; solo: boolean };
 
 const PAD_RADIUS = 0.42, TEAM_PAD_RADIUS = 0.3;
 const LOBBY_S = 6, LOBBY_MAX_S = 12, FREEZE_S = 1.2, COUNT_S = 3, REVEAL_S = 2.4, RESULTS_S = 14;
@@ -76,7 +77,7 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
     const audio = new StompAudio();
     engine.resize(canvas.clientWidth || 600);
 
-    const pads = padPositions(s.size);
+    const pads = s.solo ? [{ x: 0, z: 0 }] : padPositions(s.size);
     // Ville d'attente : la meme mecanique, sans logos ni score, pour que l'ecran vive.
     let preview = new RooftopGame({ size: s.size, roundSeconds: 1e6, shiftStart: 3, shiftEnd: 3 });
     let game: RooftopGame | null = null;
@@ -134,10 +135,11 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
             setJoined(picked);
             engine.collect(p.x, p.z, false, teamMode ? (i <= 1 ? 0 : 1) : i);
             audio.hit(picked.length * 3);
-            if (phaseRef.current === "attract") { go("lobby"); lobbyEnds = performance.now() / 1000 + LOBBY_S; }
+            // Solo : pas d'attente, la partie part tout de suite.
+            if (phaseRef.current === "attract") { go("lobby"); lobbyEnds = performance.now() / 1000 + (s.solo ? 0 : LOBBY_S); }
             else lobbyEnds = Math.min(phaseAt + LOBBY_MAX_S, Math.max(lobbyEnds, now + 3));
           });
-          if (pts.some((q) => Math.hypot(q.x, q.z) <= TEAM_PAD_RADIUS + 0.1) && now - teamToggledAt > 0.8) {
+          if (!s.solo && pts.some((q) => Math.hypot(q.x, q.z) <= TEAM_PAD_RADIUS + 0.1) && now - teamToggledAt > 0.8) {
             teamToggledAt = now;
             teamMode = !teamMode;
             setTeams(teamMode);
@@ -252,13 +254,13 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
     };
     raf = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(raf); detach(); audio.stopPulse(); engine.dispose(); engineRef.current = null; };
-  }, [s.size, s.seconds, s.logo, s.ws, s.debug]);
+  }, [s.size, s.seconds, s.logo, s.ws, s.debug, s.solo]);
 
   useEffect(() => { engineRef.current?.resize(box.size); }, [box.size]);
 
   const pct = (v: number) => `${(v / s.size + 0.5) * 100}%`;
   const u = box.size;
-  const pads = padPositions(s.size);
+  const pads = s.solo ? [{ x: 0, z: 0 }] : padPositions(s.size);
   const plate = (border: string): React.CSSProperties => ({ background: PLATE, border: `${Math.max(1, u * 0.002)}px solid ${border}`, borderRadius: u * 0.012, padding: `${u * 0.006}px ${u * 0.016}px` });
 
   return (
@@ -279,7 +281,7 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
               <div className="flex flex-col items-center" style={plate("rgba(25,230,214,.55)")}>
                 <p className="fm-display roof-neon" style={{ fontSize: u * 0.065 }}>ROOFTOP</p>
                 <p className="fm-display" style={{ fontSize: u * 0.021, color: INK }}>
-                  {phase === "lobby" ? `Départ dans ${lobbyLeft} · les autres, montez !` : "Cours sur les toits · ramasse les logos · évite le vide"}
+                  {s.solo ? "Marche sur le cercle pour jouer" : phase === "lobby" ? `Départ dans ${lobbyLeft} · les autres, montez !` : "Cours sur les toits · ramasse les logos · évite le vide"}
                 </p>
               </div>
             </Mirror>
@@ -296,18 +298,20 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
                       background: on ? `${SIDE_HEX[k]}55` : "rgba(9,5,18,.55)", boxShadow: `0 0 ${u * 0.03}px ${SIDE_HEX[k]}, inset 0 0 ${u * 0.02}px ${SIDE_HEX[k]}`,
                     }} />
                   <div className="pointer-events-none absolute flex flex-col items-center"
-                    style={{ left: pct(p.x), top: pct(p.z + (p.z > 0 ? 0.6 : -0.6)), transform: `translate(-50%,-50%) rotate(${p.z > 0 ? 0 : 180}deg)`, ...plate(SIDE_HEX[k]) }}>
-                    <span className="fm-display" style={{ fontSize: u * 0.028, color: SIDE_TEXT[k], textShadow: outline(SIDE_HEX[k]) }}>{on ? "PRÊT" : `J${i + 1}`}</span>
+                    style={{ left: pct(p.x), top: pct(p.z + (p.z >= 0 ? 0.6 : -0.6)), transform: `translate(-50%,-50%) rotate(${p.z >= 0 ? 0 : 180}deg)`, ...plate(SIDE_HEX[k]) }}>
+                    <span className="fm-display" style={{ fontSize: u * 0.028, color: SIDE_TEXT[k], textShadow: outline(SIDE_HEX[k]) }}>{s.solo ? "JOUER" : on ? "PRÊT" : `J${i + 1}`}</span>
                     {teams && <span className="fm-grotesk" style={{ fontSize: u * 0.016, color: INK }}>Équipe {TEAM_NAMES[k]}</span>}
                   </div>
                 </div>
               );
             })}
+            {!s.solo && <>
             <div className="pointer-events-none absolute left-1/2 top-1/2 grid place-items-center rounded-full"
               style={{ width: `${(TEAM_PAD_RADIUS * 2 / s.size) * 100}%`, height: `${(TEAM_PAD_RADIUS * 2 / s.size) * 100}%`, transform: "translate(-50%,-50%)", border: `${u * 0.006}px solid ${teams ? "#ffd166" : "#b9a6e8"}`, background: "rgba(9,5,18,.7)" }} />
             <div className="pointer-events-none absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, ${u * 0.07}px)`, ...plate(teams ? "#ffd166" : "rgba(201,188,230,.5)") }}>
               <span className="fm-display" style={{ fontSize: u * 0.021, color: teams ? "#ffd166" : INK }}>{teams ? "ÉQUIPES 2v2 · ON" : "ÉQUIPES 2v2"}</span>
             </div>
+            </>}
           </>
         )}
 
