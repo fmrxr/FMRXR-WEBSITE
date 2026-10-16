@@ -31,6 +31,7 @@ const GROUPS: { title: string; links: [string, string][] }[] = [
     links: [
       ["Page Experiences", "/admin/experiences"],
       ["Photobooth", "/admin/photobooth"],
+      ["Live Wall", "/admin/wall"],
     ],
   },
   {
