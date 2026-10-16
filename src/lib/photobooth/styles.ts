@@ -167,6 +167,11 @@ export const STYLES: Record<StyleId, StyleDef> = {
 
 export const DEFAULT_STYLES: StyleId[] = ["mood"];
 
+/** Styles nouveaux en premier, l'ordre des autres inchange (tri stable). */
+export function newFirst<T extends StyleId>(ids: readonly T[]): T[] {
+  return [...ids].sort((a, b) => Number(Boolean(STYLES[b].isNew)) - Number(Boolean(STYLES[a].isNew)));
+}
+
 export function isStyleId(v: unknown): v is StyleId {
   return typeof v === "string" && (STYLE_IDS as readonly string[]).includes(v);
 }

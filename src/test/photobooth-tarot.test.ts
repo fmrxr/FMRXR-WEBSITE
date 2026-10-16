@@ -51,3 +51,14 @@ describe("portrait Tarot", () => {
     expect(buildMoodProfile(answers, DEFAULT_CONFIG, "photo-42", null, "solo", "anime").tarot).toBeUndefined();
   });
 });
+
+import { newFirst, STYLE_IDS, STYLES } from "@/lib/photobooth/styles";
+describe("ordre des styles", () => {
+  it("les styles nouveaux d'abord, les autres dans leur ordre", () => {
+    const sorted = newFirst(STYLE_IDS);
+    const firstOld = sorted.findIndex((id) => !STYLES[id].isNew);
+    expect(sorted.slice(0, firstOld).every((id) => STYLES[id].isNew)).toBe(true);
+    expect(sorted.slice(firstOld).every((id) => !STYLES[id].isNew)).toBe(true);
+    expect(sorted.filter((id) => !STYLES[id].isNew)).toEqual(STYLE_IDS.filter((id) => !STYLES[id].isNew));
+  });
+});

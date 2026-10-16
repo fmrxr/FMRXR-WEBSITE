@@ -15,7 +15,7 @@ import { useRemoteCamera } from "./useRemoteCamera";
 import { RemotePair } from "./RemotePair";
 import { locateFaces, type FaceBox } from "./faceBox";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
-import { STYLES, type StyleId } from "@/lib/photobooth/styles";
+import { STYLES, newFirst, type StyleId } from "@/lib/photobooth/styles";
 
 type Step = "attract" | "camera" | "scan" | "howto" | "shot" | "style" | "quiz" | "mood" | "capture" | "confirm" | "generating" | "result" | "error";
 type Tracker = "idle" | "loading" | "ready" | "failed";
@@ -1099,7 +1099,7 @@ export function Booth({
               <h2 className="fm-display mt-2 text-[clamp(1.4rem,5.5vw,4.5rem)] md:mt-3">{t.styleTitle}</h2>
             </div>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
-              {config.styles.map((id) => {
+              {newFirst(config.styles).map((id) => {
                 const st = STYLES[id];
                 return (
                   <button

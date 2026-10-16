@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHero } from "@/components/site/PageHero";
+import { StyleDeck } from "@/components/site/StyleDeck";
 import { ScrollFilm } from "@/components/site/ScrollFilm";
 import { BoothIcon, type BoothIconKind } from "@/components/site/BoothIcon";
-import { STYLE_IDS, STYLES } from "@/lib/photobooth/styles";
+import { STYLE_IDS, STYLES, newFirst } from "@/lib/photobooth/styles";
 
 // Nombre de styles calcule : la page suit la liste (styles.ts).
 const STYLE_COUNT = STYLE_IDS.length;
@@ -85,23 +85,40 @@ const FEATURES: [string, string, boolean?][] = [
 ];
 
 export default function Photobooth() {
-  const editorial = STYLE_IDS.filter((id) => STYLES[id].family === "editorial");
-  const transform = STYLE_IDS.filter((id) => STYLES[id].family === "transform");
+  // Styles nouveaux en tete de chaque famille.
+  const editorial = newFirst(STYLE_IDS.filter((id) => STYLES[id].family === "editorial"));
+  const transform = newFirst(STYLE_IDS.filter((id) => STYLES[id].family === "transform"));
   return (
     <>
-      <PageHero
-        index="New · FMRXR Experience"
-        title="AI Photo Booth"
-        intro="Your guests leave with a portrait signed by your brand, in under a minute. FMRXR's AI photo booth turns the booth you already have, or an iPhone, into a portrait studio driven by gestures. Built for brand activations, product launches and festivals, and run under live conditions."
-      />
-
-      <section className="mx-auto flex max-w-[1200px] flex-wrap gap-3 px-5 md:px-8">
-        <Link href="/start?ref=photobooth" data-cta="photobooth-page-start" className="rounded-full bg-fmfg px-6 py-3 text-sm font-semibold text-fmbg transition hover:bg-fmaccent">
-          Get a quote for your event
-        </Link>
-        <a href="#styles" data-cta="photobooth-page-styles" className="rounded-full border border-fmborder px-6 py-3 text-sm text-fmfg/85 transition hover:border-fmfg/50">
-          See the {STYLE_COUNT} styles
-        </a>
+      {/* Hero : promesse et appels a l'action a gauche, a droite le paquet des
+          vraies sorties de la borne qu'on bat (styles nouveaux d'abord). */}
+      <section className="mx-auto grid max-w-[1200px] items-center gap-12 px-5 pb-16 pt-4 md:grid-cols-[1.15fr_0.85fr] md:gap-10 md:px-8 md:pb-24">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— New · FMRXR Experience</p>
+          <h1 className="fm-display mt-3 text-[clamp(2.75rem,8vw,6.25rem)] leading-[0.92] text-fmfg">AI Photo Booth</h1>
+          <p className="fm-grotesk mt-6 max-w-xl text-lg leading-relaxed text-fmfg/85 md:text-xl">
+            Your guests leave with a portrait signed by your brand, in under a minute.
+          </p>
+          <p className="fm-grotesk mt-3 max-w-xl text-[15px] leading-relaxed text-fmmuted">
+            FMRXR’s AI photo booth turns the booth you already have, or an iPhone, into a portrait studio driven by gestures.
+            Built for brand activations, product launches and festivals, and run under live conditions.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/start?ref=photobooth" data-cta="photobooth-page-start" className="rounded-full bg-fmfg px-6 py-3 text-sm font-semibold text-fmbg transition hover:bg-fmaccent">
+              Get a quote for your event
+            </Link>
+            <a href="#styles" data-cta="photobooth-page-styles" className="rounded-full border border-fmborder px-6 py-3 text-sm text-fmfg/85 transition hover:border-fmfg/50">
+              See the {STYLE_COUNT} styles
+            </a>
+          </div>
+          <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-[0.12em] text-fmmuted">
+            <li><span className="text-fmfg">{STYLE_COUNT}</span> styles</li>
+            <li><span className="text-fmfg">&lt; 1 min</span> per portrait</li>
+            <li>Your booth or an iPhone</li>
+            <li>FR · EN · AR</li>
+          </ul>
+        </div>
+        <StyleDeck items={newFirst(STYLE_IDS).map((id) => ({ id, label: STYLES[id].label.en, isNew: STYLES[id].isNew }))} />
       </section>
 
       {/* Le film de la borne (BRAND/Motion/fmrxr-photobooth-film) : la facilité,
