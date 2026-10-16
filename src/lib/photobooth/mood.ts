@@ -2,6 +2,7 @@ import type { CampaignConfig, Locale, Localized } from "./config";
 import { PROMPT_BANK, type Variant } from "./prompt-bank";
 import { EXPRESSION_PROMPT, type ExpressionId } from "./expression";
 import { STYLES, type StyleId } from "./styles";
+import { arcanaById, drawArcana } from "./tarot";
 
 // Moteur d'ambiance : traduit les trois reponses en une direction visuelle.
 // Titre, palette et description dependent uniquement des reponses.
@@ -48,6 +49,8 @@ export type MoodProfile = {
   style: StyleId;
   /** Langue du visiteur : textes des mises en page. */
   locale?: string;
+  /** Style Tarot : arcane tire au moment de la photo (id, voir tarot.ts). */
+  tarot?: string;
   /** Visages sur la photo (0-1), mesures sur la borne : recadrage des mises en page. */
   face?: { x: number; y: number; w: number; h: number };
 };
@@ -102,11 +105,17 @@ export function buildMoodProfile(
     chosen.map((c) => c.o.title?.[loc]).filter(Boolean).join(" · ");
   const desc = (loc: Locale) => chosen.map((c) => c.o.label[loc]).join(" · ");
 
+  // Tarot : une carte tiree selon l'aura (energie, expression) des qu'il y a
+  // une photo (graine). Elle devient le titre, sa lecture le sous-titre.
+  const card = styleId === "tarot" && seed ? drawArcana(seed, answers[0], shot === "group" ? null : expressionReading) : null;
+  const cardTitle = (loc: Locale) => `${card!.numeral} · ${card!.name[loc]}`;
+
   return {
     id: answers.join("."),
     variant: chosen.map((c) => `${c.o.id}#${c.idx < 0 ? "-" : c.idx}`).join("."),
-    title: { fr: word("fr"), en: word("en"), ar: word("ar") },
-    description: { fr: desc("fr"), en: desc("en"), ar: desc("ar") },
+    title: card ? { fr: cardTitle("fr"), en: cardTitle("en"), ar: cardTitle("ar") } : { fr: word("fr"), en: word("en"), ar: word("ar") },
+    description: card ? card.reading : { fr: desc("fr"), en: desc("en"), ar: desc("ar") },
+    ...(card ? { tarot: card.id } : {}),
     palette: chosen.find((c) => c.o.palette?.length)?.o.palette ?? [],
     atmosphere: f("atmosphere"),
     expression: f("expression"),
@@ -298,6 +307,14 @@ function buildGroupPrompt(p: MoodProfile, config: CampaignConfig, brand = ""): s
   ].filter(Boolean).join("\n");
 }
 
+/** Tarot : la carte tiree (scene originale), la personne en figure centrale. */
+function tarotLine(p: MoodProfile, group: boolean): string {
+  const a = p.style === "tarot" ? arcanaById(p.tarot) : null;
+  if (!a) return "";
+  return `THE CARD: the major arcana ${a.name.en} (${a.numeral}), drawn for ${group ? "these people" : "this person"}: ${a.scene}. ` +
+    `${group ? "They are" : "The person is"} the central figure of the card, in this original scene; no text, letters or numerals anywhere on the card.`;
+}
+
 /** Style editorial : impose son traitement et sa finition, ajoute sa consigne de cadre. */
 function withStyle(p: MoodProfile): MoodProfile & { extra?: string } {
   const st = STYLES[p.style] ?? STYLES.mood;
@@ -321,6 +338,7 @@ function buildTransformPrompt(p: MoodProfile, config: CampaignConfig, soften: bo
   const who = group ? "every person in the reference photo" : "the person in the reference photo";
   return [
     `Turn ${who} into ${st.transform}.`,
+    tarotLine(p, group),
     brand,
     soften ? SOFTEN : "",
     `LIKENESS (most important): the result must stay clearly recognisable as ${group ? "these exact people" : "this exact person"}. ` +

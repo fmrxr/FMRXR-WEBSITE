@@ -231,6 +231,8 @@ async function retryAfterNsfw(
     const m = ctx.mood;
     mood = buildMoodProfile(ctx.submission.answers, ctx.config, `${u.id}:nsfw-retry`, m.expressionReading, m.shot, m.style);
     if (m.locale) mood.locale = m.locale;
+    // Tarot : la relance garde la carte deja tiree et annoncee au visiteur.
+    if (m.tarot) Object.assign(mood, { tarot: m.tarot, title: m.title, description: m.description });
   } catch {
     return null;
   }

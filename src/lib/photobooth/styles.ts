@@ -127,12 +127,17 @@ export const STYLES: Record<StyleId, StyleDef> = {
     blurb: L("Vous, dans une mégapole du futur.", "You, in a megacity of the future.", "أنت في مدينة المستقبل."),
     transform: "a cyberpunk portrait of this person in a rain-soaked futuristic megacity at night, subtle tech accessories, reflections of city lights",
   },
-  // Ajoute le 16/10/2026. Arcane original : aucun jeu existant, ni texte (le
-  // modele ecrit mal), ni symbole religieux.
+  // Ajoute le 16/10/2026. Un arcane est tire selon l'aura (tarot.ts) et
+  // decrit dans le prompt. Aucun jeu existant, ni texte (le modele ecrit mal),
+  // ni symbole religieux.
   tarot: {
     id: "tarot", family: "transform", layout: "none", isNew: true,
     label: L("Carte de tarot", "Tarot card", "بطاقة تاروت"),
-    blurb: L("Vous, figure centrale d'un arcane original.", "You, as the central figure of an original tarot arcana.", "أنت الشخصية المحورية في بطاقة تاروت أصلية."),
+    blurb: L(
+      "Une carte tirée selon votre aura du moment : vous en devenez la figure centrale.",
+      "A card drawn from your aura of the moment: you become its central figure.",
+      "بطاقة تُسحب حسب هالتك في هذه اللحظة: تصبح شخصيتها المحورية.",
+    ),
     transform:
       "an original illustrated tarot card with this person as the central figure of an imaginary major arcana: a full card composition " +
       "framed by an ornate gilded art-nouveau border, fine engraved linework and hatching, celestial motifs (sun rays, moon phases, " +

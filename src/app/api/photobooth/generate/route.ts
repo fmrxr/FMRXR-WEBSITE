@@ -102,5 +102,6 @@ export async function POST(req: Request) {
     const status = /QUOTA|LIMIT|CAMPAIGN/.test(r.error) ? 409 : r.error.startsWith("INVALID") ? 400 : 502;
     return NextResponse.json({ ok: false, error: r.error, usageId: r.usageId }, { status });
   }
-  return NextResponse.json({ ok: true, usageId: r.usageId, status: r.status });
+  // Titre et lecture du portrait (style Tarot : la carte tiree) pour l'ecran de la borne.
+  return NextResponse.json({ ok: true, usageId: r.usageId, status: r.status, title: r.mood.title, description: r.mood.description });
 }

@@ -93,6 +93,8 @@ export function Booth({
   // Camera choisie sur cette borne (CameraPicker), memorisee dans le navigateur.
   // Visages sur la photo prise, pour recadrer la carte et le Polaroid.
   const faceRef = useRef<FaceBox | null>(null);
+  // Titre et lecture renvoyes par le serveur a la generation (Tarot : arcane tire).
+  const [drawn, setDrawn] = useState<{ title: Record<string, string>; description: Record<string, string> } | null>(null);
   const [cameraId, setCameraId] = useState<string | null>(() => (typeof window === "undefined" ? null : readCamera(slug)));
   // Camera iPhone a distance (QR, meme Wi-Fi) : prioritaire quand elle est connectee.
   const remote = useRemoteCamera(slug);
@@ -281,6 +283,7 @@ export function Booth({
   const reset = useCallback(() => {
     stopCamera();
     lastGestureRef.current = null;
+    setDrawn(null);
     if (pollRef.current) window.clearTimeout(pollRef.current);
     if (photo) URL.revokeObjectURL(photo.url);
     setPhoto(null);
@@ -754,6 +757,8 @@ export function Booth({
       const j = await r.json();
       if (!j.ok) return fail(j.error ?? "DEFAULT");
       usageRef.current = j.usageId;
+      // Titre calcule par le serveur avec la graine de la photo (Tarot : carte tiree).
+      if (j.title && j.description) setDrawn({ title: j.title, description: j.description });
       poll(j.usageId, Date.now() + GEN_DEADLINE_MS);
     } catch {
       fail("DEFAULT");
@@ -1240,7 +1245,7 @@ export function Booth({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={photo.url} alt="" className={`${s.pulse} max-h-[42vh] rounded-xl object-contain grayscale`} />
             )}
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">{mood?.title[locale]}</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">{(drawn ?? mood)?.title[locale]}</p>
             <h2 className="fm-display text-[clamp(2rem,6vw,4.5rem)]">{t.generating}</h2>
             <p className="text-sm text-fmmuted">{t.generatingHint}</p>
           </section>
@@ -1252,12 +1257,12 @@ export function Booth({
           // verticale) : empile, la page defile si besoin.
           <section className={`${s.enter} m-auto grid w-full max-w-6xl items-center justify-items-center gap-5 px-5 pb-10 pt-20 text-center md:gap-6 md:py-20 landscape:md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] landscape:md:gap-10 landscape:md:py-16`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={resultUrl} alt={mood?.title[locale] ?? ""} className="max-h-[52vh] max-w-full rounded-xl object-contain shadow-2xl portrait:md:max-h-[60vh] landscape:md:max-h-[78vh]" />
+            <img src={resultUrl} alt={(drawn ?? mood)?.title[locale] ?? ""} className="max-h-[52vh] max-w-full rounded-xl object-contain shadow-2xl portrait:md:max-h-[60vh] landscape:md:max-h-[78vh]" />
             <div className="flex flex-col items-center gap-5 md:gap-6">
             {mood && (
               <div>
-                <p className="fm-display text-3xl md:text-5xl">{mood.title[locale]}</p>
-                <p className="mt-2 text-sm text-fmmuted">{mood.description[locale]}</p>
+                <p className="fm-display text-3xl md:text-5xl">{(drawn ?? mood).title[locale]}</p>
+                <p className="mt-2 text-sm text-fmmuted">{(drawn ?? mood).description[locale]}</p>
               </div>
             )}
             <div className="flex flex-wrap justify-center gap-3">
