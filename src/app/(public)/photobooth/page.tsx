@@ -121,17 +121,6 @@ export default function Photobooth() {
         <StyleDeck items={newFirst(STYLE_IDS).map((id) => ({ id, label: STYLES[id].label.en, isNew: STYLES[id].isNew }))} />
       </section>
 
-      {/* Le film de la borne (BRAND/Motion/fmrxr-photobooth-film) : la facilité,
-          les gestes et les styles, sur un modèle fictif passé dans la vraie chaîne. */}
-      <section className="mx-auto max-w-[1200px] px-5 md:px-8">
-        <ScrollFilm
-          src={`${MEDIA}/fmrxr-photobooth-film-16x9.mp4`}
-          poster={`${MEDIA}/fmrxr-photobooth-film-poster.jpg`}
-          label="FMRXR AI Photobooth in 40 seconds: any booth, three gestures, fourteen styles on one face"
-        />
-        <p className="mt-3 text-[11px] uppercase tracking-[0.15em] text-fmmuted">Music by Andrii Poradovskyi from Pixabay</p>
-      </section>
-
       <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:mt-16 md:px-8 md:py-24">
         <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— Integration</p>
         <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">Works with the booth you already have</h2>
@@ -213,7 +202,17 @@ export default function Photobooth() {
 
       <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-24">
         <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— What you get</p>
-        <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-3">
+        {/* Le film de la borne (BRAND/Motion/fmrxr-photobooth-film) : la facilité,
+            les gestes et les styles, sur un modèle fictif passé dans la vraie chaîne. */}
+        <div className="mt-8">
+          <ScrollFilm
+            src={`${MEDIA}/fmrxr-photobooth-film-16x9.mp4`}
+            poster={`${MEDIA}/fmrxr-photobooth-film-poster.jpg`}
+            label={`FMRXR AI Photobooth in 40 seconds: any booth, three gestures, ${STYLE_COUNT} styles on one face`}
+          />
+          <p className="mt-3 text-[11px] uppercase tracking-[0.15em] text-fmmuted">Music by Andrii Poradovskyi from Pixabay</p>
+        </div>
+        <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(([title, body, isNew]) => (
             <div key={title} className="bg-fmbg p-6">
               <h3 className="fm-display flex items-center gap-2 text-lg text-fmfg">
