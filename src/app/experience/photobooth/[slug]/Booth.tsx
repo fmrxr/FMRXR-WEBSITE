@@ -11,6 +11,8 @@ import { PAGE_SIZE, usePrinter } from "./usePrinter";
 import { useExpressionReader } from "./useExpression";
 import { TeamGallery } from "./TeamGallery";
 import { CameraPicker, readCamera } from "./CameraPicker";
+import { useRemoteCamera } from "./useRemoteCamera";
+import { RemotePair } from "./RemotePair";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
 import { STYLES, type StyleId } from "@/lib/photobooth/styles";
 
@@ -89,6 +91,10 @@ export function Booth({
   const [answers, setAnswers] = useState<string[]>([]);
   // Camera choisie sur cette borne (CameraPicker), memorisee dans le navigateur.
   const [cameraId, setCameraId] = useState<string | null>(() => (typeof window === "undefined" ? null : readCamera(slug)));
+  // Camera iPhone a distance (QR, meme Wi-Fi) : prioritaire quand elle est connectee.
+  const remote = useRemoteCamera(slug);
+  const [pairOpen, setPairOpen] = useState(false);
+  const [usingRemote, setUsingRemote] = useState(false);
   const [chosen, setChosen] = useState<string | null>(null);
   const [tracker, setTracker] = useState<Tracker>("idle");
   // hand : une main est dans l'image (meme sans geste reconnu) ;
@@ -204,6 +210,16 @@ export function Booth({
     // Le modele des gestes se charge pendant l'autorisation camera et le scan,
     // pas apres : il est pret quand arrive la premiere question.
     loadTracker();
+    // iPhone connecte par QR : son flux remplace la camera de la borne.
+    if (remote.status === "connected" && remote.stream.current) {
+      const v = videoRef.current!;
+      v.srcObject = remote.stream.current;
+      await v.play().catch(() => undefined);
+      setUsingRemote(true);
+      setStep("scan");
+      return;
+    }
+    setUsingRemote(false);
     // Camera choisie sur cette borne (webcam USB, iPhone en webcam...), sinon
     // la camera frontale par defaut.
     const coarse = window.matchMedia("(pointer: coarse)").matches;
@@ -241,7 +257,7 @@ export function Booth({
       const name = (e as DOMException)?.name;
       fail(name === "NotAllowedError" || name === "SecurityError" ? "CAMERA_DENIED" : "CAMERA_UNAVAILABLE");
     }
-  }, [fail, loadTracker, cameraId]);
+  }, [fail, loadTracker, cameraId, remote.status, remote.stream]);
 
   useEffect(() => () => {
     stopCamera();
@@ -589,26 +605,50 @@ export function Booth({
   }, [debug]);
 
   // ---------- capture ----------
-  const snap = useCallback(() => {
-    const v = videoRef.current;
-    if (!v || !v.videoWidth) return fail("CAPTURE_FAILED");
+  const snap = useCallback(async () => {
+    // iPhone par QR : photo prise sur son capteur, en pleine definition. Sinon
+    // (ou sans reponse en 8 s) : l'image affichee.
+    let source: CanvasImageSource | null = null;
+    let w = 0;
+    let h = 0;
+    // Miroir comme l'apercu ; camera arriere de l'iPhone : jamais inversee.
+    let mirror = !(usingRemote && remote.facing === "environment");
+    if (usingRemote) {
+      const r = await remote.requestPhoto();
+      const bmp = r ? await createImageBitmap(r.blob).catch(() => null) : null;
+      if (r && bmp) {
+        source = bmp;
+        w = bmp.width;
+        h = bmp.height;
+        mirror = r.facing === "user";
+      }
+    }
+    if (!source) {
+      const v = videoRef.current;
+      if (!v || !v.videoWidth) return fail("CAPTURE_FAILED");
+      source = v;
+      w = v.videoWidth;
+      h = v.videoHeight;
+    }
     const [aw, ah] = captureAspect.split(":").map(Number);
     const target = aw / ah;
-    let sw = v.videoWidth;
-    let sh = v.videoHeight;
+    let sw = w;
+    let sh = h;
     if (sw / sh > target) sw = Math.round(sh * target);
     else sh = Math.round(sw / target);
-    const sx = (v.videoWidth - sw) / 2;
-    const sy = (v.videoHeight - sh) / 2;
+    const sx = (w - sw) / 2;
+    const sy = (h - sh) / 2;
     const scale = Math.min(1, MAX_SIDE / Math.max(sw, sh));
     const c = document.createElement("canvas");
     c.width = Math.round(sw * scale);
     c.height = Math.round(sh * scale);
     const ctx = c.getContext("2d")!;
     // Meme miroir que l'apercu : la photo ressemble a ce que la personne a vu.
-    ctx.translate(c.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    if (mirror) {
+      ctx.translate(c.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(source, sx, sy, sw, sh, 0, 0, c.width, c.height);
     // JPEG 0.92, puis 0.82 si la photo depasse la taille autorisee (photo 4K).
     const done = (blob: Blob | null, retried: boolean) => {
       if (blob && blob.size > config.maxUploadBytes && !retried) return c.toBlob((b) => done(b, true), "image/jpeg", 0.82);
@@ -620,7 +660,7 @@ export function Booth({
       setStep("confirm");
     };
     c.toBlob((b) => done(b, false), "image/jpeg", 0.92);
-  }, [captureAspect, config.maxUploadBytes, fail]);
+  }, [captureAspect, config.maxUploadBytes, fail, usingRemote, remote]);
 
   const startCountdown = useCallback(() => {
     if (count !== null) return;
@@ -773,7 +813,11 @@ export function Booth({
         className={s.video}
         playsInline
         muted
-        style={{ opacity: cameraOn ? 1 : 0, filter: step === "mood" ? "blur(18px) brightness(0.5)" : "none" }}
+        style={{
+          opacity: cameraOn ? 1 : 0, filter: step === "mood" ? "blur(18px) brightness(0.5)" : "none",
+          // Camera arriere de l'iPhone : on ne retourne pas l'image.
+          ...(usingRemote && remote.facing === "environment" ? { transform: "none" } : {}),
+        }}
       />
       <div className={s.veil} />
       {debug && <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 z-[5] h-full w-full" />}
@@ -814,7 +858,23 @@ export function Booth({
           </span>
         )}
         {step === "attract" && <TeamGallery slug={slug} accessKey={accessKey} t={t} />}
-        {step === "attract" && <CameraPicker slug={slug} value={cameraId} onChange={setCameraId} t={t} />}
+        {step === "attract" && remote.status === "connected" && (
+          <span className="me-1 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fmaccent">
+            <span className="size-2 rounded-full bg-fmaccent" /> iPhone
+          </span>
+        )}
+        {step === "attract" && (
+          <CameraPicker
+            slug={slug} value={cameraId} onChange={setCameraId} t={t}
+            extra={{ label: remote.status === "connected" ? `${t.remoteOption} ✓` : t.remoteOption, onSelect: () => { if (!remote.pairId) remote.pair(); setPairOpen(true); } }}
+          />
+        )}
+        {pairOpen && (
+          <RemotePair
+            slug={slug} accessKey={accessKey} pairId={remote.pairId} status={remote.status} t={t}
+            onNew={() => remote.pair()} onForget={() => { remote.unpair(); setPairOpen(false); }} onClose={() => setPairOpen(false)}
+          />
+        )}
         {step === "attract" && config.locales.length > 1 && (
           <div className="flex gap-1 font-mono text-xs">
             {config.locales.map((l) => (
