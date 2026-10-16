@@ -34,7 +34,7 @@ const HASH = /* glsl */ `
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 `;
 
-function buildingMaterial(p: CityPalette) {
+export function buildingMaterial(p: CityPalette) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uHaze: { value: p.haze }, uDepth: { value: CITY_DEPTH },
