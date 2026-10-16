@@ -195,17 +195,18 @@ function groundMaterial(p: CityPalette) {
 }
 
 /** Traînees de phares : petits barreaux lumineux qui filent le long des rues. */
-function makeTraffic(p: CityPalette, rand: () => number) {
+function makeTraffic(p: CityPalette, rand: () => number, north = 0) {
   const count = 220;
   const geo = new THREE.BoxGeometry(1, 0.08, 0.1);
   const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
   const mesh = new THREE.InstancedMesh(geo, mat, count);
   const cars = Array.from({ length: count }, () => {
     const horizontal = rand() < 0.5;
-    const lane = Math.round((rand() * 2 - 1) * (EXTENT / BLOCK)) * BLOCK;
+    // Avenues nord-sud reparties sur toute la longueur de la ville (prolongee au nord).
+    const lane = horizontal ? Math.round((-EXTENT - north + rand() * (2 * EXTENT + north)) / BLOCK) * BLOCK : Math.round((rand() * 2 - 1) * (EXTENT / BLOCK)) * BLOCK;
     const dir = rand() < 0.5 ? 1 : -1;
     const head = dir > 0;
-    return { horizontal, lane: lane + (head ? 0.35 : -0.35), dir, pos: (rand() * 2 - 1) * EXTENT, speed: 4 + rand() * 7, head };
+    return { horizontal, lane: lane + (head ? 0.35 : -0.35), dir, pos: horizontal ? (rand() * 2 - 1) * EXTENT : -EXTENT - north + rand() * (2 * EXTENT + north), speed: 4 + rand() * 7, head };
   });
   const white = new THREE.Color(1.5, 1.4, 1.2);
   const red = new THREE.Color(1.8, 0.15, 0.2);
@@ -218,7 +219,8 @@ function makeTraffic(p: CityPalette, rand: () => number) {
   const update = (dt: number) => {
     cars.forEach((c, i) => {
       c.pos += c.dir * c.speed * dt;
-      if (c.pos > EXTENT) c.pos = -EXTENT; else if (c.pos < -EXTENT) c.pos = EXTENT;
+      const lo = c.horizontal ? -EXTENT : -EXTENT - north;
+      if (c.pos > EXTENT) c.pos = lo; else if (c.pos < lo) c.pos = EXTENT;
       const len = 0.5 + c.speed * 0.1;
       if (c.horizontal) { v.set(c.pos, -CITY_DEPTH + 0.1, c.lane); q.identity(); }
       else { v.set(c.lane, -CITY_DEPTH + 0.1, c.pos); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2); }
@@ -233,7 +235,7 @@ function makeTraffic(p: CityPalette, rand: () => number) {
 }
 
 /** Palmiers : vus d'en haut, une etoile sombre de palmes sur un halo de lampadaire. */
-function makePalms(rand: () => number, shoreAt: (x: number, z: number) => number) {
+function makePalms(rand: () => number, shoreAt: (x: number, z: number) => number, north = 0) {
   const leaf = new THREE.PlaneGeometry(1.5, 0.32);
   leaf.translate(0.75, 0, 0);
   leaf.rotateX(-Math.PI / 2);
@@ -253,7 +255,7 @@ function makePalms(rand: () => number, shoreAt: (x: number, z: number) => number
   const m = new THREE.Matrix4();
   let i = 0;
   for (let tries = 0; tries < 2000 && i < count; tries++) {
-    const x = (rand() * 2 - 1) * EXTENT, z = (rand() * 2 - 1) * EXTENT;
+    const x = (rand() * 2 - 1) * EXTENT, z = -EXTENT - north + rand() * (2 * EXTENT + north);
     const s = shoreAt(x, z);
     const onBeach = s > -0.2 && s < 1.4;
     const onAvenue = s < 0 && Math.abs(((x + BLOCK * 0.5) % BLOCK + BLOCK) % BLOCK - BLOCK / 2) > BLOCK / 2 - STREET * 0.55;
@@ -286,16 +288,17 @@ function mergeSimple(geos: THREE.BufferGeometry[]) {
   return out;
 }
 
-export function buildCity(palette: CityPalette = DEFAULT_PALETTE, rand: () => number = Math.random) {
+/** `north` : prolonge la ville vers -z de ce nombre d'unites (mode coureur de ROOFTOP, la vue avance vers le nord). */
+export function buildCity(palette: CityPalette = DEFAULT_PALETTE, rand: () => number = Math.random, north = 0) {
   const scene = new THREE.Scene();
   scene.background = palette.haze.clone().multiplyScalar(0.6);
   const shoreAt = (x: number, z: number) => x + z * 0.35 - EXTENT * 0.45;
 
   // Sol de la ville (rues, plage, ocean).
   const groundMat = groundMaterial(palette);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(EXTENT * 2.4, EXTENT * 2.4), groundMat);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(EXTENT * 2.4, EXTENT * 2.4 + north), groundMat);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -CITY_DEPTH;
+  ground.position.set(0, -CITY_DEPTH, -north / 2);
   scene.add(ground);
 
   // Immeubles : 2 a 4 par ilot, hauteurs variees, quelques tours tres proches du verre.
@@ -303,7 +306,7 @@ export function buildCity(palette: CityPalette = DEFAULT_PALETTE, rand: () => nu
   box.translate(0, 0.5, 0);
   const placements: { x: number; z: number; w: number; d: number; h: number }[] = [];
   for (let bx = -EXTENT; bx <= EXTENT; bx += BLOCK) {
-    for (let bz = -EXTENT; bz <= EXTENT; bz += BLOCK) {
+    for (let bz = -EXTENT - Math.ceil(north / BLOCK) * BLOCK; bz <= EXTENT; bz += BLOCK) {
       const inner = BLOCK - STREET;
       const n = 1 + Math.floor(rand() * 3);
       for (let k = 0; k < n; k++) {
@@ -330,9 +333,9 @@ export function buildCity(palette: CityPalette = DEFAULT_PALETTE, rand: () => nu
   box.setAttribute("aSeed", new THREE.InstancedBufferAttribute(seeds, 1));
   scene.add(buildings);
 
-  const traffic = makeTraffic(palette, rand);
+  const traffic = makeTraffic(palette, rand, north);
   scene.add(traffic.mesh);
-  for (const p of makePalms(rand, shoreAt)) scene.add(p);
+  for (const p of makePalms(rand, shoreAt, north)) scene.add(p);
 
   const update = (dt: number, time: number) => {
     traffic.update(dt);

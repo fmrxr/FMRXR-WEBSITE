@@ -89,3 +89,56 @@ describe("rooftop : jouer", () => {
     expect(g.sides[0].score).toBe(0);
   });
 });
+
+describe("rooftop : mode coureur (la ville defile)", () => {
+  const runner = (seed: number, extra = {}) => new RooftopGame({ scroll: true, ...extra }, seed);
+
+  it("vitesse douce : 15 cm/s au depart, 45 cm/s au plus, l'essentiel de l'acceleration a la fin", async () => {
+    const { speedAt } = await import("@/lib/rooftop/game");
+    const cfg = { ...c, scroll: true };
+    expect(speedAt(0, cfg) * 0.5).toBeCloseTo(0.15); // m/s (une case = 50 cm)
+    expect(speedAt(cfg.roundSeconds, cfg) * 0.5).toBeCloseTo(0.45);
+    // Aux deux tiers de la manche, on est encore sous le tiers de la hausse.
+    const k = (speedAt(cfg.roundSeconds * 2 / 3, cfg) - cfg.speedStart) / (cfg.speedEnd - cfg.speedStart);
+    expect(k).toBeLessThan(0.4);
+  });
+
+  it("aucun saut : chaque case vide a un toit a un pas (50 cm), pendant toute la manche", () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const g = runner(seed);
+      for (let t = 0; t < c.roundSeconds; t += 0.25) {
+        g.update(0.25);
+        for (let col = 0; col < g.n; col++) for (let r = 0; r < g.n; r++) {
+          if (g.isRoof(col, r)) continue;
+          const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dc, dr]) => {
+            const cc = col + dc, rr = r + dr;
+            // Une rangee au-dela des bords haut et bas compte : la ville y est deja construite et arrive sur le sol.
+            return cc >= 0 && rr >= -1 && cc < g.n && rr <= g.n && g.isRoof(cc, rr);
+          });
+          expect(near).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("on part tous d'un toit, la ville avance, et rester immobile finit par faire tomber", () => {
+    const g = runner(8);
+    // La moitie basse du sol est entierement en toits au depart.
+    for (let col = 0; col < g.n; col++) expect(g.isRoof(col, g.n - 1)).toBe(true);
+    const foot = g.cellCenter(1, g.n - 1);
+    let fell = false;
+    for (let i = 0; i < 60 * 40 && !fell; i++) fell = g.update(1 / 60, [foot]).some((e) => e.type === "fall");
+    expect(g.scroll).toBeGreaterThan(0);
+    expect(fell).toBe(true);
+  });
+
+  it("les logos arrivent par le haut et se ramassent en marchant dessus", () => {
+    const g = runner(9, { goldChance: 0 });
+    run(g, 1);
+    const l = g.logos.find((x) => !x.gone)!;
+    const at = g.floorPos(l.c, l.r);
+    expect(at.z).toBeLessThan(0.2); // moitie haute du sol
+    const ev = g.step([at]);
+    expect(ev[0]).toMatchObject({ type: "collect", points: 100 });
+  });
+});

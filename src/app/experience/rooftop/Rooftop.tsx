@@ -19,7 +19,8 @@ type Phase = "attract" | "lobby" | "freeze" | "play" | "reveal" | "results";
 // bas contre haut), 4 JOUEURS (un quart chacun, jouable a 2 ou 3).
 // « menu » : l'accueil propose les trois, on choisit en marchant sur sa plaque.
 export type Mode = "solo" | "teams" | "versus";
-export type RooftopSettings = { size: number; seconds: number; logo: string; ws: string | null; px: number | null; ox: number | null; oy: number | null; debug: boolean; mode: Mode | "menu"; tone: "agx" | "aces" };
+// map : « run » (par defaut) = la ville defile, on avance de toit en toit ; « static » = carte fixe, toits qui s'effondrent.
+export type RooftopSettings = { size: number; seconds: number; logo: string; ws: string | null; px: number | null; ox: number | null; oy: number | null; debug: boolean; mode: Mode | "menu"; tone: "agx" | "aces"; map: "run" | "static" };
 
 const MODE_LABEL: Record<Mode, string> = { solo: "SOLO", teams: "2v2", versus: "4 JOUEURS" };
 const MODE_HINT: Record<Mode, string> = { solo: "1 joueur", teams: "2 équipes de 2", versus: "2 à 4 joueurs" };
@@ -87,7 +88,8 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
 
   useEffect(() => {
     const canvas = canvasRef.current!, el = boxRef.current!;
-    const engine = new RooftopEngine(canvas, { size: s.size, logoUrl: s.logo, tone: s.tone });
+    // Ville prolongee au nord pour toute la course : vitesse maximale x duree, avec marge.
+    const engine = new RooftopEngine(canvas, { size: s.size, logoUrl: s.logo, tone: s.tone, north: s.map === "run" ? s.seconds * 0.9 * 0.5 + 20 : 0 });
     engineRef.current = engine;
     const audio = new StompAudio();
     engine.resize(canvas.clientWidth || 600);
@@ -124,13 +126,13 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
     const onEvents = (g: RooftopGame, events: RoofEvent[]) => {
       for (const e of events) {
         if (e.type === "collect") {
-          const p = g.cellCenter(e.logo.c, e.logo.r);
-          engine.collect(p.x, p.z, e.logo.kind === "gold", e.logo.owner);
+          const p = { x: e.x, z: e.z };
+          engine.collect(p.x, p.z, e.logo.kind === "gold", e.side);
           if (e.logo.kind === "gold") audio.gold(); else audio.hit(e.combo);
           pop(p.x, p.z, `+${e.points}`, e.logo.kind === "gold" ? "#ffd166" : INK);
           if (e.combo > 0 && e.combo % 3 === 0) pop(p.x, p.z - 0.45, `×${g.multiplierOf(e.side)}`, sideIdentity(line, e.side).text);
         } else {
-          const p = g.cellCenter(e.c, e.r);
+          const p = { x: e.x, z: e.z };
           engine.fall(p.x, p.z);
           audio.hazard();
           pop(p.x, p.z, `${e.points}`, DANGER);
@@ -216,7 +218,7 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
             const ids = line.sides.map((_, i) => sideIdentity(line, i));
             engine.setOwnerColors(ids.map((x) => x.color));
             engine.setZones(line.sides.map((x) => x.zone), ids.map((x) => x.color), 1);
-            game = new RooftopGame({ size: s.size, roundSeconds: s.seconds, zones: line.sides.map((x) => x.zone) });
+            game = new RooftopGame({ size: s.size, roundSeconds: s.seconds, zones: line.sides.map((x) => x.zone), scroll: s.map === "run" });
             setSides(sideViews());
             audio.freeze();
             go("freeze");
@@ -281,12 +283,14 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
           go("attract");
         }
       }
+      // Mode coureur : la fenetre du sol suit le defilement de la partie (l'accueil reste fixe).
+      engine.setScroll(game && ph !== "attract" && ph !== "lobby" ? game.scroll : 0);
       engine.render(dt);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(raf); detach(); audio.stopPulse(); engine.dispose(); engineRef.current = null; };
-  }, [s.size, s.seconds, s.logo, s.ws, s.debug, s.mode, s.tone]);
+  }, [s.size, s.seconds, s.logo, s.ws, s.debug, s.mode, s.tone, s.map]);
 
   useEffect(() => { engineRef.current?.resize(box.size); }, [box.size]);
 

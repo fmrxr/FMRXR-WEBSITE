@@ -177,8 +177,16 @@ export class RooftopEngine {
   private time = 0;
   private shake = 0;
   frost = 0;
+  /**
+   * Mode coureur : decalage de la fenetre du sol vers le nord (-z), en unites
+   * monde. Les immeubles et les logos restent fixes dans le monde ; la camera,
+   * le verre et les effets suivent la fenetre. Tout ce que le jeu donne en
+   * coordonnees du sol (effets, joueurs) est decale ici.
+   */
+  private offsetZ = 0;
+  setScroll(cells: number) { this.offsetZ = -cells * CELL; }
 
-  constructor(canvas: HTMLCanvasElement, opts: { size: number; logoUrl?: string; tone?: string }) {
+  constructor(canvas: HTMLCanvasElement, opts: { size: number; logoUrl?: string; tone?: string; north?: number }) {
     this.size = opts.size;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
     // Le canvas a deja la taille du sol LED : pas de suréchantillonnage.
@@ -190,7 +198,7 @@ export class RooftopEngine {
 
     // La ville du fond, en palette « neon coast » : coucher de soleil vertical,
     // asphalte mouille au sodium, balises rouges sur les tours.
-    this.city = buildCity(NEON_COAST);
+    this.city = buildCity(NEON_COAST, Math.random, opts.north ?? 0);
     this.scene = this.city.scene;
     this.scene.add(new THREE.HemisphereLight(0xffd0f0, 0x200030, 1.1));
 
@@ -248,11 +256,12 @@ export class RooftopEngine {
     this.eye.x += (this.eyeTarget.x + driftX - this.eye.x) * 0.06;
     this.eye.z += (this.eyeTarget.y + driftZ - this.eye.z) * 0.06;
     const sx = this.shake ? (Math.random() - 0.5) * this.shake : 0, sz = this.shake ? (Math.random() - 0.5) * this.shake : 0;
+    // Oeil exprime par rapport au centre de la fenetre du sol (qui avance en mode coureur).
     const e = new THREE.Vector3(this.eye.x + sx, EYE_HEIGHT * (this.size / 4), this.eye.z + sz);
     const cam = this.camera;
-    cam.position.copy(e);
+    cam.position.set(e.x, e.y, e.z + this.offsetZ);
     cam.up.set(0, 0, -1);
-    cam.lookAt(e.x, 0, e.z);
+    cam.lookAt(e.x, 0, e.z + this.offsetZ);
     const n = 0.1, f = 400, h = e.y, half = this.size / 2;
     cam.projectionMatrix.makePerspective((-half - e.x) * n / h, (half - e.x) * n / h, (half + e.z) * n / h, (-half + e.z) * n / h, n, f);
     cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
@@ -348,7 +357,8 @@ export class RooftopEngine {
 
   private makeCoin(l: Logo) {
     const g = new THREE.Group();
-    const color = l.kind === "gold" ? new THREE.Color(3, 2, 0.4) : this.ownerColors[l.owner].clone().multiplyScalar(2.6);
+    const base = this.ownerColors[l.owner] ?? new THREE.Color("#ff2d95"); // logo neutre : couleur de marque
+    const color = l.kind === "gold" ? new THREE.Color(3, 2, 0.4) : base.clone().multiplyScalar(2.6);
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.04, 40), new THREE.MeshStandardMaterial({ color: 0x14051e, emissive: color, emissiveIntensity: 0.2, metalness: 0.7, roughness: 0.3 }));
     g.add(disc);
     for (const side of [1, -1]) {
@@ -434,13 +444,15 @@ export class RooftopEngine {
     } });
   }
 
-  collect(x: number, z: number, gold: boolean, owner: number) {
-    this.burst(x, z, gold ? new THREE.Color(3, 2, 0.4) : this.ownerColors[owner].clone().multiplyScalar(2.4), gold ? 110 : 60, false);
+  collect(x: number, z0: number, gold: boolean, owner: number) {
+    const z = z0 + this.offsetZ;
+    this.burst(x, z, gold ? new THREE.Color(3, 2, 0.4) : (this.ownerColors[owner] ?? new THREE.Color("#ff2d95")).clone().multiplyScalar(2.4), gold ? 110 : 60, false);
     this.shake = gold ? 0.1 : 0.04;
   }
 
   /** Chute : eclats de verre rouge qui tombent dans le vide, anneau d'alerte. */
-  fall(x: number, z: number) {
+  fall(x: number, z0: number) {
+    const z = z0 + this.offsetZ;
     this.burst(x, z, new THREE.Color(3, 0.3, 0.35), 90, true);
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.18, 0.25, 4, 1, Math.PI / 4), new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 0.2, 0.25), transparent: true, toneMapped: false, side: THREE.DoubleSide }));
     ring.rotation.x = -Math.PI / 2;
@@ -452,6 +464,7 @@ export class RooftopEngine {
 
   render(dt: number) {
     this.time += dt;
+    this.overlay.position.z = this.offsetZ; // le verre suit la fenetre du sol
     this.updateCamera();
     this.city.update(dt, this.time);
     const u = this.overlay.material.uniforms;
