@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { CHUNK, ICE_SERVERS, channelName, type Control, type Facing, type Signal } from "@/lib/photobooth/remote-camera";
-import { decideGesture, type Point } from "@/lib/photobooth/gestures";
+import { decideFromHands, type Point } from "@/lib/photobooth/gestures";
 import type { GestureRecognizer } from "@mediapipe/tasks-vision";
 
 /**
@@ -16,7 +16,8 @@ async function loadRecognizer(): Promise<GestureRecognizer | null> {
     const make = (delegate: "GPU" | "CPU") => GestureRecognizer.createFromOptions(files, {
       baseOptions: { modelAssetPath: "/photobooth/mediapipe/gesture_recognizer.task", delegate },
       runningMode: "VIDEO",
-      numHands: 1,
+      // Deux mains : vue en pied, la main baissee masquait celle qui faisait le geste.
+      numHands: 2,
       minHandDetectionConfidence: 0.5,
       minHandPresenceConfidence: 0.5,
       minTrackingConfidence: 0.5,
@@ -177,13 +178,13 @@ export function RemoteCamera({ pairId, campaign, minScore }: { pairId: string; c
           frame.height = h;
         }
         fctx.drawImage(v, 0, 0, frame.width, frame.height);
-        let g: ReturnType<typeof decideGesture> = null;
+        let g: ReturnType<typeof decideFromHands>["gesture"] = null;
         let hand = false;
         try {
           const res = recognizer.recognizeForVideo(frame, performance.now());
-          const marks = res.landmarks?.[0] as Point[] | undefined;
-          g = decideGesture(res.gestures?.[0]?.[0], marks, minScore);
-          hand = Boolean(marks?.length);
+          const pick = decideFromHands(res.gestures, res.landmarks as Point[][] | undefined, minScore);
+          g = pick.gesture;
+          hand = pick.hand;
         } catch {
           return;
         }

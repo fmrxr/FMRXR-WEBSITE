@@ -111,3 +111,30 @@ export function decideGesture(
   if (top.score >= AGREEMENT_FLOOR && landmarks && classifyGesture(landmarks) === mapped) return mapped;
   return null;
 }
+
+/**
+ * Plusieurs mains dans l'image : on retient celle qui fait un geste reconnu
+ * (score le plus haut ; a quasi-egalite, la plus haute dans l'image). Avec
+ * une seule main suivie, le modele prenait parfois la main baissee le long
+ * du corps et ignorait celle qui faisait le geste (test iPhone du 16/10/2026,
+ * personne vue en pied).
+ */
+export function decideFromHands(
+  gestures: { categoryName: string; score: number }[][] | undefined,
+  landmarks: Point[][] | undefined,
+  minScore = DEFAULT_MIN_SCORE,
+): { gesture: Gesture | null; hand: boolean; index: number } {
+  const n = landmarks?.length ?? 0;
+  let best: { gesture: Gesture | null; score: number; y: number; index: number } = { gesture: null, score: -1, y: Infinity, index: -1 };
+  for (let i = 0; i < n; i++) {
+    const top = gestures?.[i]?.[0];
+    const marks = landmarks![i];
+    const g = decideGesture(top, marks, minScore);
+    if (!g || !top) continue;
+    const y = marks[0]?.y ?? 1; // poignet
+    if (top.score > best.score + 0.05 || (Math.abs(top.score - best.score) <= 0.05 && y < best.y)) {
+      best = { gesture: g, score: top.score, y, index: i };
+    }
+  }
+  return { gesture: best.gesture, hand: n > 0, index: best.index >= 0 ? best.index : n > 0 ? 0 : -1 };
+}

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { GestureRecognizer } from "@mediapipe/tasks-vision";
 import QRCode from "qrcode";
 import type { CampaignConfig, Gesture, Locale } from "@/lib/photobooth/config";
-import { decideGesture, GestureStabilizer, type Point } from "@/lib/photobooth/gestures";
+import { GestureStabilizer, type Point, decideFromHands } from "@/lib/photobooth/gestures";
 import { buildMoodProfile, type Answers, type Shot } from "@/lib/photobooth/mood";
 import { ERROR_ALIAS, ERRORS, GESTURE_GLYPH, UI } from "./strings";
 import s from "./booth.module.css";
@@ -185,7 +185,8 @@ export function Booth({
         const r = await GestureRecognizer.createFromOptions(files, {
           baseOptions: { modelAssetPath: "/photobooth/mediapipe/gesture_recognizer.task", delegate },
           runningMode: "VIDEO",
-          numHands: 1,
+          // Deux mains : la main baissee ne masque plus celle qui fait le geste.
+          numHands: 2,
           minHandDetectionConfidence: 0.5,
           minHandPresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
@@ -435,10 +436,11 @@ export function Booth({
         }
         fctx.drawImage(v, 0, 0, frame.width, frame.height);
         const res = lm.recognizeForVideo(frame, now);
-        const top = res.gestures?.[0]?.[0];
-        const marks = res.landmarks?.[0] as Point[] | undefined;
-        g = decideGesture(top, marks, config.gestureMinScore);
-        hand = Boolean(marks?.length);
+        const pick = decideFromHands(res.gestures, res.landmarks as Point[][] | undefined, config.gestureMinScore);
+        const top = pick.index >= 0 ? res.gestures?.[pick.index]?.[0] : undefined;
+        const marks = pick.index >= 0 ? (res.landmarks?.[pick.index] as Point[] | undefined) : undefined;
+        g = pick.gesture;
+        hand = pick.hand;
         frames++;
         const d = debugRef.current;
         d.category = top?.categoryName ?? "-";
