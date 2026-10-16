@@ -54,7 +54,7 @@ const FAQ: [string, string][] = [
 ];
 
 const STEPS: [string, string, BoothIconKind][] = [
-  ["Learn by doing", "A ten-second tutorial on the live camera: raise a hand, hold it until the frame fills. Hand tracking runs on the device: nothing is sent.", "hand"],
+  ["Learn by doing", "A ten-second tutorial on the live camera: raise a hand, hold it until the frame fills. FMRXR technologies hand tracking runs on the device: nothing is sent.", "hand"],
   ["Solo or group", "One gesture to choose a portrait or a group photo. Every face is kept.", "shot"],
   ["One to three questions", "The mood of the portrait, answered with a gesture or a tap. The frame fills as the guest holds it and shows what it will do.", "questions"],
   ["One photo", "Thumbs up to shoot, thumbs up to confirm, V sign to retake. Nothing leaves the booth before the guest confirms.", "photo"],

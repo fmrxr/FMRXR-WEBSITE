@@ -49,7 +49,7 @@ export function PhotoboothCTA({ index, source }: { index: string; source: string
           ["Your existing booth", "Any screen, camera and printer, nothing to install"],
           [`${STYLE_IDS.length} styles`, "Activated per client from the CMS"],
           ["Your brand on every image", "Logo, print, QR sharing"],
-          ["Gesture-driven", "Hand tracking on the device, FR · EN · AR"],
+          ["Gesture-driven", "FMRXR technologies hand tracking, FR · EN · AR"],
         ].map(([k, v]) => (
           <li key={k} className="bg-fmbg p-4">
             <p className="fm-display text-sm text-fmfg">{k}</p>

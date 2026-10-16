@@ -49,7 +49,7 @@ export const EXPERIENCES: Experience[] = [
   {
     slug: "radiance", title: "RADIANCE", row: "body", year: 2026, featured: true,
     pitch: "Your hand becomes a light source. Radiance cascades trace how it spills across the room, live.",
-    credits: ["FMRXR Studio", "Hand tracking by MediaPipe, on your device"],
+    credits: ["FMRXR Studio", "Hand tracking by FMRXR technologies, on your device"],
     entry: "/experiences/radiance/index.html", ...media("radiance"),
     requires: ["camera"], desktopOnly: true, project: "radiance",
   },

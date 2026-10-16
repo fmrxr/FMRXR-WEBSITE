@@ -41,7 +41,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "Data as material, not decoration",
     body: [
-      "At Djerba Explore, the island's cultural, sonic and environmental data were not illustrated, they were the material the image and the sound were generated from. Nine microphones spread at different heights listened to the room and the room drew itself. A jar of olives, wired through an ultrasonic sensor and an Arduino, drove wall pixel mapping over DMX.",
+      "At Djerba Explore, the island's cultural, sonic and environmental data were not illustrated, they were the material the image and the sound were generated from. Nine microphones spread at different heights listened to the room and the room drew itself. A jar of olives, wired through FMRXR technologies sensors, drove wall pixel mapping over DMX.",
       "The principle holds across formats. For a cinema piece in Dolby Atmos, the image follows the spatial structure of the mix rather than its amplitude. For a hundred and fifty violinists in the round, a single shader feeds sixteen LED surfaces for fifty minutes with no video editing at all. The image is never played back, it is computed while people are watching.",
     ],
   },
