@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isHidden } from "@/lib/photobooth/gallery-access";
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseDb, relayPortrait } from "@/lib/photobooth/server";
+import { createSupabaseDb, logEvent, relayPortrait } from "@/lib/photobooth/server";
 
 // GET /api/photobooth/download/<usageId>?session=<id>[&dl=1]
 // Relaie l'image generee (meme origine, donc telechargeable et affichable sans
@@ -24,5 +24,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   // Portrait supprime depuis une galerie : plus telechargeable.
   const { data: m } = await getSupabaseAdmin().from("photobooth_usage").select("mood").eq("id", id).maybeSingle();
   if (isHidden(m?.mood)) return new NextResponse("Not found", { status: 404 });
-  return relayPortrait(u.result_url, id, req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${id.slice(0, 8)}` : null);
+  const dl = req.nextUrl.searchParams.get("dl");
+  if (dl) logEvent(u.campaign_id, "download", id);
+  return relayPortrait(u.result_url, id, dl ? `fmrxr-portrait-${id.slice(0, 8)}` : null);
 }

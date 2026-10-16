@@ -4,6 +4,7 @@ import { z } from "zod";
 import { sniffImage } from "@/lib/photobooth/image";
 import { campaignAvailability, clientIp, createSupabaseDb, getProvider, loadCampaign, rateLimited, reconcileStale } from "@/lib/photobooth/server";
 import { startGeneration } from "@/lib/photobooth/service";
+import { purgeExpired } from "@/lib/photobooth/purge";
 import { EXPRESSIONS, type ExpressionId } from "@/lib/photobooth/expression";
 import { chooseAspect, SHOTS, type Shot } from "@/lib/photobooth/mood";
 import { isStyleId, type StyleId } from "@/lib/photobooth/styles";
@@ -93,6 +94,8 @@ export async function POST(req: Request) {
   const db = createSupabaseDb();
   // Libere ou finalise d'abord les generations abandonnees (page rechargee...).
   await reconcileStale(loaded.campaign.id, provider, db);
+  // Fin de conservation, en tache de fond (ne ralentit pas l'invite).
+  void purgeExpired(loaded.campaign.id, loaded.config.retentionDays).catch(() => undefined);
 
   const r = await startGeneration(
     { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression, shot, aspect, style, locale, face },

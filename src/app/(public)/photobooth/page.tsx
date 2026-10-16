@@ -42,7 +42,11 @@ const FAQ: [string, string][] = [
   ["Do guests still look like themselves?",
     "In editorial styles, only the light, the set and the colour grade change: the face, the pose and the framing stay the guest's own. Transformation styles reinterpret the guest while keeping a recognisable likeness."],
   ["What happens to guests' photos?",
-    "Gestures and expression are read on the device and never sent. Only the photo the guest confirms is sent to generate the portrait. Portraits stay available to the organiser for 7 days, and any portrait can be removed from the gallery in one tap."],
+    "Gestures and expression are read on the device and never sent. Only the photo the guest confirms is sent to generate the portrait. The share link lives 7 days, then our copies, any contact details and the source photo are erased automatically at the end of the retention period you choose (30 days by default). Any portrait can be removed from the gallery in one tap."],
+  ["Is it GDPR and AI Act compliant?",
+    "Consent is asked in plain words before the camera starts, every portrait carries a discreet AI-generated label and the same mention in its metadata, as the EU AI Act requires for generated content, and data is erased automatically. The marketing sign-up box is never pre-ticked."],
+  ["Can we collect leads at the booth?",
+    "Yes, with the lead capture option. While the portrait is being created, guests leave the details you choose (name, email, phone, one question of yours) and tick a separate sign-up box if they wish. Your team sees the contacts and the event statistics in the gallery and exports them as CSV."],
   ["How is it priced?",
     "Per event package: a number of portraits, a daily limit and a budget agreed in advance and enforced automatically. No surprise costs. Tell us your date and audience for a quote."],
   ["Which languages do guests see?",
@@ -79,6 +83,17 @@ const FEATURES: [string, string, boolean?][] = [
   ["A client space", "Your team follows usage live: portraits made, remaining, period, booth link."],
   ["Print on site", "A local print agent detects the printer and prints 10×15 edge to edge, no dialog."],
   ["Privacy by design", "Gestures and expression are read on the device. Only the confirmed photo is sent to generate the portrait. Removed portraits stop being shared."],
+  ["Delivered by email", "Guests leave their address while the portrait is being created and walk away: it reaches them as soon as it is ready, and the booth moves on to the next guest. Shorter queues.", true],
+  ["A photo check before sending", "Before anything is sent, the booth checks the photo on the device: no face, too far, cut off, too dark, blurry or eyes closed. Guests retake it, and you never pay for an unusable portrait.", true],
+  ["Statistics in the gallery", "Portraits made, share page views, downloads, emails sent, favourite styles and peak hours: the post-event report your team opens from the gallery.", true],
+  ["Compliance built in", "Plain-words consent before the camera starts, an AI-generated label on every image and in its metadata (EU AI Act), automatic deletion at the end of the retention period.", true],
+];
+
+// Options payantes et fonctions a venir (forfait sur devis).
+const OPTIONS: [string, string, "option" | "soon"][] = [
+  ["Lead capture", "Name, email, phone and one question of yours, asked while the portrait is being created, with a separate sign-up box that is never pre-ticked. Contacts and CSV export in the team gallery.", "option"],
+  ["Live wall", "A big screen in the room shows every new portrait the moment it is ready, then cycles through the latest ones, signed with your brand.", "option"],
+  ["Animated portrait", "The portrait comes to life as a short video clip, made to be posted as a story or a reel.", "soon"],
 ];
 
 export default function Photobooth() {
@@ -216,6 +231,22 @@ export default function Photobooth() {
                 {title}
                 {isNew && <span className="fm-new">New</span>}
               </h3>
+              <p className="fm-grotesk mt-2 text-[14px] leading-relaxed text-fmmuted">{body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="options" className="mx-auto max-w-[1200px] scroll-mt-24 border-t border-fmborder px-5 py-20 md:px-8 md:py-24">
+        <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— Options</p>
+        <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">Add to your package</h2>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {OPTIONS.map(([title, body, kind]) => (
+            <div key={title} className={`rounded-xl border p-6 ${kind === "soon" ? "border-dashed border-fmborder" : "border-fmborder bg-fmcard/40"}`}>
+              <p className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${kind === "soon" ? "border border-fmborder text-fmmuted" : "bg-fmfg text-fmbg"}`}>
+                {kind === "soon" ? "Coming soon" : "Option"}
+              </p>
+              <h3 className="fm-display mt-4 text-lg text-fmfg">{title}</h3>
               <p className="fm-grotesk mt-2 text-[14px] leading-relaxed text-fmmuted">{body}</p>
             </div>
           ))}

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { STYLE_IDS, STYLES } from "@/lib/photobooth/styles";
 import {
-  GESTURES, LOCALES, PAPERS, resolveConfig,
+  CONTACT_FIELDS, GESTURES, LOCALES, PAPERS, resolveConfig,
   type CampaignConfig, type Locale, type Localized,
 } from "@/lib/photobooth/config";
 
@@ -92,7 +92,7 @@ export function ConfigEditor({ value, onChange }: { value: CampaignConfig; onCha
         <legend className="px-1 text-sm font-medium">Textes de la borne</legend>
         <div className="flex flex-col gap-2"><Label>Titre</Label><Input dir={dir} value={c.title[loc]} onChange={(e) => setText("title", e.target.value)} /></div>
         <div className="flex flex-col gap-2"><Label>Introduction</Label><Textarea dir={dir} rows={2} value={c.intro[loc]} onChange={(e) => setText("intro", e.target.value)} /></div>
-        <div className="flex flex-col gap-2"><Label>Mention caméra et données</Label><Textarea dir={dir} rows={3} value={c.privacy[loc]} onChange={(e) => setText("privacy", e.target.value)} /></div>
+        <div className="flex flex-col gap-2"><Label>Mention caméra et données ({"{days}"} = durée de conservation)</Label><Textarea dir={dir} rows={3} value={c.privacy[loc]} onChange={(e) => setText("privacy", e.target.value)} /></div>
         <div className="flex flex-col gap-2"><Label>Message quand le quota est atteint</Label><Textarea dir={dir} rows={2} value={c.quotaMessage[loc]} onChange={(e) => setText("quotaMessage", e.target.value)} /></div>
       </fieldset>
 
@@ -189,6 +189,67 @@ export function ConfigEditor({ value, onChange }: { value: CampaignConfig; onCha
           <Label>À éviter</Label>
           <Textarea rows={2} value={c.negative} onChange={(e) => set({ negative: e.target.value })} />
         </div>
+      </fieldset>
+
+      <fieldset className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
+        <legend className="px-1 text-sm font-medium">Envoi, options et données</legend>
+        <label className="flex items-center gap-2 text-sm md:col-span-2">
+          <input type="checkbox" checked={c.emailDelivery} onChange={(e) => set({ emailDelivery: e.target.checked })} />
+          Envoi du portrait par email (inclus) : l’invité laisse son adresse pendant la génération et peut partir
+        </label>
+        <div className="flex flex-col gap-2">
+          <Label>Conservation (jours, 7 à 90)</Label>
+          <Input type="number" min={7} max={90} value={c.retentionDays} onChange={(e) => set({ retentionDays: Number(e.target.value) })} />
+          <p className="text-xs text-muted-foreground">Ensuite : copies du portrait, coordonnées et photo source effacées. Restent les statistiques anonymes.</p>
+        </div>
+        <div className="flex flex-col gap-3 rounded-md border p-3 md:col-span-2">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={c.leadCapture.enabled} onChange={(e) => set({ leadCapture: { ...c.leadCapture, enabled: e.target.checked } })} />
+            Formulaire de contact <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] uppercase text-amber-300">Option payante</span>
+          </label>
+          {c.leadCapture.enabled && (
+            <>
+              <div className="flex flex-wrap gap-4 text-sm">
+                {CONTACT_FIELDS.map((f) => (
+                  <label key={f} className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox" checked={c.leadCapture.fields.includes(f)}
+                      onChange={(e) => {
+                        const next = e.target.checked ? [...c.leadCapture.fields, f] : c.leadCapture.fields.filter((x) => x !== f);
+                        if (next.length) set({ leadCapture: { ...c.leadCapture, fields: CONTACT_FIELDS.filter((x) => next.includes(x)) } });
+                      }}
+                    />
+                    {f === "name" ? "Nom" : f === "email" ? "Email" : "Téléphone"}
+                  </label>
+                ))}
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={c.leadCapture.required} onChange={(e) => set({ leadCapture: { ...c.leadCapture, required: e.target.checked } })} />
+                Obligatoire : le portrait s’affiche une fois le formulaire envoyé
+              </label>
+              <div className="flex flex-col gap-2">
+                <Label>Question de la marque (facultative, réponse courte)</Label>
+                <Input
+                  dir={dir} value={c.leadCapture.question?.[loc] ?? ""} placeholder="ex. Quel produit vous attire ?"
+                  onChange={(e) => {
+                    const q = { ...(c.leadCapture.question ?? { fr: "", en: "", ar: "" }), [loc]: e.target.value } as Localized;
+                    set({ leadCapture: { ...c.leadCapture, question: q.fr || q.en || q.ar ? q : undefined } });
+                  }}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Case d’inscription aux nouvelles (jamais cochée d’avance)</Label>
+                <Input dir={dir} value={c.leadCapture.optIn[loc]} onChange={(e) => set({ leadCapture: { ...c.leadCapture, optIn: { ...c.leadCapture.optIn, [loc]: e.target.value } } })} />
+              </div>
+              <p className="text-xs text-muted-foreground">Contacts, statistiques et export CSV : dans la galerie d’équipe.</p>
+            </>
+          )}
+        </div>
+        <label className="flex items-center gap-2 text-sm font-medium md:col-span-2">
+          <input type="checkbox" checked={c.liveWall} onChange={(e) => set({ liveWall: e.target.checked })} />
+          Mur en direct <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] uppercase text-amber-300">Option payante</span>
+          <span className="font-normal text-muted-foreground">: un grand écran fait défiler les portraits (lien dans la galerie d’équipe)</span>
+        </label>
       </fieldset>
 
       <fieldset className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">

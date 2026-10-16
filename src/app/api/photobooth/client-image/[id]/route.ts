@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentRoles, currentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { canSeeCampaign } from "@/lib/photobooth/client";
-import { relayPortrait, thumbWidth } from "@/lib/photobooth/server";
+import { logEvent, relayPortrait, thumbWidth } from "@/lib/photobooth/server";
 import { isGalleryKey, isHidden } from "@/lib/photobooth/gallery-access";
 
 async function galleryKeyMatches(campaignId: string, g: string | null) {
@@ -36,9 +36,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       return new NextResponse("Not found", { status: 404 });
     }
   }
+  const dl = req.nextUrl.searchParams.get("dl");
+  if (dl) logEvent(data.campaign_id, "download", id);
   return relayPortrait(
     data.result_url, id,
-    req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${id.slice(0, 8)}` : null,
+    dl ? `fmrxr-portrait-${id.slice(0, 8)}` : null,
     thumbWidth(req.nextUrl.searchParams.get("w")),
   );
 }

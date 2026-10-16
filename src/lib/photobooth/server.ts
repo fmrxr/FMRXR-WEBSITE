@@ -69,6 +69,9 @@ export function campaignAvailability(c: Campaign): string | null {
   return null;
 }
 
+/** Cles de photobooth_usage.mood ecrites hors generation, jamais ecrasees par elle. */
+export const KEPT_MOOD_KEYS = ["contact", "delivery", "hidden", "purged"] as const;
+
 export function createSupabaseDb(): PhotoboothDb {
   const sb = getSupabaseAdmin();
   return {
@@ -102,7 +105,12 @@ export function createSupabaseDb(): PhotoboothDb {
     },
     // Hors comptabilite : le statut et le quota ne passent que par les RPC ci-dessus.
     async saveSubmission(usageId, mood) {
-      await sb.from("photobooth_usage").update({ mood }).eq("id", usageId);
+      // Garde ce que l'invite ou l'equipe a ajoute entre-temps (email, contact,
+      // suppression) : la relance nsfw reecrit le profil pendant la generation.
+      const { data } = await sb.from("photobooth_usage").select("mood").eq("id", usageId).maybeSingle();
+      const prev = (data?.mood ?? {}) as Record<string, unknown>;
+      const keep = Object.fromEntries(KEPT_MOOD_KEYS.filter((k) => k in prev).map((k) => [k, prev[k]]));
+      await sb.from("photobooth_usage").update({ mood: { ...mood, ...keep } }).eq("id", usageId);
     },
     async getRetryContext(usageId) {
       const { data } = await sb
@@ -139,6 +147,19 @@ export function clientIp(req: Request) {
   return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "local";
 }
 
+/**
+ * Evenement compte dans les statistiques de la galerie (vue d'une page de
+ * partage, telechargement). Jamais bloquant pour le visiteur.
+ */
+export function logEvent(campaignId: string, action: "share_view" | "download", usageId: string) {
+  void getSupabaseAdmin().from("photobooth_audit")
+    .insert({ campaign_id: campaignId, actor: null, action, before: null, after: { usage_id: usageId } })
+    .then(() => undefined, () => undefined);
+}
+
+/** Robots d'apercu (WhatsApp, Facebook, LinkedIn, X...) : pas des vues. */
+export const isPreviewBot = (ua: string | null) => !ua || /bot|crawler|spider|facebookexternalhit|whatsapp|slack|telegram|discord|preview|skype/i.test(ua);
+
 // ---------- partage ----------
 
 /** Les portraits restent chez Higgsfield au moins 7 jours : le lien vit autant. */
@@ -156,13 +177,13 @@ export function isShareActive(completedAt: string | null, now = Date.now()) {
 
 /** Portrait partage : reussi, de moins de 7 jours, campagne qui autorise le partage. */
 export async function findShared(token: string): Promise<
-  | { ok: true; usageId: string; resultUrl: string; title: Record<string, string> | null; campaignName: string; expiresAt: string; clientLogoUrl: string }
+  | { ok: true; usageId: string; campaignId: string; resultUrl: string; title: Record<string, string> | null; campaignName: string; expiresAt: string; clientLogoUrl: string }
   | { ok: false; reason: "NOT_FOUND" | "EXPIRED" }
 > {
   if (!/^[0-9a-f]{32}$/.test(token)) return { ok: false, reason: "NOT_FOUND" };
   const { data } = await getSupabaseAdmin()
     .from("photobooth_usage")
-    .select("id, status, result_url, completed_at, mood, campaign:photobooth_campaigns(name, config)")
+    .select("id, campaign_id, status, result_url, completed_at, mood, campaign:photobooth_campaigns(name, config)")
     .eq("share_token", token)
     .maybeSingle();
   if (!data || data.status !== "succeeded" || !data.result_url || isHidden(data.mood)) return { ok: false, reason: "NOT_FOUND" };
@@ -174,6 +195,7 @@ export async function findShared(token: string): Promise<
   return {
     ok: true,
     usageId: data.id,
+    campaignId: data.campaign_id,
     resultUrl: data.result_url,
     title: mood?.title ?? null,
     campaignName: campaign?.name ?? "",
@@ -291,7 +313,7 @@ async function writeStored(path: string, buf: Buffer) {
 }
 
 /** Image finale (ou vignette) : copie stockee si elle existe, sinon calculee puis stockee. */
-async function portraitImage(resultUrl: string, usageId: string, width: number | null): Promise<Buffer | null> {
+export async function portraitImage(resultUrl: string, usageId: string, width: number | null): Promise<Buffer | null> {
   const stored = await readStored(portraitPath(usageId, width));
   if (stored) return stored;
   let full = width ? await readStored(portraitPath(usageId, null)) : null;

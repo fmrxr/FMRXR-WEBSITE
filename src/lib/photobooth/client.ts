@@ -4,6 +4,8 @@ import { resolveConfig } from "./config";
 import { quotaState } from "./quota";
 import { isShareActive, shareUrl } from "./server";
 import { isHidden } from "./gallery-access";
+import { computeStats, type CampaignStats, type StatRow } from "./stats";
+import type { Contact } from "./contact";
 
 // Donnees de l'espace client. Lues en service_role, mais seulement pour les
 // campagnes dont l'utilisateur est membre : l'appartenance est verifiee ici,
@@ -105,4 +107,35 @@ export async function clientGallery(campaignId: string) {
     };
   });
   return { name: campaign.name, print: cfg.ok ? cfg.config.print : null, items };
+}
+
+/** Statistiques de la campagne (galerie d'equipe) : tous les portraits, pas seulement 7 jours. */
+export async function campaignStats(campaignId: string, timeZone = "Africa/Tunis"): Promise<CampaignStats> {
+  const sb = getSupabaseAdmin();
+  const count = (action: string) => sb.from("photobooth_audit").select("*", { count: "exact", head: true })
+    .eq("campaign_id", campaignId).eq("action", action);
+  const [{ data: rows }, views, downloads] = await Promise.all([
+    sb.from("photobooth_usage")
+      .select("status, completed_at, mood->style, mood->shot, mood->contact, mood->delivery")
+      .eq("campaign_id", campaignId).order("created_at", { ascending: false }).limit(5000),
+    count("share_view"),
+    count("download"),
+  ]);
+  const stat: StatRow[] = (rows ?? []).map((r) => {
+    const x = r as unknown as { status: string; completed_at: string | null; style?: string; shot?: string; contact?: { optIn?: boolean } | null; delivery?: { sentAt?: string | null; error?: string | null } | null };
+    return { status: x.status, completed_at: x.completed_at, mood: { style: x.style, shot: x.shot, contact: x.contact ?? null, delivery: x.delivery ?? null } };
+  });
+  return computeStats(stat, { shareViews: views.count ?? 0, downloads: downloads.count ?? 0 }, timeZone);
+}
+
+/** Coordonnees laissees a la borne (option contact), plus recentes d'abord. */
+export async function campaignContacts(campaignId: string): Promise<{ id: string; date: string; title: string; contact: Contact }[]> {
+  const { data } = await getSupabaseAdmin().from("photobooth_usage")
+    .select("id, created_at, mood->contact, mood->title")
+    .eq("campaign_id", campaignId).not("mood->contact", "is", null)
+    .order("created_at", { ascending: false }).limit(5000);
+  return (data ?? []).map((r) => {
+    const x = r as unknown as { id: string; created_at: string; contact: Contact; title?: Record<string, string> | null };
+    return { id: x.id, date: x.created_at, title: x.title?.fr ?? "", contact: x.contact };
+  }).filter((r) => r.contact.email || r.contact.phone || r.contact.name); // effaces a la fin de conservation
 }

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseDb, getProvider, shareUrl, warmPortrait } from "@/lib/photobooth/server";
 import { pollGeneration } from "@/lib/photobooth/service";
+import { deliverPortrait } from "@/lib/photobooth/delivery";
 
 // GET /api/photobooth/status/<usageId>?session=<id> — la borne interroge ici,
 // jamais Higgsfield directement. Seule la session qui a lance la generation y a acces.
@@ -25,6 +26,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     const u = await db.getUsage(id);
     // Copie et vignettes preparees en tache de fond (galerie, QR, impression).
     if (u?.result_url) warmPortrait(u.result_url, id);
+    // Email laisse par l'invite : envoye maintenant (une seule fois, voir delivery.ts).
+    void deliverPortrait(id).catch(() => undefined);
     return NextResponse.json({
       status: "succeeded",
       image: `/api/photobooth/download/${id}?session=${encodeURIComponent(session)}`,

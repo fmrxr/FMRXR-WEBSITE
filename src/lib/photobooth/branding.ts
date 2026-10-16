@@ -1,4 +1,5 @@
 import "server-only";
+import path from "node:path";
 import type { FaceBox } from "./face";
 import sharp from "sharp";
 import { FMRXR_LOGO_DARK_SVG } from "./brand-logo";
@@ -164,10 +165,48 @@ async function compose(resultUrl: string, o: FinalOptions, key: string): Promise
   } catch {
     return null;
   }
-  const out = o.layout === "none"
+  const out = await aiMark(o.layout === "none"
     ? await brandPortrait(src, o.clientLogoUrl)
-    : await renderLayout(o.layout, src, o.text, o.clientLogoUrl ? await clientLogo(o.clientLogoUrl) : null, o.face ?? null);
+    : await renderLayout(o.layout, src, o.text, o.clientLogoUrl ? await clientLogo(o.clientLogoUrl) : null, o.face ?? null));
   CACHE.set(key, out);
   if (CACHE.size > MAX_CACHE) CACHE.delete(CACHE.keys().next().value!);
   return out;
+}
+
+// Transparence (AI Act, art. 50 : contenus generes signales) : une mention
+// discrete, verticale le long du bord droit, et la meme dans les metadonnees
+// (lisible par les plateformes et les outils de verification).
+export const AI_LABEL = "AI-GENERATED · IMAGE GÉNÉRÉE PAR IA";
+const MONO = path.join(process.cwd(), "public", "photobooth", "fonts", "GeistMono-Medium.ttf");
+
+export async function aiMark(img: Buffer): Promise<Buffer> {
+  try {
+    const meta = await sharp(img).metadata();
+    const W = meta.width ?? 1024;
+    const H = meta.height ?? 1365;
+    const size = Math.max(10, Math.round(H * 0.0105));
+    // Couleur selon le fond du bord droit : blanc sur sombre, graphite sur clair (cadre Polaroid).
+    const strip = await sharp(img).extract({ left: Math.round(W * 0.95), top: Math.round(H * 0.25), width: Math.max(1, Math.round(W * 0.04)), height: Math.round(H * 0.5) }).stats();
+    const bg = 0.2126 * strip.channels[0].mean + 0.7152 * strip.channels[1].mean + 0.0722 * strip.channels[2].mean;
+    const ink = bg > 150 ? "#2a2a33" : "#ffffff";
+    const label = await sharp({
+      text: {
+        text: `<span foreground="${ink}" letter_spacing="${Math.round(size * 0.12 * 1024)}">${AI_LABEL}</span>`,
+        font: `Geist Mono Medium ${size}`, fontfile: MONO, rgba: true, dpi: 72,
+      },
+    }).png().toBuffer();
+    // Vertical, lisible de bas en haut ; semi-transparent sur une ombre legere.
+    const turned = await sharp(label).rotate(-90, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .ensureAlpha().linear([1, 1, 1, 0.62], [0, 0, 0, 0]).png().toBuffer();
+    const t = await sharp(turned).metadata();
+    const tw = t.width ?? size, th = t.height ?? size * 20;
+    const left = W - tw - Math.round(W * 0.012);
+    const top = Math.round((H - th) / 2);
+    return await sharp(img)
+      .composite([{ input: turned, left: Math.max(0, left), top: Math.max(0, top) }])
+      .withExifMerge({ IFD0: { ImageDescription: "AI-generated image (FMRXR AI Photobooth)", Software: "FMRXR AI Photobooth", Artist: "FMRXR Studio" } })
+      .jpeg({ quality: 92, mozjpeg: true }).toBuffer();
+  } catch {
+    return img; // la mention ne doit jamais empecher le portrait de sortir
+  }
 }

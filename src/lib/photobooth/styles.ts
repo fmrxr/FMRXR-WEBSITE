@@ -15,7 +15,7 @@ import type { Localized } from "./config";
 
 export const STYLE_IDS = [
   "mood", "film", "polaroid", "magazine", "poster", "card",
-  "era70", "anime", "popart", "oil", "figurine", "clay", "hero", "cyberpunk", "tarot",
+  "era70", "anime", "popart", "oil", "figurine", "clay", "hero", "cyberpunk", "tarot", "headshot",
 ] as const;
 export type StyleId = (typeof STYLE_IDS)[number];
 
@@ -31,6 +31,10 @@ export type StyleDef = {
   treatment?: string;
   finish?: string;
   extra?: string;
+  /** editorial : decor, lumiere et palette imposes (remplacent ceux de l'ambiance et la direction de decor). */
+  set?: string;
+  lighting?: string;
+  palette?: string;
   /** transform : description de l'oeuvre a produire. */
   transform?: string;
   /** Style recent : badge « Nouveau » sur la page, dans la borne et le CMS. */
@@ -162,6 +166,24 @@ export const STYLES: Record<StyleId, StyleDef> = {
       "stars and constellations) and botanical ornaments around the figure, rich jewel tones of deep indigo, emerald, oxblood and gold " +
       "leaf on aged parchment, a symmetrical, hieratic composition, an empty decorative banner at the bottom with no letters or numerals, " +
       "no religious symbols",
+  },
+  // Ajoute le 16/10/2026 : le portrait le plus demande dans les conferences et
+  // salons (profil LinkedIn, site d'entreprise). Fond de studio neutre impose :
+  // ici le decor artistique de la campagne serait un contresens.
+  headshot: {
+    id: "headshot", family: "editorial", layout: "none", isNew: true,
+    label: L("Portrait professionnel", "Professional headshot", "صورة احترافية"),
+    blurb: L(
+      "Le portrait studio prêt pour LinkedIn : fond neutre, lumière flatteuse, retouche naturelle. Le cadeau utile des conférences et salons.",
+      "The studio headshot ready for LinkedIn: neutral backdrop, flattering light, natural retouch. The useful takeaway at conferences and trade shows.",
+      "صورة استوديو جاهزة للينكدإن: خلفية محايدة وإضاءة جميلة وتنقيح طبيعي. الهدية المفيدة في المؤتمرات والمعارض.",
+    ),
+    treatment: "a professional corporate headshot, the kind used on a LinkedIn profile or a company website",
+    set: "a plain, seamless studio backdrop in a soft mid-grey with a gentle gradient, slightly lighter behind the head; nothing else in the background: no props, no furniture, no windows, no plants",
+    lighting: "soft, flattering studio light: a large softbox key from slightly above and to one side, gentle fill, a subtle hair light separating the person from the backdrop",
+    palette: "soft neutral greys and natural, true skin tones",
+    finish: "crisp professional studio photograph: sharp focus on the eyes, natural skin texture with a light, honest retouch, accurate neutral colour, polished but authentic",
+    extra: "Business-appropriate and approachable. Keep the person's own clothing. No text.",
   },
 };
 

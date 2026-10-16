@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { findShared } from "@/lib/photobooth/server";
+import { headers } from "next/headers";
+import { findShared, isPreviewBot, logEvent } from "@/lib/photobooth/server";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,8 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
   const s = await getShared(token);
 
   if (!s.ok && s.reason === "NOT_FOUND") notFound();
+  // Vue comptee pour les statistiques de la galerie (les robots d'apercu non).
+  if (s.ok && !isPreviewBot((await headers()).get("user-agent"))) logEvent(s.campaignId, "share_view", s.usageId);
 
   return (
     <main className="fm fm-canvas flex min-h-dvh flex-col items-center px-5 py-8">
@@ -70,6 +73,8 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
           <p className="text-xs text-fmmuted">
             {s.campaignName} · disponible jusqu’au {new Date(s.expiresAt).toLocaleDateString("fr-FR")}
           </p>
+          {/* Transparence (AI Act, art. 50) : contenu genere, dit en clair. */}
+          <p className="text-[11px] text-fmmuted">Image générée par IA · AI-generated image · صورة مولّدة بالذكاء الاصطناعي</p>
         </div>
       )}
     </main>

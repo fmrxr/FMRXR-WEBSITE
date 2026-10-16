@@ -13,7 +13,8 @@ import { TeamGallery } from "./TeamGallery";
 import { CameraPicker, readCamera, readMirror, subscribeMirror } from "./CameraPicker";
 import { useRemoteCamera } from "./useRemoteCamera";
 import { RemotePair } from "./RemotePair";
-import { locateFaces, type FaceBox } from "./faceBox";
+import { checkPhoto, type FaceBox, type PhotoCheck } from "./faceBox";
+import { Delivery } from "./Delivery";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
 import { STYLES, newFirst, type StyleId } from "@/lib/photobooth/styles";
 
@@ -93,6 +94,15 @@ export function Booth({
   // Camera choisie sur cette borne (CameraPicker), memorisee dans le navigateur.
   // Visages sur la photo prise, pour recadrer la carte et le Polaroid.
   const faceRef = useRef<FaceBox | null>(null);
+  // Controle de la photo avant l'envoi : "pending" pendant la mesure.
+  const [check, setCheck] = useState<PhotoCheck | null | "pending">(null);
+  // Generation en cours (formulaire email / contact) ; formulaire envoye ;
+  // portrait pret mais retenu tant que le formulaire obligatoire n'est pas envoye.
+  const [usage, setUsage] = useState<{ id: string; session: string } | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [held, setHeld] = useState(false);
+  const submittedRef = useRef(false);
+  const formRequired = config.leadCapture.enabled && config.leadCapture.required;
   // Titre et lecture renvoyes par le serveur a la generation (Tarot : arcane tire).
   const [drawn, setDrawn] = useState<{ title: Record<string, string>; description: Record<string, string> } | null>(null);
   const [cameraId, setCameraId] = useState<string | null>(() => (typeof window === "undefined" ? null : readCamera(slug)));
@@ -284,6 +294,11 @@ export function Booth({
     stopCamera();
     lastGestureRef.current = null;
     setDrawn(null);
+    setCheck(null);
+    setUsage(null);
+    setSubmitted(false);
+    setHeld(false);
+    submittedRef.current = false;
     if (pollRef.current) window.clearTimeout(pollRef.current);
     if (photo) URL.revokeObjectURL(photo.url);
     setPhoto(null);
@@ -681,11 +696,15 @@ export function Booth({
       idemRef.current = uuid(); // une photo confirmee = une cle = au plus une image facturee
       // Mesure des visages pendant la confirmation (pas d'attente pour l'invite).
       faceRef.current = null;
-      void locateFaces(c).then((b) => { faceRef.current = b; });
+      setCheck("pending");
+      void checkPhoto(c, shot === "group" ? "group" : "solo").then((r) => {
+        faceRef.current = r?.face ?? null;
+        setCheck(r);
+      });
       setStep("confirm");
     };
     c.toBlob((b) => done(b, false), "image/jpeg", 0.92);
-  }, [captureAspect, config.maxUploadBytes, fail, usingRemote, remote, mirror]);
+  }, [captureAspect, config.maxUploadBytes, fail, usingRemote, remote, mirror, shot]);
 
   const startCountdown = useCallback(() => {
     if (count !== null) return;
@@ -706,6 +725,7 @@ export function Booth({
     if (photo) URL.revokeObjectURL(photo.url);
     setPhoto(null);
     idemRef.current = null;
+    setCheck(null);
     setStep("capture");
   }, [photo]);
 
@@ -723,7 +743,9 @@ export function Booth({
               .then(setQr).catch(() => setQr(null));
           }
           stopCamera();
-          setStep("result");
+          // Option contact obligatoire : le portrait attend le formulaire.
+          if (formRequired && !submittedRef.current) setHeld(true);
+          else setStep("result");
           return;
         }
         if (j.status === "failed") return fail(j.error ?? "DEFAULT");
@@ -735,10 +757,12 @@ export function Booth({
       pollRef.current = window.setTimeout(tick, POLL_MS);
     };
     pollRef.current = window.setTimeout(tick, 1500);
-  }, [config.shareEnabled, fail, stopCamera]);
+  }, [config.shareEnabled, fail, stopCamera, formRequired]);
 
+  const noFace = check !== null && check !== "pending" && check.issues.includes("no_face");
   const generate = useCallback(async () => {
-    if (!photo || !idemRef.current) return;
+    // Aucun visage : rien a envoyer (portrait invente, et paye pour rien).
+    if (!photo || !idemRef.current || noFace) return;
     setStep("generating");
     const fd = new FormData();
     fd.set("slug", slug);
@@ -757,18 +781,28 @@ export function Booth({
       const j = await r.json();
       if (!j.ok) return fail(j.error ?? "DEFAULT");
       usageRef.current = j.usageId;
+      setUsage({ id: j.usageId, session: sessionRef.current });
       // Titre calcule par le serveur avec la graine de la photo (Tarot : carte tiree).
       if (j.title && j.description) setDrawn({ title: j.title, description: j.description });
       poll(j.usageId, Date.now() + GEN_DEADLINE_MS);
     } catch {
       fail("DEFAULT");
     }
-  }, [accessKey, answers, fail, photo, poll, slug, expression.reading, shot, style, locale]);
+  }, [accessKey, answers, fail, photo, poll, slug, expression.reading, shot, style, locale, noFace]);
 
   // La boucle des gestes (declaree plus haut) declenche ces actions.
   useEffect(() => {
     actionsRef.current = { shoot: startCountdown, confirm: generate, retake };
   }, [startCountdown, generate, retake]);
+
+  const onSubmitted = useCallback(() => {
+    submittedRef.current = true;
+    setSubmitted(true);
+    if (held) {
+      setHeld(false);
+      setStep("result");
+    }
+  }, [held]);
 
   const resumeCheck = useCallback(() => {
     if (!usageRef.current) return reset();
@@ -937,7 +971,9 @@ export function Booth({
                 {t.start}
               </button>
             )}
-            <p className="max-w-lg text-xs leading-relaxed text-fmmuted">{config.privacy[locale]}</p>
+            {/* Consentement : appuyer sur Commencer est l'acte d'accord, dit en clair. */}
+            {!blocked && <p className="-mt-4 max-w-lg text-sm text-fmfg/75">{t.consent}</p>}
+            <p className="max-w-lg text-xs leading-relaxed text-fmmuted">{config.privacy[locale].replaceAll("{days}", String(config.retentionDays))}</p>
           </section>
         )}
 
@@ -1223,9 +1259,17 @@ export function Booth({
           <section className={`${s.enter} m-auto flex flex-col items-center gap-6 px-6 py-24 text-center`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photo.url} alt="" className="max-h-[58vh] rounded-xl border border-fmborder object-contain" />
+            {check === "pending" ? (
+              <p className={`${s.pulse} font-mono text-[11px] uppercase tracking-[0.18em] text-fmmuted`}>{t.checking}</p>
+            ) : check && check.issues.length > 0 ? (
+              // Conseils avant l'envoi : seul « aucun visage » bloque.
+              <ul data-testid="photo-check" className={`max-w-md rounded-xl border px-5 py-3 text-start text-sm ${noFace ? "border-red-400/60 text-fmfg" : "border-amber-300/50 text-fmfg/90"}`}>
+                {check.issues.map((i) => <li key={i} className="py-0.5">{t[`check_${i}`]}</li>)}
+              </ul>
+            ) : null}
             <p className="max-w-md text-xs text-fmmuted">{t.confirmNote}</p>
             <div className="flex flex-wrap justify-center gap-3">
-              <button onClick={generate} className="flex items-center gap-2 rounded-full bg-fmfg py-2 ps-3 pe-8 font-semibold text-fmbg transition hover:bg-fmaccent">
+              <button onClick={generate} disabled={noFace} className="flex items-center gap-2 rounded-full bg-fmfg py-2 ps-3 pe-8 font-semibold text-fmbg transition hover:bg-fmaccent disabled:opacity-35 disabled:hover:bg-fmfg">
                 {ring("thumb_up")}
                 {t.confirm}
               </button>
@@ -1239,15 +1283,21 @@ export function Booth({
         )}
 
         {step === "generating" && (
-          <section className="m-auto flex flex-col items-center gap-6 px-6 text-center">
+          <section className="m-auto flex flex-col items-center gap-5 px-6 py-20 text-center">
             <div className={s.field} />
             {photo && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={photo.url} alt="" className={`${s.pulse} max-h-[42vh] rounded-xl object-contain grayscale`} />
+              <img src={photo.url} alt="" className={`${s.pulse} ${usage && (config.emailDelivery || config.leadCapture.enabled) ? "max-h-[24vh]" : "max-h-[42vh]"} rounded-xl object-contain grayscale`} />
             )}
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fmaccent">{(drawn ?? mood)?.title[locale]}</p>
-            <h2 className="fm-display text-[clamp(2rem,6vw,4.5rem)]">{t.generating}</h2>
-            <p className="text-sm text-fmmuted">{t.generatingHint}</p>
+            <h2 className="fm-display text-[clamp(2rem,6vw,4.5rem)]">{held ? t.formReady : t.generating}</h2>
+            <p className="text-sm text-fmmuted">{held ? t.formReadyHint : t.generatingHint}</p>
+            {usage && (
+              <Delivery
+                config={config} locale={locale} t={t} slug={slug} accessKey={accessKey}
+                session={usage.session} usageId={usage.id} onSubmitted={onSubmitted} onLeave={formRequired ? undefined : reset}
+              />
+            )}
           </section>
         )}
 
@@ -1290,6 +1340,9 @@ export function Booth({
                   : printer.state.kind === "ready" || printer.state.kind === "browser" ? ""
                   : t.printUnavailable}
               </p>
+            )}
+            {usage && !submitted && (
+              <Delivery config={config} locale={locale} t={t} slug={slug} accessKey={accessKey} session={usage.session} usageId={usage.id} onSubmitted={onSubmitted} compact />
             )}
             {qr && (
               // Sous 640 px (telephone personnel), le QR « recuperer sur votre

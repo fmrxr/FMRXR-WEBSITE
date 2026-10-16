@@ -53,6 +53,19 @@ const printSchema = z.object({
   maxPrints: z.number().int().min(1).max(10), // par portrait
 });
 
+// Formulaire de contact (option payante, activee par FMRXR selon le forfait) :
+// l'invite laisse ses coordonnees pendant la generation. L'inscription
+// marketing est une case separee, jamais pre-cochee.
+export const CONTACT_FIELDS = ["name", "email", "phone"] as const;
+export type ContactField = (typeof CONTACT_FIELDS)[number];
+const leadCaptureSchema = z.object({
+  enabled: z.boolean(),
+  required: z.boolean(), // portrait affiche seulement une fois le formulaire envoye
+  fields: z.array(z.enum(CONTACT_FIELDS)).min(1),
+  question: localized.optional(), // question libre de la marque (reponse courte)
+  optIn: localized, // libelle de la case d'inscription marketing
+});
+
 export const campaignConfigSchema = z.object({
   title: localized,
   intro: localized,
@@ -91,6 +104,13 @@ export const campaignConfigSchema = z.object({
   gestureHoldMs: z.number().int().min(300).max(3000),
   print: printSchema,
   maxUploadBytes: z.number().int().min(200_000).max(8_000_000),
+  // Envoi du portrait par email (gratuit) : l'invite peut partir sans attendre.
+  emailDelivery: z.boolean(),
+  // Options payantes.
+  leadCapture: leadCaptureSchema,
+  liveWall: z.boolean(), // mur en direct : /experience/photobooth/<slug>/mur
+  // Conservation : au-dela, copies, coordonnees et photo source sont effacees.
+  retentionDays: z.number().int().min(7).max(90),
 });
 export type CampaignConfig = z.infer<typeof campaignConfigSchema>;
 
@@ -107,9 +127,9 @@ export const DEFAULT_CONFIG: CampaignConfig = {
     "ثلاث إشارات وصورة واحدة. يركّب النظام بورتريه تحريرياً انطلاقاً من اختياراتك.",
   ),
   privacy: L(
-    "La caméra ne s'active qu'après votre accord. Vos gestes et votre expression sont lus sur cet appareil, rien n'en est envoyé ni enregistré. Seule la photo que vous confirmez est transmise à notre fournisseur d'images (Higgsfield) pour générer le portrait, qui reste accessible 7 jours à l'organisateur (partage, impression).",
-    "The camera only starts after you agree. Your gestures and expression are read on this device, nothing of them is sent or stored. Only the photo you confirm is sent to our image provider (Higgsfield) to generate the portrait, which the organiser can access for 7 days (sharing, printing).",
-    "لا تعمل الكاميرا إلا بعد موافقتك. تُقرأ إشاراتك وتعبيرك على هذا الجهاز ولا يُرسل منها شيء ولا يُحفظ. الصورة التي تؤكّدها فقط تُرسل إلى مزوّد الصور (Higgsfield) لتوليد البورتريه، ويبقى متاحاً للمنظّم 7 أيام (المشاركة والطباعة).",
+    "La caméra ne s'active qu'après votre accord. Vos gestes et votre expression sont lus sur cet appareil, rien n'en est envoyé ni enregistré. Seule la photo que vous confirmez est transmise à notre fournisseur d'images (Higgsfield) pour générer le portrait par intelligence artificielle. Le portrait est partageable 7 jours, puis effacé de nos serveurs avec vos éventuelles coordonnées au bout de {days} jours. Une demande de suppression : fmrxr.studio@gmail.com.",
+    "The camera only starts after you agree. Your gestures and expression are read on this device, nothing of them is sent or stored. Only the photo you confirm is sent to our image provider (Higgsfield) to generate the portrait with artificial intelligence. The portrait can be shared for 7 days, then is erased from our servers, with any contact details you gave, after {days} days. Deletion requests: fmrxr.studio@gmail.com.",
+    "لا تعمل الكاميرا إلا بعد موافقتك. تُقرأ إشاراتك وتعبيرك على هذا الجهاز ولا يُرسل منها شيء ولا يُحفظ. الصورة التي تؤكّدها فقط تُرسل إلى مزوّد الصور (Higgsfield) لتوليد البورتريه بالذكاء الاصطناعي. يمكن مشاركة البورتريه 7 أيام، ثم يُحذف من خوادمنا مع بيانات الاتصال إن وُجدت بعد {days} يوماً. طلبات الحذف: fmrxr.studio@gmail.com.",
   ),
   quotaMessage: L(
     "Cette expérience a atteint son nombre de portraits disponibles. Merci d'être passé·e.",
@@ -245,7 +265,23 @@ export const DEFAULT_CONFIG: CampaignConfig = {
     maxPrints: 1,
   },
   maxUploadBytes: 4_000_000,
+  emailDelivery: true,
+  leadCapture: {
+    enabled: false,
+    required: false,
+    fields: ["name", "email"],
+    optIn: L(
+      "J'accepte de recevoir des nouvelles de l'organisateur.",
+      "I agree to receive news from the organiser.",
+      "أوافق على تلقي أخبار من المنظّم.",
+    ),
+  },
+  liveWall: false,
+  retentionDays: 30,
 };
+
+/** Texte de confidentialite affiche : {days} remplace par la duree de conservation. */
+export const privacyText = (c: CampaignConfig, l: Locale) => c.privacy[l].replaceAll("{days}", String(c.retentionDays));
 
 /** Reglages automatiques : modele, rendu, calibrage des gestes, variete. */
 export const AUTOMATIC = ["model", "resolution", "quality", "gestureMinScore", "gestureHoldMs", "promptVariety"] as const;
@@ -263,6 +299,7 @@ export function resolveConfig(override: unknown):
     ...DEFAULT_CONFIG,
     ...o,
     print: { ...DEFAULT_CONFIG.print, ...((o.print && typeof o.print === "object" ? o.print : {}) as object) },
+    leadCapture: { ...DEFAULT_CONFIG.leadCapture, ...((o.leadCapture && typeof o.leadCapture === "object" ? o.leadCapture : {}) as object) },
     // Automatique, jamais par campagne : une valeur enregistree est ignoree,
     // ainsi une amelioration du modele ou du calibrage profite a toutes.
     ...Object.fromEntries(AUTOMATIC.map((k) => [k, DEFAULT_CONFIG[k]])),

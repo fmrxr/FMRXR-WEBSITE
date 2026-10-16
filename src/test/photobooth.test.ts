@@ -524,8 +524,8 @@ import { STYLES, STYLE_IDS, isStyleId } from "@/lib/photobooth/styles";
 
 describe("styles", () => {
   const answers: Answers = ["bold", "cinematic", "cinema"];
-  it("15 styles (Tarot ajoute le 16/10), une campagne propose AURA FARMING par defaut", () => {
-    expect(STYLE_IDS).toHaveLength(15);
+  it("16 styles (Tarot et portrait professionnel ajoutes le 16/10), une campagne propose AURA FARMING par defaut", () => {
+    expect(STYLE_IDS).toHaveLength(16);
     const r = resolveConfig({});
     expect(r.ok && r.config.styles).toEqual(["mood"]);
     expect(resolveConfig({ styles: [] }).ok).toBe(false);

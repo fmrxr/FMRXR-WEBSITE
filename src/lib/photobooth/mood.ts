@@ -261,7 +261,7 @@ export function buildPortraitPrompt(p: MoodProfile, config: CampaignConfig, opts
       : "CHANGE ONLY the camera distance, the lighting, the background set and the colour grade, as follows.",
     `FRAMING: ${keep ? FRAMING_KEEP : FRAMING_MEDIUM}`,
     `LIGHTING: ${p.lighting}${p.contrast ? `; ${p.contrast}` : ""}. Light the face cleanly and flatteringly, keeping its features clearly readable. The new light must have one consistent direction and colour on the face, the clothing and the background, like a single real lighting setup.`,
-    `SET: ${p.setting || "a real location that matches the mood"}. ${config.setDirection || SET_DEPTH}`,
+    setLine(p, config),
     "WARDROBE: keep the person's own clothing and accessories exactly as in the photo, simply clean and well lit.",
     `COLOUR: ${p.grade ? `${p.grade}; ` : ""}palette of ${p.paletteWords}.`,
     `MOOD: ${p.atmosphere}.`,
@@ -296,7 +296,7 @@ function buildGroupPrompt(p: MoodProfile, config: CampaignConfig, brand = ""): s
           "FRAMING: pull the camera back slightly so that everyone is fully in frame with breathing space around the group and the set clearly visible; same camera height and angle.",
         ]),
     `LIGHTING: ${p.lighting}${p.contrast ? `; ${p.contrast}` : ""}. Light every face cleanly and evenly, so that no one falls into shadow. The new light must have one consistent direction and colour on all the people and the background, like a single real lighting setup.`,
-    `SET: ${p.setting || "a real location that matches the mood"}. ${config.setDirection || SET_DEPTH}`,
+    setLine(p, config),
     "WARDROBE: keep everyone's own clothing and accessories exactly as in the photo, simply clean and well lit.",
     `COLOUR: ${p.grade ? `${p.grade}; ` : ""}palette of ${p.paletteWords}.`,
     `MOOD: ${p.atmosphere}.`,
@@ -316,15 +316,24 @@ function tarotLine(p: MoodProfile, group: boolean): string {
 }
 
 /** Style editorial : impose son traitement et sa finition, ajoute sa consigne de cadre. */
-function withStyle(p: MoodProfile): MoodProfile & { extra?: string } {
+function withStyle(p: MoodProfile): MoodProfile & { extra?: string; styleSet?: boolean } {
   const st = STYLES[p.style] ?? STYLES.mood;
   return {
     ...p,
     treatment: st.treatment ?? p.treatment,
     texture: st.finish ?? p.texture,
     extra: st.extra,
+    // Style a decor impose (portrait professionnel) : il remplace le decor,
+    // la lumiere et la palette de l'ambiance, et la direction de decor de la campagne.
+    ...(st.set ? { setting: st.set, styleSet: true } : {}),
+    ...(st.lighting ? { lighting: st.lighting, contrast: "" } : {}),
+    ...(st.palette ? { paletteWords: st.palette, grade: "" } : {}),
   };
 }
+
+/** Consigne de decor : celle du style s'il en impose une, sinon celle de la campagne. */
+const setLine = (p: MoodProfile & { styleSet?: boolean }, config: CampaignConfig) =>
+  `SET: ${p.setting || "a real location that matches the mood"}. ${p.styleSet ? "" : config.setDirection || SET_DEPTH}`.trim();
 
 /**
  * Transformations (anime, peinture, figurine...) : la personne est
