@@ -216,6 +216,30 @@
   color: var(--color-fmfg);
 }
 
+/* Fond de page du CMS : le body est en dehors de .fm-admin et restait blanc.
+   Sur iPhone, Safari peut ne pas peindre le fond sombre sur une longue page
+   (calques fixes avec melange) : le blanc apparaissait sous l'historique
+   des generations (16/10/2026). Le fond de page est donc sombre lui aussi. */
+html:has(.fm-admin),
+html:has(.fm-admin) body {
+  background-color: var(--color-fmbg);
+  color-scheme: dark;
+}
+
+/* iPhone : Safari zoome sur tout champ en dessous de 16 px et ne dezoome pas.
+   Le grain (calque fixe en mix-blend-mode) est retire du CMS sur telephone :
+   c'est lui qui declenche le defaut de peinture de Safari. */
+@media (max-width: 767px) {
+  .fm-admin.fm-canvas::after {
+    display: none;
+  }
+  .fm-admin input,
+  .fm-admin select,
+  .fm-admin textarea {
+    font-size: 16px;
+  }
+}
+
 /* Telephone : un select prend la largeur de sa plus longue option, un champ
    sa taille par defaut ; plafonnes a leur conteneur pour ne pas elargir la page. */
 .fm-admin select,

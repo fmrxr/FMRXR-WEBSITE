@@ -65,7 +65,7 @@ export function Sidebar({ roles }: { roles: Role[] }) {
         <NavContent roles={roles} pathname={pathname} />
       </aside>
 
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-fmborder bg-fmbg/90 px-4 py-3 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-fmborder bg-fmbg px-4 py-3 md:hidden">
         <Link href="/admin" className="fm-display text-sm tracking-[0.06em] text-fmfg">
           FMRXR<span className="text-fmaccent">{"//"}</span> <span className="ml-1 text-[10px] uppercase tracking-[0.14em] text-fmmuted">CMS</span>
         </Link>
