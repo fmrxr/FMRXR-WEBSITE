@@ -8,7 +8,9 @@ import { PRODUCTS } from "./products";
 // projet (/projects/<project>), pour qu'une œuvre n'ait qu'une seule page.
 
 export type RowId = "body" | "games" | "spaces" | "labs";
-export type Requirement = "camera" | "microphone" | "sound";
+// vr : un casque WebXR est possible mais jamais obligatoire ; l'iframe doit
+// alors déléguer xr-spatial-tracking, sinon le bouton « Entrer en VR » disparaît.
+export type Requirement = "camera" | "microphone" | "sound" | "vr";
 
 export type Experience = {
   slug: string;
@@ -59,6 +61,16 @@ export const EXPERIENCES: Experience[] = [
     credits: ["For Morninglory Paris · Cyberpunk Halloween at 42 Marches", "Portfolio demo, no ticket is issued"],
     entry: "/experiences/access-protocol/index.html", ...media("access-protocol"),
     requires: ["sound"], project: "access-protocol",
+  },
+  {
+    // L'ASSEMBLEUR : jeu d'histoire 360 (Three.js + WebXR), prototype de
+    // l'Acte 3. Sources et bible : experience/assembleur/, le fichier servi est
+    // la copie de experience/assembleur/PROTOTYPE/index.html.
+    slug: "assembleur", title: "L'ASSEMBLEUR", row: "games", year: 2026,
+    pitch: "Une expérience narrative à 360°. Vous êtes à l'intérieur de sa mémoire.",
+    credits: ["FMRXR Studio · univers EFFET MÈRE", "Casque VR recommandé, jouable aussi au clavier et à la souris. Lumières clignotantes possibles"],
+    entry: "/experiences/assembleur/index.html", ...media("assembleur"),
+    requires: ["sound", "vr"], project: "assembleur",
   },
   {
     slug: "spicy-airport", title: "SPICY AIRPORT", row: "spaces", year: 2026,
@@ -152,8 +164,10 @@ export function experiencesByRow(list: Experience[] = EXPERIENCES): { id: RowId;
   return ROWS.map((r) => ({ ...r, items: list.filter((e) => e.row === r.id) })).filter((r) => r.items.length);
 }
 
-// Permissions déléguées à l'iframe. Le son n'en demande aucune.
+// Permissions déléguées à l'iframe. Le son n'en demande aucune ; la VR demande
+// xr-spatial-tracking (WebXR est bloqué dans une iframe qui ne la délègue pas).
+const PERMISSION: Partial<Record<Requirement, string>> = { camera: "camera", microphone: "microphone", vr: "xr-spatial-tracking" };
 export function allowFor(e: Pick<Experience, "requires">): string {
-  const extra = e.requires.filter((r) => r === "camera" || r === "microphone");
+  const extra = e.requires.map((r) => PERMISSION[r]).filter((p): p is string => !!p);
   return ["fullscreen", "autoplay", ...extra].join("; ");
 }

@@ -49,6 +49,8 @@ const SHOTS = {
   },
   "spicy-airport": { url: "/experiences/spicy-airport/index.html", warm: 7000, act: (p) => circle(p, 640, 360, 160, 9000) },
   "le-son-de-la-terre": { url: "/experiences/le-son-de-la-terre/index.html", warm: 5000, act: () => sleep(9000) },
+  // Ouverture sautée et tout allumé : la « main » regarde autour d'elle dans la pièce.
+  assembleur: { url: "/experiences/assembleur/index.html?autostart=1&skip=1", warm: 3000, act: (p) => circle(p, 640, 360, 300, 9000) },
   "lab-storm-tunnel": { url: "/experiences/labs/storm.html", warm: 3000, act: () => sleep(9000) },
   "lab-flooded": { url: "/experiences/labs/flooded.html", warm: 3000, act: () => sleep(9000) },
   "lab-stormy-torus": { url: "/experiences/labs/torus.html", warm: 3000, act: () => sleep(9000) },
@@ -64,7 +66,8 @@ const browser = await chromium.launch({ executablePath: exe, args: ["--use-angle
 
 for (const slug of process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(SHOTS)) {
   const s = SHOTS[slug];
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, recordVideo: { dir: TMP, size: { width: W, height: H } } });
+  // ignoreHTTPSErrors : le serveur dev:lan (https://localhost:3443) a un certificat auto-signé.
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, ignoreHTTPSErrors: true, recordVideo: { dir: TMP, size: { width: W, height: H } } });
   const page = await ctx.newPage();
   await page.goto(BASE + s.url, { waitUntil: "load" });
   await sleep(s.warm);

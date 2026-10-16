@@ -18,7 +18,7 @@ import { allowFor, experiencesByRow, featuredExperience, findExperience, heroSlu
 // faute. Et une seule expérience vit à la fois : changer de sélection démonte
 // l'iframe, ce qui coupe caméra, son et WebGL.
 
-const NEEDS: Record<string, string> = { camera: "Camera", microphone: "Microphone", sound: "Sound on" };
+const NEEDS: Record<string, string> = { camera: "Camera", microphone: "Microphone", sound: "Sound on", vr: "VR headset optional" };
 
 // Écran étroit ou pointeur grossier : les expériences pensées pour la souris
 // et le grand écran y affichent un message plutôt que de démarrer mal.

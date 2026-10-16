@@ -23,6 +23,13 @@ const nextConfig: NextConfig = {
         destination: "/experiences",
         permanent: true,
       },
+      // L'ASSEMBLEUR (experience/assembleur/) : le prototype 360 est servi en
+      // statique dans le catalogue. /experience/assembleur reste l'adresse courte.
+      {
+        source: "/experience/assembleur",
+        destination: "/experiences/assembleur/index.html",
+        permanent: false,
+      },
       {
         source: "/services/touchdesigner",
         destination: "/services/real-time-systems",

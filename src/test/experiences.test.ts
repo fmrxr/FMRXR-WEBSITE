@@ -54,6 +54,13 @@ describe("allowFor", () => {
   it("ignores sound, which needs no permission", () => {
     expect(allowFor({ requires: ["sound"] })).toBe("fullscreen; autoplay");
   });
+  it("delegates xr-spatial-tracking for VR, or the VR button is hidden in the iframe", () => {
+    expect(allowFor({ requires: ["sound", "vr"] })).toBe("fullscreen; autoplay; xr-spatial-tracking");
+  });
+  it("serves L'ASSEMBLEUR as a copy of its prototype source", () => {
+    expect(fs.readFileSync("public/experiences/assembleur/index.html", "utf8"))
+      .toBe(fs.readFileSync("experience/assembleur/PROTOTYPE/index.html", "utf8"));
+  });
 });
 
 describe("visibilité réglée dans le CMS", () => {

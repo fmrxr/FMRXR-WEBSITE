@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>L'ASSEMBLEUR — prototype 360</title>
+<meta name="description" content="Prototype jouable 360 / WebXR — L'ASSEMBLEUR, Acte 3, scène 1 : L'illumination. Fichier autonome, Three.js via CDN.">
+<style>
+  :root{
+    --bg:#04060a; --fg:#eef5f8; --dim:#93a7b1; --cyan:#5ee9ff; --amber:#ffb454; --red:#ff4d5a;
+    --panel:rgba(5,9,15,.86); --line:rgba(94,233,255,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;background:var(--bg);color:var(--fg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    overflow:hidden;-webkit-user-select:none;user-select:none}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;outline:none}
+  #c.grabbing{cursor:grabbing}
+  #c.pointer{cursor:pointer}
+  .hidden{display:none !important}
+
+  /* ---------- HUD 2D (desktop uniquement ; en VR tout existe aussi en 3D) ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;font-size:14px;letter-spacing:.04em}
+  #hud > *{position:absolute}
+  #hud-title{top:16px;left:18px;font-weight:700;letter-spacing:.18em;font-size:13px;color:var(--dim)}
+  #hud-title b{color:var(--fg)}
+  #hud-title span{color:var(--cyan);font-weight:400;letter-spacing:.08em}
+  #hud-timer{top:14px;right:18px;text-align:right;color:var(--dim)}
+  #hud-timer .lbl{font-size:11px;letter-spacing:.2em}
+  #hud-clock{font-variant-numeric:tabular-nums;font-size:26px;font-weight:700;color:var(--fg);letter-spacing:.06em;transition:color .2s}
+  #hud-clock.hurt{color:var(--red)}
+  #hud-links{top:72px;right:18px;color:var(--dim);font-size:12px;letter-spacing:.2em}
+  #hud-links b{color:var(--cyan)}
+  #hud-sub{left:50%;bottom:9%;transform:translateX(-50%);max-width:min(760px,88vw);text-align:center;
+    font-size:clamp(16px,2.1vw,22px);line-height:1.4;color:var(--fg);text-shadow:0 2px 12px #000,0 0 2px #000;
+    opacity:0;transition:opacity .35s}
+  #hud-sub::before{content:"TRACE";display:block;font-size:11px;letter-spacing:.3em;color:var(--cyan);margin-bottom:6px}
+  #hud-sub.on{opacity:1}
+  #hud-hint{left:50%;bottom:3.5%;transform:translateX(-50%);color:var(--dim);font-size:12px;letter-spacing:.12em;text-align:center;white-space:nowrap}
+  #hud button{pointer-events:auto;background:var(--panel);color:var(--fg);border:1px solid var(--line);
+    padding:8px 14px;border-radius:4px;font:inherit;font-size:12px;letter-spacing:.14em;cursor:pointer}
+  #hud button:hover{border-color:var(--cyan)}
+  #btn-skip{bottom:20px;right:18px}
+  #btn-mute{bottom:20px;left:18px;width:40px}
+
+  /* ---------- écran de départ ---------- */
+  #start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center,rgba(8,14,24,.55),rgba(4,6,10,.92));z-index:10}
+  #start .panel{max-width:560px;width:calc(100% - 32px);padding:36px 32px 26px;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;text-align:center;box-shadow:0 0 60px rgba(94,233,255,.08)}
+  #start h1{font-size:clamp(28px,5vw,44px);letter-spacing:.3em;font-weight:800;margin-left:.3em}
+  #start .sub{color:var(--dim);margin-top:10px;font-size:14px;letter-spacing:.08em}
+  #start .sub em{color:var(--cyan);font-style:normal}
+  #start .how{margin:26px 0 22px;font-size:15px;line-height:1.6}
+  #start .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:center}
+  #start button,#vr-slot button{font:inherit;font-size:14px;letter-spacing:.2em;text-transform:uppercase;
+    padding:14px 26px;border-radius:4px;cursor:pointer;background:var(--cyan);color:#04141a;border:1px solid var(--cyan);font-weight:700}
+  #vr-slot button{position:static !important;background:transparent !important;color:var(--cyan) !important;
+    opacity:1 !important;width:auto !important;border:1px solid var(--cyan) !important;padding:14px 26px !important;
+    font:inherit !important;font-size:14px !important;letter-spacing:.2em !important;text-transform:uppercase}
+  #start .warn{margin-top:24px;font-size:12px;color:var(--dim);letter-spacing:.06em}
+  #start .warn::before{content:"⚠ ";color:var(--amber)}
+
+  /* ---------- écran de fin ---------- */
+  #end{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9}
+  #end .panel{pointer-events:auto;max-width:520px;width:calc(100% - 32px);padding:22px 26px;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;text-align:center}
+  #end h2{font-size:16px;letter-spacing:.26em;color:var(--cyan);font-weight:700}
+  #end p{margin:10px 0 16px;color:var(--fg);font-size:14px;line-height:1.5}
+  #end button{font:inherit;font-size:13px;letter-spacing:.2em;text-transform:uppercase;padding:10px 20px;
+    border-radius:4px;cursor:pointer;background:transparent;color:var(--cyan);border:1px solid var(--cyan)}
+
+  /* ---------- mode cubemap : étiquettes de la grille ---------- */
+  #cmlabels{position:fixed;inset:0;pointer-events:none}
+  #cmlabels div{position:absolute;color:var(--dim);font-size:11px;letter-spacing:.2em;padding:6px 8px;border:1px dashed rgba(147,167,177,.35)}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="hud-title"><b>L'ASSEMBLEUR</b> &nbsp;·&nbsp; <span>TRACE en ligne</span></div>
+  <div id="hud-timer"><div class="lbl">L'AVANCE</div><div id="hud-clock">05:00</div></div>
+  <div id="hud-links">LIENS <b id="hud-count">0</b> / 5</div>
+  <div id="hud-sub"></div>
+  <div id="hud-hint"></div>
+  <button id="btn-skip" type="button">PASSER L'INTRO ›</button>
+  <button id="btn-mute" type="button" aria-label="Couper le son">♪</button>
+</div>
+
+<div id="start">
+  <div class="panel">
+    <h1>L'ASSEMBLEUR</h1>
+    <p class="sub">Prototype 360 — Acte 3, scène 1 : <em>L'illumination</em></p>
+    <p class="how">Glisse pour regarder autour de toi.<br>Vise un composant, puis un autre, pour tenter un lien.<br>Chaque lien faux coûte dix secondes d'avance.</p>
+    <div class="btns">
+      <button id="btn-start" type="button">Commencer</button>
+      <div id="vr-slot"></div>
+    </div>
+    <p class="warn">Expérience immersive. Lumières clignotantes possibles.</p>
+  </div>
+</div>
+
+<div id="end" class="hidden">
+  <div class="panel">
+    <h2 id="end-title">FIN DU PROTOTYPE</h2>
+    <p id="end-text"></p>
+    <button id="btn-again" type="button">Rejouer</button>
+  </div>
+</div>
+
+<div id="cmlabels" class="hidden"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
+
+/* =====================================================================
+   PARAMÈTRES D'URL
+   ?mode=desktop (défaut) | cube&face=front|back|left|right|up|down | cubemap
+   ?skip=1       saute l'ouverture (tout est allumé, le compte à rebours tourne)
+   ?autostart=1  démarre sans écran d'accueil (toujours vrai en mode cube/cubemap)
+   ===================================================================== */
+const params = new URLSearchParams(location.search);
+const MODE = (params.get('mode') || 'desktop').toLowerCase();
+const FACE = (params.get('face') || 'front').toLowerCase();
+const SKIP = params.get('skip') === '1';
+const AUTOSTART = MODE !== 'desktop' || params.get('autostart') === '1';
+const IS_CUBE = MODE === 'cube' || MODE === 'cubemap';
+
+/* ---------- constantes de la pièce ---------- */
+const EYE = 1.6;          // hauteur des yeux (= centre du cube)
+const HALF = 2.2;         // demi-côté du cube (pièce de 4,4 m)
+const CENTER = new THREE.Vector3(0, EYE, 0);
+const TIMER_START = 300;  // 5 minutes
+const LINKS_TO_WIN = 5;
+const WRONG_PENALTY = 10;
+
+/* ---------- typographie française (espaces insécables) ---------- */
+const fr = s => s.replace(/ ([:;?!»])/g, ' $1').replace(/« /g, '« ');
+
+/* =====================================================================
+   TEXTES DE TRACE
+   ===================================================================== */
+const T = {
+  open: [
+    "Tu as mis dix ans à garder des traces. Ce soir, on branche tout.",
+    "Dix pseudos. Un dossier par année. Chaque composant que tu as mis de côté sans savoir pourquoi.",
+    "On commence par le sol. Comme la première carte mère. Tu te souviens de l'ordre : l'alim, la carte, le bus, la mémoire.",
+    "Regarde le schéma. Il n'est pas complet. Mais il s'allume.",
+    "Pour la première fois, tu sais quelque chose qu'ils ignorent.",
+    "Combien de temps avant qu'ils comprennent ? Je ne sais pas. Alors on assemble. Vite. Vise un composant, puis un autre."
+  ],
+  wrong: [
+    "Non. Ça ne se branche pas là. Tu perds dix secondes.",
+    "Mauvais bus. Regarde le schéma, pas ce que tu veux voir.",
+    "Ça ne tient pas. On démonte, on recommence."
+  ],
+  already: "Déjà branché. Passe au composant suivant.",
+  win1: "Cinq liens. Le schéma tient. Lève les yeux, Ilyes. Le Noyau commence à apparaître. Personne ne l'a jamais vu.",
+  win2: "Fin du prototype — L'ASSEMBLEUR · Acte 3, scène 1 : L'illumination.",
+  lost: "Ils savent. L'avance est perdue. On remonte tout depuis le début."
+};
+
+/* ---------- composants (nœuds) ---------- */
+const NODES = [
+  { id:'ilyes_94',    label:'ilyes_94',         sub:'MSN · 2003',           kind:'pseudo' },
+  { id:'kernel',      label:'kernel_panic',     sub:'mIRC · 2008',          kind:'pseudo' },
+  { id:'ghostwire',   label:'GHOSTWIRE',        sub:'Toile Libre · 2010',   kind:'pseudo' },
+  { id:'sable',       label:'sable',            sub:'cellule · 2013',       kind:'pseudo' },
+  { id:'null',        label:'null',             sub:'après le doute · 2015',kind:'pseudo' },
+  { id:'sentinel',    label:'SENTINEL',         sub:'le Guide',             kind:'person' },
+  { id:'moth',        label:'moth',             sub:'camarade · 2017',      kind:'person' },
+  { id:'toile',       label:'La Toile Libre',   sub:'logo · un œil dans un nœud', kind:'org' },
+  { id:'facture',     label:'facture_2017.pdf', sub:'fichier · logistique', kind:'file' },
+  { id:'date',        label:'16.03.2016',       sub:'« mission urgente »',  kind:'date' },
+];
+const KIND_COLOR = { pseudo:0x5ee9ff, person:0xffb454, org:0xff5ec8, file:0xb7ff7a, date:0xffffff };
+
+/* ---------- liens corrects : commentaire de TRACE + zone du schéma révélée ---------- */
+const CORRECT = {
+  'ghostwire|toile':    { zone:'front', text:"GHOSTWIRE. C'est toi quand tu es entré. Le logo t'a accueilli avant les gens." },
+  'ghostwire|sentinel': { zone:'front', text:"SENTINEL t'a vu le premier. On ne remarque jamais quelqu'un par hasard. On le repère." },
+  'date|sentinel':      { zone:'right', text:"16 mars 2016. La mission urgente. L'enterrement de ton père. Regarde le schéma : ce n'était pas une coïncidence." },
+  'sable|sentinel':     { zone:'right', text:"sable, c'est le nom qu'il t'a donné. Un composant qu'on nomme, on le possède." },
+  'facture|moth':       { zone:'back',  text:"« Tu as vu le logo sur la facture ? » Dernier message de moth. Le fichier, lui, est toujours là." },
+  'moth|sable':         { zone:'back',  text:"sable et moth. Même cellule, même fragment. L'un a posé la question. L'autre a gardé la trace." },
+  'null|sable':         { zone:'back',  text:"Après le doute, tu t'es appelé null. Personne. C'est là que tu as commencé à archiver." },
+  'facture|toile':      { zone:'left',  text:"Le logo de la Toile sur une facture de logistique. Le masque et le visage soudés sur le même composant." },
+  'ilyes_94|kernel':    { zone:'down',  text:"ilyes_94, kernel_panic. Même main sur le clavier. Tu as changé de nom, pas de méthode." },
+  'ghostwire|kernel':   { zone:'front', text:"De kernel_panic à GHOSTWIRE. Le jeu s'arrête ici. Le masque commence." },
+};
+const linkKey = (a, b) => [a.id, b.id].sort().join('|');
+
+/* =====================================================================
+   RENDU
+   ===================================================================== */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 1);
+renderer.xr.enabled = !IS_CUBE;
+renderer.xr.setReferenceSpaceType('local-floor');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+// caméra desktop : au centre, orbite depuis le centre (yaw / pitch)
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 60);
+camera.position.copy(CENTER);
+const rig = new THREE.Group();   // rig XR : origine = sol réel (local-floor)
+rig.add(camera);
+scene.add(rig);
+let yaw = 0, pitch = 0;
+function applyLook() {
+  camera.rotation.set(0, 0, 0, 'YXZ');
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+}
+applyLook();
+
+// caméras de faces (mode cube / cubemap) : FOV 90°, carré
+const FACE_DEFS = {
+  front: { dir:[0,0,-1], up:[0,1,0] },
+  back:  { dir:[0,0, 1], up:[0,1,0] },
+  left:  { dir:[-1,0,0], up:[0,1,0] },
+  right: { dir:[ 1,0,0], up:[0,1,0] },
+  up:    { dir:[0, 1,0], up:[0,0, 1] },  // haut de l'image = mur arrière (comme quand on lève la tête)
+  down:  { dir:[0,-1,0], up:[0,0,-1] },  // haut de l'image = mur avant (comme quand on baisse la tête)
+};
+function faceCamera(name) {
+  const d = FACE_DEFS[name] || FACE_DEFS.front;
+  const cam = new THREE.PerspectiveCamera(90, 1, 0.05, 60);
+  cam.position.copy(CENTER);
+  cam.up.set(...d.up);
+  cam.lookAt(CENTER.x + d.dir[0], CENTER.y + d.dir[1], CENTER.z + d.dir[2]);
+  cam.updateMatrixWorld();
+  return cam;
+}
+const faceCams = {};
+if (IS_CUBE) for (const n in FACE_DEFS) faceCams[n] = faceCamera(n);
+
+/* =====================================================================
+   TEXTURES PROCÉDURALES DES 6 FACES
+   Encodage : R = intensité du motif, G = ordre d'apparition (0..1), B = type (0 grille, .5 lien, 1 nœud)
+   ===================================================================== */
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rgb = (r, g, b) => `rgb(${r|0},${g|0},${b|0})`;
+const S = 512;
+function newCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function grid(ctx, step, inten) {
+  ctx.strokeStyle = rgb(inten, 6, 0); ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0.5; x < S; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, S); }
+  for (let y = 0.5; y < S; y += step) { ctx.moveTo(0, y); ctx.lineTo(S, y); }
+  ctx.stroke();
+}
+function titleText(ctx, text, x, y, size, order, align = 'left') {
+  ctx.font = `700 ${size}px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+  ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = rgb(255, order * 255, 255);
+  ctx.fillText(text, x, y);
+}
+
+function texWall(title, seed, originCorner) {
+  const c = newCanvas(S, S), ctx = c.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, S, S);
+  grid(ctx, 32, 110);
+  const rnd = mulberry32(seed);
+  const ox = originCorner[0] * S, oy = originCorner[1] * S;
+  const pts = [];
+  for (let i = 0; i < 30; i++) {
+    const x = 28 + rnd() * (S - 56), y = 28 + rnd() * (S - 110);
+    const d = Math.hypot(x - ox, y - oy) / (S * 1.3);
+    pts.push({ x, y, order: Math.min(0.95, 0.12 + d * 0.9 + rnd() * 0.08), big: rnd() < 0.25 });
+  }
+  // liens : 2 plus proches voisins
+  ctx.lineWidth = 1.6;
+  for (const p of pts) {
+    const near = pts.filter(q => q !== p).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, 2);
+    for (const q of near) {
+      const o = Math.max(p.order, q.order);
+      ctx.strokeStyle = rgb(215, o * 255, 128);
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      // petites "données" le long du lien
+      const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+      ctx.fillStyle = rgb(160, o * 255, 128);
+      for (let k = 0; k < 3; k++) ctx.fillRect(mx + 6 + k * 7, my + 6, 4, 2);
+    }
+  }
+  // nœuds
+  for (const p of pts) {
+    ctx.fillStyle = rgb(255, p.order * 255, 255);
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.big ? 6 : 3.5, 0, Math.PI * 2); ctx.fill();
+    if (p.big) { ctx.strokeStyle = rgb(200, p.order * 255, 255); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, Math.PI * 2); ctx.stroke(); }
+  }
+  ctx.fillStyle = '#000'; ctx.fillRect(0, S - 70, S, 70);
+  grid(ctx, 32, 110);
+  titleText(ctx, title, 24, S - 26, 32, 0.1);
+  return new THREE.CanvasTexture(c);
+}
+
+function texFloor() {
+  const c = newCanvas(S, S), ctx = c.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, S, S);
+  // tenons Lego (grille)
+  ctx.strokeStyle = rgb(95, 6, 0); ctx.lineWidth = 1.2;
+  for (let y = 24; y < S; y += 48) for (let x = 24; x < S; x += 48) { ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.stroke(); }
+  // pistes de carte mère (liens), parcours orthogonaux
+  const rnd = mulberry32(2001);
+  ctx.lineWidth = 3; ctx.lineCap = 'round';
+  for (let i = 0; i < 16; i++) {
+    let x = Math.round(rnd() * 10) * 48 + 24, y = Math.round(rnd() * 10) * 48 + 24;
+    const order = 0.15 + i / 16 * 0.75;
+    ctx.strokeStyle = rgb(230, order * 255, 128);
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for (let k = 0; k < 6; k++) { if (rnd() < 0.5) x += (rnd() < 0.5 ? -1 : 1) * 48 * (1 + (rnd() * 2 | 0)); else y += (rnd() < 0.5 ? -1 : 1) * 48 * (1 + (rnd() * 2 | 0)); x = Math.max(24, Math.min(S - 24, x)); y = Math.max(24, Math.min(S - 24, y)); ctx.lineTo(x, y); }
+    ctx.stroke();
+    ctx.fillStyle = rgb(255, order * 255, 255); ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+  }
+  // composants (nœuds) : puces avec pattes
+  const chips = [[70, 60, 90, 60], [360, 80, 70, 110], [120, 330, 150, 50], [390, 380, 80, 80]];
+  chips.forEach(([x, y, w, h], i) => {
+    const order = 0.3 + i * 0.15;
+    ctx.fillStyle = rgb(90, order * 255, 255); ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = rgb(255, order * 255, 255); ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
+    for (let p = x + 6; p < x + w - 4; p += 8) { ctx.fillRect(p, y - 7, 3, 7); ctx.fillRect(p, y + h, 3, 7); }
+  });
+  // processeur central
+  ctx.strokeStyle = rgb(255, 0.6 * 255, 255); ctx.lineWidth = 3; ctx.strokeRect(216, 216, 80, 80);
+  ctx.strokeRect(232, 232, 48, 48);
+  titleText(ctx, 'ENFANCE — LE MONTAGE', 256, S - 20, 26, 0.12, 'center');
+  titleText(ctx, '2001', 256, 262, 22, 0.6, 'center');
+  return new THREE.CanvasTexture(c);
+}
+
+function texCeiling() {
+  const c = newCanvas(S, S), ctx = c.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, S, S);
+  const rnd = mulberry32(42);
+  // le nœud de fils : courbes emmêlées autour du centre
+  ctx.lineWidth = 1.6;
+  for (let i = 0; i < 46; i++) {
+    const a = rnd() * Math.PI * 2, r = 60 + rnd() * 190;
+    const order = 0.08 + rnd() * 0.5;
+    ctx.strokeStyle = rgb(200, order * 255, 128);
+    ctx.beginPath();
+    ctx.moveTo(256 + Math.cos(a) * r, 256 + Math.sin(a) * r);
+    ctx.bezierCurveTo(256 + (rnd() - .5) * 420, 256 + (rnd() - .5) * 420, 256 + (rnd() - .5) * 420, 256 + (rnd() - .5) * 420,
+                      256 + Math.cos(a + 2.5) * (60 + rnd() * 190), 256 + Math.sin(a + 2.5) * (60 + rnd() * 190));
+    ctx.stroke();
+  }
+  // l'œil ouvert
+  ctx.strokeStyle = rgb(255, 0.62 * 255, 255); ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(120, 256); ctx.quadraticCurveTo(256, 120, 392, 256); ctx.quadraticCurveTo(256, 392, 120, 256); ctx.stroke();
+  ctx.strokeStyle = rgb(255, 0.72 * 255, 255); ctx.beginPath(); ctx.arc(256, 256, 52, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = rgb(255, 0.82 * 255, 255); ctx.beginPath(); ctx.arc(256, 256, 20, 0, Math.PI * 2); ctx.fill();
+  titleText(ctx, 'NŒUD ZÉRO', 256, 470, 38, 0.9, 'center');
+  return new THREE.CanvasTexture(c);
+}
+
+const faceVert = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const faceFrag = `
+  uniform sampler2D map; uniform float reveal, time, bright, flash;
+  uniform vec3 cBase, cGrid, cLink, cNode, cFlash;
+  varying vec2 vUv;
+  void main(){
+    vec4 t = texture2D(map, vUv);
+    float order = t.g, kind = t.b, inten = t.r;
+    float on = smoothstep(order, order + 0.06, reveal);
+    float pulse = 0.78 + 0.22 * sin(time * 2.2 + order * 40.0);
+    vec3 col = kind < 0.25 ? cGrid : (kind < 0.75 ? cLink * (0.85 + 0.15 * sin(time * 1.3 + order * 25.0)) : cNode * pulse);
+    vec2 d = abs(vUv - 0.5) * 2.0; float m = max(d.x, d.y); float vig = 1.0 - 0.4 * m * m;
+    vec3 c = cBase + col * inten * on * bright * vig + cFlash * flash * (0.25 + 0.75 * inten);
+    gl_FragColor = vec4(c, 1.0);
+    #include <colorspace_fragment>
+  }`;
+function faceMaterial(tex, tints) {
+  tex.colorSpace = THREE.NoColorSpace; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.anisotropy = 4;
+  return new THREE.ShaderMaterial({
+    vertexShader: faceVert, fragmentShader: faceFrag,
+    uniforms: {
+      map: { value: tex }, reveal: { value: 0 }, time: { value: 0 }, bright: { value: 1 }, flash: { value: 0 },
+      cBase: { value: new THREE.Color(tints.base) }, cGrid: { value: new THREE.Color(tints.grid) },
+      cLink: { value: new THREE.Color(tints.link) }, cNode: { value: new THREE.Color(tints.node) },
+      cFlash: { value: new THREE.Color(0xff2030) },
+    }
+  });
+}
+
+const wallTint = { base:0x060a12, grid:0x16334a, link:0x2fa9c9, node:0xbdf6ff };
+const faces = {
+  front: { title:'LES RECRUTEURS',           pos:[0, EYE, -HALF], rot:[0, 0, 0],            tex:() => texWall('LES RECRUTEURS', 11, [0.1, 0.9]), tint: wallTint },
+  right: { title:'LES GUIDES',               pos:[HALF, EYE, 0],  rot:[0, -Math.PI / 2, 0], tex:() => texWall('LES GUIDES', 23, [0.5, 0.5]),               tint: { base:0x0a0a14, grid:0x2a2a4a, link:0xb08030, node:0xffd9a0 } },
+  back:  { title:'LES CELLULES',             pos:[0, EYE, HALF],  rot:[0, Math.PI, 0],      tex:() => texWall('LES CELLULES', 37, [0.9, 0.2]),             tint: { base:0x060c0c, grid:0x184040, link:0x2fc9a6, node:0xc8fff0 } },
+  left:  { title:'LES SOUS-GROUPES',         pos:[-HALF, EYE, 0], rot:[0, Math.PI / 2, 0],  tex:() => texWall('LES SOUS-GROUPES', 53, [0.2, 0.2]),         tint: { base:0x0c0810, grid:0x3a2048, link:0xc050b0, node:0xffc8f0 } },
+  down:  { title:'ENFANCE',                  pos:[0, EYE - HALF, 0], rot:[-Math.PI / 2, 0, 0], tex: texFloor,  tint: { base:0x060904, grid:0x6a5a18, link:0xd08a30, node:0xffe9b0 } },
+  up:    { title:'LE NOYAU',                 pos:[0, EYE + HALF, 0], rot:[Math.PI / 2, 0, 0],  tex: texCeiling, tint: { base:0x000000, grid:0x200008, link:0x8a1020, node:0xffd0d8 } },
+};
+const faceGeo = new THREE.PlaneGeometry(HALF * 2, HALF * 2);
+for (const name in faces) {
+  const f = faces[name];
+  f.mat = faceMaterial(f.tex(), f.tint);
+  f.mesh = new THREE.Mesh(faceGeo, f.mat);
+  f.mesh.position.set(...f.pos); f.mesh.rotation.set(...f.rot);
+  scene.add(f.mesh);
+}
+faces.up.mat.uniforms.bright.value = 1.6;
+
+// arêtes du cube : fines lignes, repère spatial
+{
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(HALF * 2, HALF * 2, HALF * 2)),
+    new THREE.LineBasicMaterial({ color: 0x1c3a4a, transparent: true, opacity: 0.6 }));
+  edges.position.copy(CENTER); scene.add(edges);
+}
+
+
+/* =====================================================================
+   SPRITES / TEXTE 3D
+   ===================================================================== */
+function glowTexture() {
+  const c = newCanvas(64, 64), ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.25, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function ringTexture() {
+  const c = newCanvas(128, 128), ctx = c.getContext('2d');
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(64, 64, 52, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 2; ctx.setLineDash([6, 8]); ctx.beginPath(); ctx.arc(64, 64, 40, 0, Math.PI * 2); ctx.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const GLOW = glowTexture(), RING = ringTexture();
+
+// poussière de données : 500 points
+const dust = (() => {
+  const n = 500, pos = new Float32Array(n * 3), rnd = mulberry32(7);
+  for (let i = 0; i < n; i++) { pos[i*3] = (rnd() - .5) * HALF * 2; pos[i*3+1] = EYE + (rnd() - .5) * HALF * 2; pos[i*3+2] = (rnd() - .5) * HALF * 2; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const p = new THREE.Points(g, new THREE.PointsMaterial({ color: 0x4aa0b5, size: 0.02, map: GLOW, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  scene.add(p); return p;
+})();
+
+function labelSprite(label, sub, color) {
+  const c = newCanvas(512, 128), ctx = c.getContext('2d');
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 8;
+  ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+  ctx.font = '700 46px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+  ctx.fillText(label, 256, 56);
+  ctx.fillStyle = 'rgba(220,235,240,.85)';
+  ctx.font = '400 26px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+  ctx.fillText(sub, 256, 98);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false }));
+  s.scale.set(0.56, 0.14, 1);
+  return s;
+}
+
+function wrapText(ctx, text, maxW) {
+  const words = text.split(' '), lines = []; let line = '';
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// panneau de texte : TRACE parle, dans l'espace
+class TextPanel {
+  constructor(w, h, pw) {
+    this.canvas = newCanvas(w, h); this.ctx = this.canvas.getContext('2d');
+    this.tex = new THREE.CanvasTexture(this.canvas); this.tex.colorSpace = THREE.SRGBColorSpace;
+    this.mat = new THREE.MeshBasicMaterial({ map: this.tex, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(pw, pw * h / w), this.mat);
+    this.mesh.renderOrder = 10; this.mesh.visible = false;
+    this.target = 0;
+  }
+  draw(text, opts = {}) {
+    const { ctx, canvas } = this, W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = opts.bg || 'rgba(5,9,15,.86)';
+    ctx.beginPath(); ctx.roundRect(4, 4, W - 8, H - 8, 18); ctx.fill();
+    ctx.strokeStyle = opts.border || 'rgba(94,233,255,.45)'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = opts.tag === false ? 'transparent' : '#5ee9ff';
+    ctx.font = '700 24px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'; ctx.textAlign = 'left';
+    if (opts.tag !== false) ctx.fillText(opts.tag || 'TRACE', 40, 52);
+    ctx.fillStyle = '#eef5f8';
+    const size = opts.size || 42;
+    ctx.font = `${opts.weight || 400} ${size}px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+    const lines = wrapText(ctx, text, W - 80);
+    const lh = size * 1.25, top = (opts.tag === false ? 0 : 40) + (H - (opts.tag === false ? 0 : 40) - lines.length * lh) / 2 + size * 0.85;
+    lines.forEach((l, i) => ctx.fillText(l, 40, top + i * lh));
+    this.tex.needsUpdate = true;
+  }
+  show() { this.target = 1; this.mesh.visible = true; }
+  hide() { this.target = 0; }
+  update(dt) {
+    const o = this.mat.opacity, k = Math.min(1, dt * 4);
+    this.mat.opacity = o + (this.target - o) * k;
+    if (this.target === 0 && this.mat.opacity < 0.01) { this.mat.opacity = 0; this.mesh.visible = false; }
+  }
+}
+
+const tracePanel = new TextPanel(1024, 320, 1.28);
+scene.add(tracePanel.mesh);
+
+// compte à rebours en 3D, ancré dans la scène (devant, en bas)
+const timerPanel = new TextPanel(512, 200, 0.62);
+timerPanel.mesh.position.set(0, EYE - 1.0, -1.75);
+timerPanel.mesh.lookAt(CENTER);
+scene.add(timerPanel.mesh);
+function drawTimer(seconds, hurt) {
+  const { ctx, canvas } = timerPanel, W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(5,9,15,.8)'; ctx.beginPath(); ctx.roundRect(4, 4, W - 8, H - 8, 16); ctx.fill();
+  ctx.strokeStyle = hurt ? 'rgba(255,77,90,.9)' : 'rgba(94,233,255,.35)'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#93a7b1'; ctx.font = '700 24px system-ui, Arial, sans-serif'; ctx.fillText("L'AVANCE", W / 2, 44);
+  ctx.fillStyle = hurt ? '#ff4d5a' : '#eef5f8'; ctx.font = '700 96px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+  ctx.fillText(fmtTime(seconds), W / 2, 134);
+  ctx.fillStyle = '#5ee9ff'; ctx.font = '700 22px system-ui, Arial, sans-serif'; ctx.fillText(`LIENS ${state.links} / ${LINKS_TO_WIN}`, W / 2, 178);
+  timerPanel.tex.needsUpdate = true;
+}
+function fmtTime(s) { s = Math.max(0, Math.ceil(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+
+/* =====================================================================
+   NŒUDS
+   ===================================================================== */
+const nodeGroup = new THREE.Group(); scene.add(nodeGroup);
+const hitMeshes = [];
+const nodes = NODES.map((n, i) => {
+  const color = KIND_COLOR[n.kind];
+  const a = i / NODES.length * Math.PI * 2 + 0.35;
+  const r = 1.55 + 0.25 * Math.sin(i * 1.7);
+  const y = EYE - 0.15 + 0.55 * Math.sin(i * 2.3 + 1);
+  const g = new THREE.Group();
+  g.position.set(Math.sin(a) * r, y, -Math.cos(a) * r);
+  const mat = new THREE.MeshBasicMaterial({ color });
+  let core;
+  if (n.kind === 'org') core = new THREE.Mesh(new THREE.TorusKnotGeometry(0.05, 0.014, 64, 8), mat);
+  else if (n.kind === 'person') core = new THREE.Mesh(new THREE.OctahedronGeometry(0.07, 0), mat);
+  else if (n.kind === 'file') core = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.012), mat);
+  else if (n.kind === 'date') core = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 8, 28), mat);
+  else core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.045, 1), mat);
+  g.add(core);
+  const wire = new THREE.Mesh(new THREE.IcosahedronGeometry(0.095, 1), new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.28 }));
+  g.add(wire);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false }));
+  glow.scale.setScalar(0.42); g.add(glow);
+  const label = labelSprite(n.label, n.sub, color); label.position.y = 0.19; g.add(label);
+  const hit = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 6), new THREE.MeshBasicMaterial({ visible: false }));
+  g.add(hit); hitMeshes.push(hit);
+  g.visible = false; g.scale.setScalar(0.001);
+  nodeGroup.add(g);
+  const node = { ...n, color, group: g, core, wire, glow, labelSprite: label, hit, baseY: y, lit: false, phase: i * 1.3 };
+  hit.userData.node = node;
+  return node;
+});
+const nodeById = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+// anneau de sélection + anneau de survol
+const selRing = new THREE.Sprite(new THREE.SpriteMaterial({ map: RING, color: 0x5ee9ff, transparent: true, depthWrite: false }));
+selRing.scale.setScalar(0.34); selRing.visible = false; scene.add(selRing);
+const hovRing = new THREE.Sprite(new THREE.SpriteMaterial({ map: RING, color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false }));
+hovRing.scale.setScalar(0.28); hovRing.visible = false; scene.add(hovRing);
+
+/* ---------- liens : arcs (tubes fins + halo additif), courbés pour ne jamais traverser la tête du joueur ---------- */
+const linkGroup = new THREE.Group(); scene.add(linkGroup);
+const _mid = new THREE.Vector3(), _v = new THREE.Vector3(), _ctrl = new THREE.Vector3(), _out = new THREE.Vector3(), _up = new THREE.Vector3();
+function linkCurve(pa, pb) {
+  _mid.addVectors(pa, pb).multiplyScalar(0.5);
+  _v.subVectors(_mid, CENTER); _v.y = 0; const d = _v.length();
+  _up.copy(_mid).add(new THREE.Vector3(0, 2.4, 0));                       // nœuds opposés : arche haute au-dessus de la tête (~1 m au-dessus des yeux)
+  _out.copy(CENTER).addScaledVector(d > 1e-3 ? _v.clone().normalize() : new THREE.Vector3(0, 0, -1), Math.min(2.0, d + 1.0)); _out.y = _mid.y; // sinon : bombé vers le mur
+  const w = THREE.MathUtils.smoothstep(d, 0.25, 0.8);
+  _ctrl.lerpVectors(_up, _out, w);
+  return new THREE.QuadraticBezierCurve3(pa.clone(), _ctrl.clone(), pb.clone());
+}
+function makeTube(curve, color, opacity, radius) {
+  const g = new THREE.TubeGeometry(curve, 28, radius, 5, false);
+  return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending }));
+}
+const links = [];          // { a, b, curve, meshes:[], pulse, ok, t }
+function addLink(a, b, ok) {
+  const curve = linkCurve(a.group.position, b.group.position);
+  const color = ok ? 0x9ff3ff : 0xff4d5a;
+  const core = makeTube(curve, color, ok ? 0.95 : 0.9, 0.005);
+  const halo = makeTube(curve, color, ok ? 0.16 : 0.22, 0.016);
+  const pulse = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+  pulse.scale.setScalar(0.14);
+  linkGroup.add(core, halo, pulse);
+  const L = { a, b, curve, meshes: [core, halo], pulse, ok, t: 0 };
+  links.push(L); return L;
+}
+// aperçu du lien en cours (ligne, mise à jour chaque image)
+const PREVIEW_N = 24;
+const preview = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length: PREVIEW_N }, () => new THREE.Vector3())),
+  new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 }));
+preview.visible = false; linkGroup.add(preview);
+function setPreview(a, b) {
+  if (!a || !b) { preview.visible = false; return; }
+  const curve = linkCurve(a.group.position, b.group.position), pos = preview.geometry.attributes.position;
+  for (let i = 0; i < PREVIEW_N; i++) { const p = curve.getPoint(i / (PREVIEW_N - 1)); pos.setXYZ(i, p.x, p.y, p.z); }
+  pos.needsUpdate = true; preview.visible = true;
+}
+
+/* =====================================================================
+   ÉTAT DU JEU
+   ===================================================================== */
+const state = {
+  phase: 'idle',           // idle | opening | play | win | lost
+  time: TIMER_START, links: 0, made: new Set(), wrongIdx: 0,
+  selected: null, hovered: null, hurtUntil: 0, started: false,
+};
+const hud = {
+  root: document.getElementById('hud'), clock: document.getElementById('hud-clock'), count: document.getElementById('hud-count'),
+  sub: document.getElementById('hud-sub'), hint: document.getElementById('hud-hint'), skip: document.getElementById('btn-skip'),
+  mute: document.getElementById('btn-mute'), start: document.getElementById('start'), end: document.getElementById('end'),
+  endText: document.getElementById('end-text'), endTitle: document.getElementById('end-title'),
+};
+
+/* ---------- tweens minimalistes ---------- */
+const tweens = [];
+function tween(setter, from, to, dur, delay = 0, ease = t => t * t * (3 - 2 * t)) {
+  tweens.push({ setter, from, to, dur, t: -delay, ease });
+}
+function updateTweens(dt) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i]; tw.t += dt; if (tw.t < 0) continue;
+    const k = Math.min(1, tw.t / tw.dur); tw.setter(tw.from + (tw.to - tw.from) * tw.ease(k));
+    if (k >= 1) tweens.splice(i, 1);
+  }
+}
+const revealTo = (face, v, dur = 2, delay = 0) => { const u = faces[face].mat.uniforms.reveal; tween(x => u.value = x, u.value, v, dur, delay); };
+
+/* ---------- file de parole de TRACE ---------- */
+const speech = { queue: [], current: null, until: 0, gap: 0 };
+function say(text, dur = 5, opts = {}) { speech.queue.push({ text: fr(text), dur, opts }); }
+function sayNow(text, dur = 5, opts = {}) { speech.queue.length = 0; speech.current = null; speech.until = 0; say(text, dur, opts); }
+const _fwd = new THREE.Vector3();
+function placePanelInFront(mesh, dist, y) {
+  if (IS_CUBE) { mesh.position.set(0, y, -dist); mesh.lookAt(CENTER); return; }
+  const cam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+  cam.getWorldDirection(_fwd); _fwd.y = 0;
+  if (_fwd.lengthSq() < 1e-4) _fwd.set(0, 0, -1); _fwd.normalize();
+  mesh.position.set(_fwd.x * dist, y, _fwd.z * dist);
+  mesh.lookAt(CENTER);
+}
+function updateSpeech(dt, now) {
+  if (speech.current && now > speech.until) { speech.current = null; tracePanel.hide(); speech.gap = now + 0.45; }
+  if (!speech.current && speech.queue.length && now > speech.gap) {
+    const s = speech.queue.shift(); speech.current = s; speech.until = now + s.dur;
+    tracePanel.draw(s.text, s.opts); placePanelInFront(tracePanel.mesh, 1.3, EYE - 0.42); tracePanel.show();
+    hud.sub.textContent = s.text;
+    audio.blip(880, 0.05, 0.03);
+  }
+}
+
+/* ---------- audio procédural (léger) ---------- */
+const audio = {
+  ctx: null, master: null, muted: false,
+  init() {
+    if (this.ctx) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      this.ctx = new AC(); this.master = this.ctx.createGain(); this.master.gain.value = 0.6; this.master.connect(this.ctx.destination);
+      const lp = this.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220; lp.connect(this.master);
+      const dg = this.ctx.createGain(); dg.gain.value = 0.0; dg.connect(lp); this.drone = dg;
+      [[55, 'sine'], [110.6, 'triangle'], [82.4, 'sine']].forEach(([f, t]) => { const o = this.ctx.createOscillator(); o.type = t; o.frequency.value = f; o.connect(dg); o.start(); });
+      dg.gain.linearRampToValueAtTime(0.18, this.ctx.currentTime + 6);
+    } catch (e) { this.ctx = null; }
+  },
+  blip(freq, dur, vol = 0.08, type = 'sine') {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 1.5, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.1);
+  },
+  good() { this.blip(523, 0.12, 0.07); setTimeout(() => this.blip(784, 0.2, 0.07), 110); },
+  bad() { this.blip(110, 0.35, 0.12, 'sawtooth'); },
+  toggle() { this.muted = !this.muted; if (this.master) this.master.gain.value = this.muted ? 0 : 0.6; hud.mute.textContent = this.muted ? '×' : '♪'; },
+};
+
+/* =====================================================================
+   OUVERTURE — « L'ILLUMINATION »
+   ===================================================================== */
+const timeline = [];
+let openT = 0, openDone = false;
+function at(t, fn) { timeline.push({ t, fn, done: false }); }
+function buildOpening() {
+  timeline.length = 0;
+  at(0.3, () => tween(v => dust.material.opacity = v, 0, 0.5, 8));
+  at(0.8, () => say(T.open[0], 6));
+  at(7.6, () => say(T.open[1], 7));
+  at(15.2, () => { say(T.open[2], 9); revealTo('down', 1, 11); });
+  nodes.forEach((n, i) => at(24 + i * 1.5, () => lightNode(n)));
+  at(40.5, () => { say(T.open[3], 7); ['front', 'right', 'back', 'left'].forEach((f, i) => revealTo(f, 0.3, 9, i * 0.8)); });
+  at(49.5, () => say(T.open[4], 6));
+  at(56.5, () => say(T.open[5], 10));
+  at(63.5, () => showTimer());
+  at(67.5, () => startPlay());
+}
+function lightNode(n) {
+  if (n.lit) return; n.lit = true; n.group.visible = true;
+  tween(v => n.group.scale.setScalar(Math.max(0.001, v)), 0, 1, 0.9, 0, t => 1 - Math.pow(1 - t, 3));
+  audio.blip(660 + Math.random() * 300, 0.08, 0.04);
+}
+function showTimer() { drawTimer(state.time, false); timerPanel.show(); }
+function startPlay() {
+  if (state.phase === 'play') return;
+  state.phase = 'play'; openDone = true;
+  hud.skip.classList.add('hidden');
+  hud.hint.textContent = fr('Vise un composant, puis un autre. Un lien faux coûte 10 secondes.');
+}
+function skipOpening() {
+  if (state.phase !== 'opening') return;
+  timeline.forEach(e => e.done = true);
+  speech.queue.length = 0; speech.current = null; speech.until = 0;
+  nodes.forEach(n => { n.lit = true; n.group.visible = true; n.group.scale.setScalar(1); });
+  tweens.length = 0;
+  faces.down.mat.uniforms.reveal.value = 1;
+  ['front', 'right', 'back', 'left'].forEach(f => faces[f].mat.uniforms.reveal.value = 0.3);
+  dust.material.opacity = 0.5;
+  showTimer(); startPlay();
+  say(T.open[5], 8);
+}
+function startGame() {
+  if (state.started) return; state.started = true;
+  state.phase = 'opening'; openT = 0;
+  hud.start.classList.add('hidden');
+  if (!IS_CUBE) hud.root.classList.remove('hidden');
+  buildOpening();
+  if (SKIP) skipOpening();
+}
+
+/* =====================================================================
+   MÉCANIQUE ASSEMBLER
+   ===================================================================== */
+function select(n) {
+  state.selected = n;
+  if (n) { selRing.position.copy(n.group.position); selRing.visible = true; hud.hint.textContent = fr(`${n.label} — choisis le second composant.`); audio.blip(440, 0.06, 0.05); }
+  else { selRing.visible = false; if (state.phase === 'play') hud.hint.textContent = fr('Vise un composant, puis un autre.'); }
+}
+function onPick(n) {
+  if (state.phase !== 'play' || !n || !n.lit) return;
+  if (!state.selected) return select(n);
+  if (state.selected === n) return select(null);
+  attemptLink(state.selected, n);
+  select(null);
+}
+function attemptLink(a, b) {
+  const key = linkKey(a, b);
+  if (state.made.has(key)) { say(T.already, 3); return; }
+  const rule = CORRECT[key];
+  if (rule) {
+    state.made.add(key); state.links++;
+    addLink(a, b, true);
+    audio.good();
+    const u = faces[rule.zone].mat.uniforms.reveal;
+    tween(v => u.value = v, u.value, Math.min(1, u.value + (rule.zone === 'down' ? 0 : 0.18)), 2.5);
+    ['front', 'right', 'back', 'left'].filter(f => f !== rule.zone).forEach(f => { const w = faces[f].mat.uniforms.reveal; tween(v => w.value = v, w.value, Math.min(1, w.value + 0.04), 2.5); });
+    say(rule.text, 7);
+    hud.count.textContent = state.links;
+    drawTimer(state.time, false);
+    if (state.links >= LINKS_TO_WIN) win();
+  } else {
+    const L = addLink(a, b, false); L.dying = 1.6;
+    state.time -= WRONG_PENALTY; state.hurtUntil = performance.now() / 1000 + 1.2;
+    hud.clock.classList.add('hurt');
+    for (const f in faces) { const fl = faces[f].mat.uniforms.flash; tween(v => fl.value = v, 0.6, 0, 0.7); }
+    audio.bad();
+    say(T.wrong[state.wrongIdx++ % T.wrong.length], 3.5);
+    drawTimer(state.time, true);
+  }
+}
+function win() {
+  state.phase = 'win';
+  faces.up.mat.uniforms.reveal.value = 0;
+  tween(v => faces.up.mat.uniforms.reveal.value = v, 0, 1, 16, 1.5);
+  tween(v => dust.material.opacity = v, dust.material.opacity, 0.9, 10);
+  speech.queue.length = 0; speech.current = null; speech.until = 0;
+  say(T.win1, 11);
+  say(T.win2, 600, { tag: 'FIN', size: 40, weight: 700 });
+  hud.hint.textContent = '';
+  setTimeout(() => { hud.endTitle.textContent = 'FIN DU PROTOTYPE'; hud.endText.textContent = fr("Le Noyau apparaît au plafond. Le schéma complet est la suite du jeu."); hud.end.classList.remove('hidden'); }, 12000);
+}
+function lose() {
+  state.phase = 'lost'; state.time = 0;
+  speech.queue.length = 0; speech.current = null; speech.until = 0;
+  say(T.lost, 600, { border: 'rgba(255,77,90,.7)' });
+  select(null); hud.hint.textContent = '';
+  for (const f of ['front', 'right', 'back', 'left']) revealTo(f, 0.05, 3);
+  drawTimer(0, true);
+  hud.endTitle.textContent = "L'AVANCE EST PERDUE"; hud.endText.textContent = fr('Ils ont compris que tu savais. Recommence, plus vite.'); hud.end.classList.remove('hidden');
+}
+
+/* =====================================================================
+   ENTRÉES — souris / tactile (desktop) et contrôleurs (WebXR)
+   ===================================================================== */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let dragging = false, downX = 0, downY = 0, lastX = 0, lastY = 0, moved = 0;
+canvas.addEventListener('pointerdown', e => {
+  dragging = true; moved = 0; downX = lastX = e.clientX; downY = lastY = e.clientY;
+  canvas.setPointerCapture(e.pointerId); canvas.classList.add('grabbing');
+});
+canvas.addEventListener('pointermove', e => {
+  ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  if (dragging && !IS_CUBE) {
+    const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    yaw -= dx * 0.0045; pitch = Math.max(-1.45, Math.min(1.45, pitch - dy * 0.0045)); applyLook();
+  }
+});
+canvas.addEventListener('pointerup', e => {
+  dragging = false; canvas.classList.remove('grabbing');
+  if (moved < 8) { ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); onPick(pickFromScreen()); }
+});
+canvas.addEventListener('pointercancel', () => { dragging = false; canvas.classList.remove('grabbing'); });
+window.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === ' ') skipOpening(); if (e.key === 'm') audio.toggle(); });
+
+function activeDesktopCamera() { return MODE === 'cube' ? faceCams[FACE] || faceCams.front : camera; }
+function pickFromScreen() {
+  if (MODE === 'cubemap') return null;
+  const cam = activeDesktopCamera();
+  if (MODE === 'cube') { // viewport carré centré
+    const w = window.innerWidth, h = window.innerHeight, s = Math.min(w, h);
+    const x = (ndc.x + 1) / 2 * w, y = (1 - ndc.y) / 2 * h;
+    const nx = ((x - (w - s) / 2) / s) * 2 - 1, ny = -(((y - (h - s) / 2) / s) * 2 - 1);
+    if (Math.abs(nx) > 1 || Math.abs(ny) > 1) return null;
+    raycaster.setFromCamera(new THREE.Vector2(nx, ny), cam);
+  } else raycaster.setFromCamera(ndc, camera);
+  const hit = raycaster.intersectObjects(hitMeshes, false)[0];
+  return hit ? hit.object.userData.node : null;
+}
+const _m = new THREE.Matrix4();
+function pickFromController(ctrl) {
+  _m.identity().extractRotation(ctrl.matrixWorld);
+  raycaster.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(_m);
+  const hit = raycaster.intersectObjects(hitMeshes, false)[0];
+  return hit ? hit.object.userData.node : null;
+}
+
+// contrôleurs XR : rayon visible, « select » = viser, « squeeze » = passer l'intro
+const controllers = [];
+if (!IS_CUBE) {
+  const rayGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)]);
+  for (let i = 0; i < 2; i++) {
+    const c = renderer.xr.getController(i);
+    const line = new THREE.Line(rayGeo, new THREE.LineBasicMaterial({ color: 0x5ee9ff, transparent: true, opacity: 0.5 }));
+    line.scale.z = 3; c.add(line);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), new THREE.MeshBasicMaterial({ color: 0x5ee9ff })); c.add(tip);
+    c.addEventListener('selectstart', () => { if (state.phase === 'opening') return; onPick(pickFromController(c)); });
+    c.addEventListener('squeezestart', () => skipOpening());
+    c.addEventListener('connected', () => { c.visible = true; });
+    rig.add(c); controllers.push(c);
+  }
+}
+
+/* ---------- WebXR : bouton seulement si disponible ---------- */
+(async () => {
+  if (IS_CUBE || !('xr' in navigator)) return;
+  let ok = false;
+  try { ok = await navigator.xr.isSessionSupported('immersive-vr'); } catch (e) { ok = false; }
+  if (!ok) return;
+  const btn = VRButton.createButton(renderer);
+  // VRButton réécrit son libellé en anglais de façon asynchrone : on le francise à chaque changement
+  const FRENCH = { 'ENTER VR': 'Entrer en VR', 'EXIT VR': 'Quitter la VR', 'VR NOT SUPPORTED': 'VR indisponible', 'VR NOT ALLOWED': 'VR non autorisée', 'WEBXR NEEDS HTTPS': 'WebXR exige HTTPS', 'WEBXR NOT AVAILABLE': 'WebXR indisponible' };
+  const frenchify = () => { const t = btn.textContent.trim(); if (FRENCH[t]) btn.textContent = FRENCH[t]; };
+  new MutationObserver(frenchify).observe(btn, { childList: true, characterData: true, subtree: true });
+  frenchify();
+  document.getElementById('vr-slot').appendChild(btn);
+  renderer.xr.addEventListener('sessionstart', () => { audio.init(); startGame(); });
+})();
+
+/* ---------- boutons 2D ---------- */
+document.getElementById('btn-start').addEventListener('click', () => { audio.init(); startGame(); canvas.focus(); });
+hud.skip.addEventListener('click', skipOpening);
+hud.mute.addEventListener('click', () => audio.toggle());
+document.getElementById('btn-again').addEventListener('click', () => { location.reload(); });
+
+/* =====================================================================
+   MODE CUBE / CUBEMAP : vues de faces à 90° et grille en croix
+   ===================================================================== */
+const CROSS = { up:[1,0], left:[0,1], front:[1,1], right:[2,1], back:[3,1], down:[1,2] };
+const cmLabels = document.getElementById('cmlabels');
+function layoutCubemapLabels() {
+  if (MODE !== 'cubemap') return;
+  cmLabels.classList.remove('hidden'); cmLabels.innerHTML = '';
+  const w = window.innerWidth, h = window.innerHeight, cell = Math.floor(Math.min(w / 4, h / 3));
+  const ox = (w - cell * 4) / 2, oy = (h - cell * 3) / 2;
+  for (const f in CROSS) {
+    const d = document.createElement('div'); d.textContent = f.toUpperCase() + ' · ' + faces[f].title;
+    d.style.left = (ox + CROSS[f][0] * cell) + 'px'; d.style.top = (oy + CROSS[f][1] * cell) + 'px';
+    cmLabels.appendChild(d);
+  }
+}
+function renderCube() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setScissorTest(false); renderer.setViewport(0, 0, w, h); renderer.clear();
+  renderer.setScissorTest(true);
+  if (MODE === 'cube') {
+    const s = Math.min(w, h), x = (w - s) / 2, y = (h - s) / 2;
+    renderer.setViewport(x, y, s, s); renderer.setScissor(x, y, s, s);
+    renderer.render(scene, faceCams[FACE] || faceCams.front);
+  } else {
+    const cell = Math.floor(Math.min(w / 4, h / 3)), ox = (w - cell * 4) / 2, oy = (h - cell * 3) / 2;
+    for (const f in CROSS) {
+      const [col, row] = CROSS[f];
+      const x = ox + col * cell, y = oy + (2 - row) * cell;   // GL : origine en bas
+      renderer.setViewport(x, y, cell, cell); renderer.setScissor(x, y, cell, cell);
+      renderer.render(scene, faceCams[f]);
+    }
+  }
+  renderer.setScissorTest(false);
+}
+
+/* =====================================================================
+   BOUCLE
+   ===================================================================== */
+function onResize() {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+  layoutCubemapLabels();
+}
+window.addEventListener('resize', onResize);
+layoutCubemapLabels();
+
+const clock = new THREE.Clock();
+let lastSecond = -1;
+function frame() {
+  const dt = Math.min(0.1, clock.getDelta()), now = performance.now() / 1000, t = clock.elapsedTime;
+
+  // chronologie de l'ouverture
+  if (state.phase === 'opening') {
+    openT += dt;
+    for (const e of timeline) if (!e.done && openT >= e.t) { e.done = true; e.fn(); }
+  }
+  // compte à rebours
+  if (state.phase === 'play') {
+    state.time -= dt;
+    if (state.time <= 0) lose();
+    const sec = Math.ceil(state.time);
+    if (sec !== lastSecond) { lastSecond = sec; hud.clock.textContent = fmtTime(state.time); drawTimer(state.time, now < state.hurtUntil); }
+    if (now > state.hurtUntil) hud.clock.classList.remove('hurt');
+  }
+
+  updateTweens(dt); updateSpeech(dt, now); tracePanel.update(dt); timerPanel.update(dt);
+  // sous-titre 2D (desktop) : seulement quand le panneau 3D de TRACE n'est pas dans le champ
+  if (!IS_CUBE && !renderer.xr.isPresenting) {
+    let inView = false;
+    if (speech.current) { camera.getWorldDirection(_fwd); _v.copy(tracePanel.mesh.position).sub(CENTER).normalize(); inView = _fwd.dot(_v) > 0.55; }
+    hud.sub.classList.toggle('on', !!speech.current && !inView);
+  }
+  for (const f in faces) faces[f].mat.uniforms.time.value = t;
+
+  // nœuds : flottement, rotation, survol
+  for (const n of nodes) {
+    if (!n.lit) continue;
+    n.group.position.y = n.baseY + Math.sin(t * 0.8 + n.phase) * 0.03;
+    n.core.rotation.y = t * 0.6 + n.phase; n.core.rotation.x = Math.sin(t * 0.4 + n.phase) * 0.4;
+    n.wire.rotation.y = -t * 0.25; n.wire.rotation.z = t * 0.15;
+    const hov = n === state.hovered, sel = n === state.selected;
+    const gs = 0.42 + (hov || sel ? 0.18 : 0) + Math.sin(t * 2 + n.phase) * 0.03;
+    n.glow.scale.setScalar(gs);
+  }
+  if (state.selected) selRing.position.copy(state.selected.group.position);
+  selRing.scale.setScalar(0.34 + Math.sin(t * 5) * 0.03);
+
+  // survol : souris (desktop) ou contrôleur (XR)
+  let hov = null;
+  if (renderer.xr.isPresenting) { for (const c of controllers) { hov = pickFromController(c); if (hov) break; } }
+  else if (!IS_CUBE || MODE === 'cube') hov = pickFromScreen();
+  state.hovered = state.phase === 'play' ? hov : null;
+  canvas.classList.toggle('pointer', !!state.hovered);
+  hovRing.visible = !!state.hovered && state.hovered !== state.selected;
+  if (hovRing.visible) hovRing.position.copy(state.hovered.group.position);
+  setPreview(state.selected, state.hovered && state.hovered !== state.selected ? state.hovered : null);
+
+  // liens : impulsion lumineuse, liens faux qui s'éteignent
+  for (let i = links.length - 1; i >= 0; i--) {
+    const L = links[i]; L.t += dt;
+    const k = L.ok ? (L.t * 0.45) % 1 : Math.min(1, L.t / 0.5);
+    L.curve.getPoint(k, L.pulse.position);
+    if (L.dying !== undefined) {
+      L.dying -= dt; const o = Math.max(0, L.dying / 1.6);
+      L.meshes[0].material.opacity = o * 0.9; L.meshes[1].material.opacity = o * 0.3; L.pulse.material.opacity = o;
+      if (L.dying <= 0) { L.meshes.forEach(m => { linkGroup.remove(m); m.material.dispose(); m.geometry.dispose(); }); linkGroup.remove(L.pulse); links.splice(i, 1); }
+    }
+  }
+  dust.rotation.y = t * 0.01;
+
+  if (IS_CUBE) renderCube(); else renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(frame);
+
+/* ---------- démarrage automatique (mode cube / cubemap) ---------- */
+if (AUTOSTART) { hud.start.classList.add('hidden'); setTimeout(startGame, 400); }
+
+// expose pour tests
+window.__proto = { state, faces, nodes, skipOpening, startGame, attemptLink, nodeById, say, MODE, FACE };
+</script>
+</body>
+</html>
