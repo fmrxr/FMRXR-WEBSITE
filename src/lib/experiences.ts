@@ -103,6 +103,9 @@ export const EXPERIENCES: Experience[] = [
 // visibilité se règle au même endroit dans le CMS.
 export const PHOTOBOOTH_SLUG = "photobooth";
 
+// Bloc Live Wall : meme principe, cache tant qu'on ne l'active pas dans le CMS.
+export const LIVE_WALL_SLUG = "live-wall";
+
 /**
  * Expériences affichées, selon site_settings.experiences_visible (CMS).
  * null = jamais réglé : tout s'affiche. Sinon seules les slugs listées, ce qui

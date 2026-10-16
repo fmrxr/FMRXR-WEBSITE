@@ -4,8 +4,9 @@ import { Suspense } from "react";
 import { PageHero } from "@/components/site/PageHero";
 import { ExperienceCatalog } from "@/components/site/ExperienceCatalog";
 import { PhotoboothCTA } from "@/components/site/PhotoboothCTA";
+import { LiveWallCTA } from "@/components/site/LiveWallCTA";
 import { getSiteSettings } from "@/lib/public-data";
-import { PHOTOBOOTH_SLUG, heroSlug, isVisible, visibleExperiences } from "@/lib/experiences";
+import { LIVE_WALL_SLUG, PHOTOBOOTH_SLUG, heroSlug, isVisible, visibleExperiences } from "@/lib/experiences";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +30,12 @@ export default async function Experiences() {
   const booth = isVisible(PHOTOBOOTH_SLUG, visible);
   // Hero choisi dans le CMS : le Photobooth passe alors avant le catalogue ;
   // une expérience du catalogue s'ouvre, elle, dans le lecteur du haut.
-  const boothFirst = booth && heroSlug(visible) === PHOTOBOOTH_SLUG;
+  const hero = heroSlug(visible);
+  const boothFirst = booth && hero === PHOTOBOOTH_SLUG;
   const boothBlock = booth && <PhotoboothCTA index="For your event" source="experiences" />;
+  const wall = isVisible(LIVE_WALL_SLUG, visible);
+  const wallFirst = wall && hero === LIVE_WALL_SLUG;
+  const wallBlock = wall && <LiveWallCTA index="For your event" source="experiences" />;
 
   return (
     <>
@@ -47,6 +52,7 @@ export default async function Experiences() {
           intro="Interactive systems we bring to brand activations, launches and festivals, run under live conditions."
         />
       )}
+      {wallFirst && wallBlock}
       {boothFirst && boothBlock}
       {playable && (
         // useSearchParams exige une frontière Suspense pour le prérendu.
@@ -55,6 +61,7 @@ export default async function Experiences() {
         </Suspense>
       )}
       {!boothFirst && boothBlock}
+      {!wallFirst && wallBlock}
     </>
   );
 }
