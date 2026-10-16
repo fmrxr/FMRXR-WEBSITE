@@ -5,10 +5,13 @@ import { ScrollFilm } from "@/components/site/ScrollFilm";
 import { BoothIcon, type BoothIconKind } from "@/components/site/BoothIcon";
 import { STYLE_IDS, STYLES } from "@/lib/photobooth/styles";
 
+// Nombre de styles calcule : la page suit la liste (styles.ts).
+const STYLE_COUNT = STYLE_IDS.length;
+
 export const metadata: Metadata = {
   title: "AI Photobooth · Branded portraits for events",
   description:
-    "FMRXR's AI Photobooth: software that runs on any existing photobooth, gesture-driven, three questions, a high-end portrait in under a minute. 14 styles from editorial to magazine covers and film posters, your logo on every image, print and QR sharing, image quotas enforced per package.",
+    `FMRXR's AI Photobooth: software that runs on any existing photobooth or an iPhone, gesture-driven, a high-end portrait in under a minute. ${STYLE_COUNT} styles from editorial to tarot cards, your logo on every image, a team gallery, print and QR sharing, image quotas enforced per package.`,
   alternates: { canonical: "/photobooth" },
   openGraph: {
     type: "website",
@@ -19,10 +22,10 @@ export const metadata: Metadata = {
 };
 
 const STEPS: [string, string, BoothIconKind][] = [
-  ["Raise a hand", "The camera starts only after consent. Hand tracking runs on the device: nothing is sent.", "hand"],
+  ["Learn by doing", "A ten-second tutorial on the live camera: raise a hand, hold it until the frame fills. Hand tracking runs on the device: nothing is sent.", "hand"],
   ["Solo or group", "One gesture to choose a portrait or a group photo. Every face is kept.", "shot"],
-  ["Three questions", "Energy, visual world, style: answered with a gesture, or a tap.", "questions"],
-  ["One photo", "A countdown, a preview, and an explicit confirmation before anything leaves the booth.", "photo"],
+  ["One to three questions", "The mood of the portrait, answered with a gesture or a tap. The frame fills as the guest holds it and shows what it will do.", "questions"],
+  ["One photo", "Thumbs up to shoot, thumbs up to confirm, V sign to retake. Nothing leaves the booth before the guest confirms.", "photo"],
   ["Your portrait", "Under a minute: on screen, downloadable, shared by QR code, printed on site.", "portrait"],
 ];
 
@@ -33,18 +36,21 @@ const MEDIA = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/
 
 const INTEGRATION: [string, string, BoothIconKind][] = [
   ["A link, nothing to install", "The booth runs in Chrome, Edge or Safari, full screen. Open the campaign link on the booth's computer, tablet, iPhone or Android phone and it is live.", "link"],
-  ["Your camera", "The built-in camera of a computer, tablet, iPhone or Android phone, a USB webcam, or a DSLR or mirrorless camera exposed as a webcam with its maker's utility.", "camera"],
+  ["Your camera, or an iPhone", "The built-in camera, a USB webcam, a DSLR exposed as a webcam, or an iPhone: scan a QR code on the same Wi-Fi and it becomes the booth camera, no app to install.", "camera"],
   ["Your screen and enclosure", "Kiosk, mirror booth, totem, iPad stand: any screen works, touch or not. Guests answer with gestures, or a tap.", "screen"],
   ["Your printer", "A small local agent prints edge to edge on the printer already installed, on Windows, macOS or Linux. Without it, the browser print dialog takes over.", "printer"],
 ];
 
-const FEATURES: [string, string][] = [
-  ["Likeness first", "Editorial styles change the light, the set and the colour grade, and step the camera back to show the scene. The face, pose and expression stay the guest's own."],
-  ["Your brand on every image", "Your official logo and ours, on the screen, the download, the shared page and the print."],
+const FEATURES: [string, string, boolean?][] = [
+  ["Likeness first", "Editorial styles change the light, the set and the colour grade only. The guest's face, pose, gesture and framing stay their own, and a small or soft face is cleaned up, never redrawn."],
+  ["Your brand on every image", "Your official logo and ours, on the screen, the download, the shared page and the print. The AI also receives your logo as a reference, so it never invents a fake brand mark."],
+  ["A team gallery", "From the booth's first page, a team code opens every portrait of the event: QR, download, reprint, or remove a portrait in one tap.", true],
+  ["An iPhone as the camera", "Scan a QR code on the same Wi-Fi and an iPhone streams to the booth, no app. Gestures are read on the phone for an instant response, photos come from its sensor.", true],
+  ["Layouts framed on faces", "Cards and Polaroids are cropped around the faces measured at capture, solo or group, never around an empty wall.", true],
   ["Package control", "Each campaign has an image quota, a daily limit and a budget, reserved atomically before every paid request."],
   ["A client space", "Your team follows usage live: portraits made, remaining, period, booth link."],
   ["Print on site", "A local print agent detects the printer and prints 10×15 edge to edge, no dialog."],
-  ["Privacy by design", "Gestures and expression are read on the device. Only the confirmed photo is sent to generate the portrait."],
+  ["Privacy by design", "Gestures and expression are read on the device. Only the confirmed photo is sent to generate the portrait. Removed portraits stop being shared."],
 ];
 
 export default function Photobooth() {
@@ -116,7 +122,7 @@ export default function Photobooth() {
 
       <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-24">
         <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— Styles</p>
-        <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">14 styles, activated per client</h2>
+        <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">{STYLE_COUNT} styles, activated per client</h2>
         <p className="fm-grotesk mt-4 max-w-2xl text-[15px] leading-relaxed text-fmfg/80">
           Each campaign offers the styles that fit the brand. Guests choose among them at the booth.
           Every image below is a real output of the booth, made from one photo of a fictional model (generated, not a real person).
@@ -139,7 +145,12 @@ export default function Photobooth() {
                       className="aspect-[3/4] w-full bg-fmmutedbg object-cover"
                   />
                   <figcaption className="p-5">
-                    <p className="fm-display text-base text-fmfg">{STYLES[id].label.en}</p>
+                    <p className="fm-display flex items-center gap-2 text-base text-fmfg">
+                      {STYLES[id].label.en}
+                      {STYLES[id].isNew && (
+                        <span className="rounded-full bg-fmaccent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-fmbg">New</span>
+                      )}
+                    </p>
                     <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{STYLES[id].blurb.en}</p>
                     {STYLES[id].layout !== "none" && (
                       <p className="mt-3 text-[10px] uppercase tracking-[0.12em] text-fmfg/60">Branded layout</p>
@@ -155,9 +166,12 @@ export default function Photobooth() {
       <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-24">
         <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— What you get</p>
         <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map(([title, body]) => (
+          {FEATURES.map(([title, body, isNew]) => (
             <div key={title} className="bg-fmbg p-6">
-              <h3 className="fm-display text-lg text-fmfg">{title}</h3>
+              <h3 className="fm-display flex items-center gap-2 text-lg text-fmfg">
+                {title}
+                {isNew && <span className="rounded-full bg-fmaccent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-fmbg">New</span>}
+              </h3>
               <p className="fm-grotesk mt-2 text-[14px] leading-relaxed text-fmmuted">{body}</p>
             </div>
           ))}

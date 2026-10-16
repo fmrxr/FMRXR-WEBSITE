@@ -1103,7 +1103,10 @@ export function Booth({
                     onClick={() => { setStyle(id); setStep("quiz"); }}
                     className="flex min-h-20 flex-col justify-center gap-1 rounded-xl border border-fmborder bg-fmcard/70 p-3 text-start backdrop-blur-md transition hover:border-fmaccent/60 md:min-h-28 md:p-4"
                   >
-                    <span className="text-sm font-semibold leading-snug md:text-lg">{st.label[locale]}</span>
+                    <span className="flex items-center gap-2 text-sm font-semibold leading-snug md:text-lg">
+                      {st.label[locale]}
+                      {st.isNew && <span className="rounded-full bg-fmaccent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-fmbg">{t.newBadge}</span>}
+                    </span>
                     <span className="text-[11px] leading-snug text-fmmuted md:text-sm">{st.blurb[locale]}</span>
                   </button>
                 );

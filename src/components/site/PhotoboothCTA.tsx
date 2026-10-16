@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BoothPreview } from "./BoothPreview";
+import { STYLE_IDS } from "@/lib/photobooth/styles";
 
 // Appel a l'action « AI Photobooth », pose sur l'accueil et sur /experiences.
 // Deux sorties : la page vitrine, et le formulaire de brief prerempli
@@ -45,7 +46,7 @@ export function PhotoboothCTA({ index, source }: { index: string; source: string
       <ul className="mt-3 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder text-sm sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Your existing booth", "Any screen, camera and printer, nothing to install"],
-          ["14 styles", "Activated per client from the CMS"],
+          [`${STYLE_IDS.length} styles`, "Activated per client from the CMS"],
           ["Your brand on every image", "Logo, print, QR sharing"],
           ["Gesture-driven", "Hand tracking on the device, FR · EN · AR"],
         ].map(([k, v]) => (

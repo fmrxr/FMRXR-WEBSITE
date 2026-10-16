@@ -15,7 +15,7 @@ import type { Localized } from "./config";
 
 export const STYLE_IDS = [
   "mood", "film", "polaroid", "magazine", "poster", "card",
-  "era70", "anime", "popart", "oil", "figurine", "clay", "hero", "cyberpunk",
+  "era70", "anime", "popart", "oil", "figurine", "clay", "hero", "cyberpunk", "tarot",
 ] as const;
 export type StyleId = (typeof STYLE_IDS)[number];
 
@@ -33,6 +33,8 @@ export type StyleDef = {
   extra?: string;
   /** transform : description de l'oeuvre a produire. */
   transform?: string;
+  /** Style recent : badge « Nouveau » sur la page, dans la borne et le CMS. */
+  isNew?: boolean;
 };
 
 const L = (fr: string, en: string, ar: string): Localized => ({ fr, en, ar });
@@ -124,6 +126,19 @@ export const STYLES: Record<StyleId, StyleDef> = {
     label: L("Cyberpunk", "Cyberpunk", "سايبربانك"),
     blurb: L("Vous, dans une mégapole du futur.", "You, in a megacity of the future.", "أنت في مدينة المستقبل."),
     transform: "a cyberpunk portrait of this person in a rain-soaked futuristic megacity at night, subtle tech accessories, reflections of city lights",
+  },
+  // Ajoute le 16/10/2026. Arcane original : aucun jeu existant, ni texte (le
+  // modele ecrit mal), ni symbole religieux.
+  tarot: {
+    id: "tarot", family: "transform", layout: "none", isNew: true,
+    label: L("Carte de tarot", "Tarot card", "بطاقة تاروت"),
+    blurb: L("Vous, figure centrale d'un arcane original.", "You, as the central figure of an original tarot arcana.", "أنت الشخصية المحورية في بطاقة تاروت أصلية."),
+    transform:
+      "an original illustrated tarot card with this person as the central figure of an imaginary major arcana: a full card composition " +
+      "framed by an ornate gilded art-nouveau border, fine engraved linework and hatching, celestial motifs (sun rays, moon phases, " +
+      "stars and constellations) and botanical ornaments around the figure, rich jewel tones of deep indigo, emerald, oxblood and gold " +
+      "leaf on aged parchment, a symmetrical, hieratic composition, an empty decorative banner at the bottom with no letters or numerals, " +
+      "no religious symbols",
   },
 };
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { STYLE_IDS } from "@/lib/photobooth/styles";
 
 type Clip = { url: string; poster?: string; title?: string; description?: string };
 
@@ -15,7 +16,7 @@ const PRODUCTS: Extract<Slide, { kind: "product" }>[] = [
   {
     kind: "product",
     title: "AI Photobooth",
-    description: "New release · branded AI portraits for events, driven by gestures, 14 styles.",
+    description: `New release · branded AI portraits for events, driven by gestures, ${STYLE_IDS.length} styles.`,
     href: "/photobooth",
     image: "/photobooth/hero-photobooth.webp",
   },
