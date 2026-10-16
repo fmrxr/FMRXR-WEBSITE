@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_STOMP, frost, lifeAt, maxLiveAt, StompGame } from "@/lib/stomp/game";
+import { DEFAULT_STOMP, frost, lifeAt, lineup, maxLiveAt, StompGame } from "@/lib/stomp/game";
 
 const c = DEFAULT_STOMP;
 
@@ -100,5 +100,69 @@ describe("stomp : partie", () => {
     run(g, 6);
     expect(g.over).toBe(true);
     expect(g.stomp([{ x: 0, z: 0 }])).toHaveLength(0);
+  });
+});
+
+describe("stomp : 1 a 4 joueurs, equipes de 2", () => {
+  const run = (g: StompGame, seconds: number, step = 1 / 60) => { for (let t = 0; t < seconds; t += step) g.update(step); };
+  const inZone = (x: number, z: number, zone: { x0: number; x1: number; z0: number; z1: number }) => x > zone.x0 && x < zone.x1 && z > zone.z0 && z < zone.z1;
+
+  it("decoupe le sol selon les plaques choisies", () => {
+    expect(lineup(4, [], false).mode).toBe("solo");
+    expect(lineup(4, [2], false).sides[0].zone).toEqual({ x0: -2, x1: 2, z0: -2, z1: 2 });
+    // Deux joueurs face a face : haut et bas.
+    const fb = lineup(4, [0, 2], false);
+    expect(fb.sides.map((s) => s.zone.z0)).toEqual([0, -2]);
+    // Deux joueurs du meme cote : gauche et droite.
+    const lr = lineup(4, [0, 1], false);
+    expect(lr.sides.map((s) => s.zone.x0)).toEqual([-2, 0]);
+    expect(lineup(4, [0, 1, 3], false).sides).toHaveLength(3);
+    expect(lineup(4, [0, 1, 2, 3], false).sides).toHaveLength(4);
+  });
+
+  it("en equipes : bas contre haut, a 2 contre 2 comme a 2 contre 1", () => {
+    const t = lineup(4, [0, 1, 2, 3], true);
+    expect(t.mode).toBe("teams");
+    expect(t.sides.map((s) => s.pads)).toEqual([[0, 1], [2, 3]]);
+    expect(lineup(4, [0, 1, 3], true).sides.map((s) => s.pads)).toEqual([[0, 1], [3]]);
+    // Une equipe vide : pas d'equipes, chacun pour soi.
+    expect(lineup(4, [0, 1], true).mode).toBe("versus");
+  });
+
+  it("chaque camp recoit ses cibles, toujours dans sa zone", () => {
+    const l = lineup(4, [0, 1, 2, 3], false);
+    const g = new StompGame({ zones: l.sides.map((s) => s.zone) }, 21);
+    const seen = new Set<number>();
+    for (let i = 0; i < 30 * 60; i++) {
+      g.update(1 / 60);
+      for (const t of g.live) { seen.add(t.owner); expect(inZone(t.x, t.z, g.zones[t.owner])).toBe(true); }
+    }
+    expect([...seen].sort()).toEqual([0, 1, 2, 3]);
+  });
+
+  it("les points vont au camp de la cible, chacun garde son combo", () => {
+    const l = lineup(4, [0, 2], false);
+    const g = new StompGame({ zones: l.sides.map((s) => s.zone), goldChance: 0, hazardChance: 0, maxLiveStart: 0, maxLiveEnd: 0 }, 4);
+    const a = g.spawn(0)!, b = g.spawn(1)!;
+    g.update(c.riseSeconds);
+    g.stomp([{ x: a.x, z: a.z }]);
+    g.stomp([{ x: b.x, z: b.z }]);
+    const c2 = g.spawn(1)!;
+    g.update(0.3);
+    g.update(c.riseSeconds);
+    g.stomp([{ x: c2.x, z: c2.z }]);
+    expect(g.sides[0].score).toBe(100);
+    expect(g.sides[1].score).toBe(200);
+    expect(g.sides[1].combo).toBe(2);
+    expect(g.score).toBe(300);
+    expect(g.ranking()[0].i).toBe(1);
+  });
+
+  it("une partie a 4 n'etouffe aucun camp", () => {
+    const l = lineup(4, [0, 1, 2, 3], false);
+    const g = new StompGame({ zones: l.sides.map((s) => s.zone) }, 99);
+    run(g, 40);
+    const per = [0, 1, 2, 3].map((i) => g.live.filter((t) => t.owner === i).length);
+    for (const n of per) expect(n).toBeGreaterThanOrEqual(1);
   });
 });

@@ -3,7 +3,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-import type { Kind, Target } from "@/lib/stomp/game";
+import type { Kind, Target, Zone } from "@/lib/stomp/game";
 import { buildCity, CITY_DEPTH, DEFAULT_PALETTE } from "./city";
 
 // Moteur de rendu STOMP.
@@ -23,6 +23,12 @@ const EYE_HEIGHT = 8; // hauteur de l'oeil virtuel au-dessus du verre, pour un s
 type Ripple = { x: number; z: number; t: number; strength: number };
 
 export type EngineOptions = { size: number; logoUrl?: string; palette?: typeof DEFAULT_PALETTE };
+
+/**
+ * Couleur de chaque camp (joueur ou equipe), dans l'ordre des plaques :
+ * rose, turquoise, orange, violet. La 5e sert a la plaque « Equipes ».
+ */
+export const SIDE_HEX = ["#ff2d95", "#19e6d6", "#ff8a3d", "#a66bff", "#b9a6e8"];
 
 const KIND_COLORS: Record<Kind, { rim: THREE.Color; core: THREE.Color }> = {
   brand: { rim: new THREE.Color(3.2, 0.35, 1.5), core: new THREE.Color(0.15, 2.2, 2.0) },
@@ -49,6 +55,10 @@ export class StompEngine {
   private logo: THREE.Texture | null = null;
   private hazardTex: THREE.Texture;
   private time = 0;
+  /** Couleur de camp par indice de proprietaire (target.owner). */
+  private ownerColors: THREE.Color[] = SIDE_HEX.map((h) => new THREE.Color(h));
+  /** Cibles mises en valeur (plaques deja choisies a l'inscription). */
+  highlight = new Set<number>();
   private shake = 0;
   frost = 0;
 
@@ -84,6 +94,31 @@ export class StompEngine {
     this.composer.setSize(px, px);
     this.bloom.resolution.set(real.x / 2, real.y / 2);
     this.glass.material.uniforms.uRes.value.set(real.x, real.y);
+  }
+
+  /** Zones des camps et leur couleur ; `tint` 0..1 colore le verre (fort pendant le placement). */
+  setZones(zones: Zone[], colors: string[], tint: number) {
+    const u = this.glass.material.uniforms;
+    const multi = zones.length > 1;
+    u.uZoneCount.value = multi ? Math.min(4, zones.length) : 0;
+    zones.slice(0, 4).forEach((z, i) => { u.uZones.value[i].set(z.x0, z.x1, z.z0, z.z1); u.uZoneColors.value[i].set(colors[i] ?? "#ffffff"); });
+    u.uZoneTint.value = tint;
+  }
+
+  /** Couleur de chaque proprietaire de cible (camp, ou plaque a l'inscription). */
+  setOwnerColors(colors: string[]) {
+    this.ownerColors = colors.map((h) => new THREE.Color(h));
+    // Les cibles deja affichees sont reconstruites avec leurs nouvelles couleurs.
+    for (const [, g] of this.targets) {
+      this.top.remove(g);
+      g.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); (m.material as THREE.Material | undefined)?.dispose?.(); });
+    }
+    this.targets.clear();
+  }
+
+  private rimOf(kind: Kind, owner: number) {
+    if (kind !== "brand") return KIND_COLORS[kind].rim;
+    return (this.ownerColors[owner] ?? KIND_COLORS.brand.rim).clone().multiplyScalar(2.6);
   }
 
   /** Les joueurs « tirent » l'oeil vers eux : la ville glisse sous leurs pas. */
@@ -127,6 +162,10 @@ export class StompEngine {
         uSize: { value: 4 },
         uRipples: { value: Array.from({ length: 8 }, () => new THREE.Vector4(0, 0, -99, 0)) },
         uTint: { value: new THREE.Color("#f3e8ff") },
+        uZones: { value: Array.from({ length: 4 }, () => new THREE.Vector4(0, 0, 0, 0)) },
+        uZoneColors: { value: Array.from({ length: 4 }, () => new THREE.Color(0, 0, 0)) },
+        uZoneCount: { value: 0 },
+        uZoneTint: { value: 0 },
       },
       vertexShader: /* glsl */ `
         varying vec2 vPos;
@@ -134,6 +173,7 @@ export class StompEngine {
       fragmentShader: /* glsl */ `
         uniform sampler2D uCity; uniform vec2 uRes; uniform float uFrost; uniform float uTime; uniform float uSize;
         uniform vec4 uRipples[8]; uniform vec3 uTint;
+        uniform vec4 uZones[4]; uniform vec3 uZoneColors[4]; uniform int uZoneCount; uniform float uZoneTint;
         varying vec2 vPos;
         float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
         void main() {
@@ -177,6 +217,17 @@ export class StompEngine {
           float sheen = smoothstep(0.0, 0.25, 1.0 - abs(dot(vPos / uSize, normalize(vec2(1.0, 0.6))) * 2.0 - sin(uTime * 0.15) * 0.8));
           col += vec3(1.0, 0.9, 1.0) * sheen * 0.05;
           col += vec3(1.6, 1.2, 2.2) * ring * 0.9;
+          // Zones des camps : teinte legere (forte pendant le placement) et limite lumineuse.
+          vec2 w = vec2(vPos.x, -vPos.y); // coordonnees du sol (x, z)
+          for (int i = 0; i < 4; i++) {
+            if (i >= uZoneCount) break;
+            vec4 z = uZones[i];
+            if (w.x < z.x || w.x > z.y || w.y < z.z || w.y > z.w) continue;
+            col = mix(col, uZoneColors[i] * 0.6, uZoneTint * 0.35);
+            float d = min(min(w.x - z.x, z.y - w.x), min(w.y - z.z, z.w - w.y));
+            float inner = step(0.01, min(abs(abs(w.x) - uSize * 0.5), abs(abs(w.y) - uSize * 0.5)));
+            col += uZoneColors[i] * (1.0 - smoothstep(0.0, 0.035, d)) * inner * (1.2 + uZoneTint * 2.0);
+          }
           gl_FragColor = vec4(col, 1.0);
         }`,
     });
@@ -184,9 +235,9 @@ export class StompEngine {
 
   // --- Cibles -------------------------------------------------------------
 
-  private makeTarget(kind: Kind, radius: number) {
+  private makeTarget(kind: Kind, radius: number, owner: number) {
     const g = new THREE.Group();
-    const c = KIND_COLORS[kind];
+    const c = { rim: this.rimOf(kind, owner), core: KIND_COLORS[kind].core };
     const disc = new THREE.Mesh(
       new THREE.CylinderGeometry(radius, radius * 0.92, 0.08, 48),
       new THREE.MeshStandardMaterial({ color: kind === "hazard" ? 0x120306 : 0x14051e, emissive: c.rim, emissiveIntensity: 0.18, metalness: 0.6, roughness: 0.3 }),
@@ -228,7 +279,7 @@ export class StompEngine {
       seen.add(t.id);
       let g = this.targets.get(t.id);
       if (!g) {
-        g = this.makeTarget(t.kind, radius);
+        g = this.makeTarget(t.kind, radius, t.owner);
         g.position.set(t.x, -20, t.z);
         this.top.add(g);
         this.targets.set(t.id, g);
@@ -242,7 +293,8 @@ export class StompEngine {
         const k = Math.min(1, age / riseSeconds);
         const ease = 1 - Math.pow(1 - k, 3);
         g.position.y = -20 + (20.12) * ease + (t.state === "live" ? Math.sin((now + t.id) * 4) * 0.015 : 0);
-        g.scale.setScalar(0.6 + 0.4 * ease);
+        const pick = this.highlight.has(t.id) ? 1.22 + Math.sin(now * 6) * 0.04 : 1;
+        g.scale.setScalar((0.6 + 0.4 * ease) * pick);
         if (t.kind !== "hazard") g.rotation.y += 0.01; // la croix interdite reste une croix
         const left = t.state === "live" ? 1 - (age - riseSeconds) / t.life : 1;
         timer.scale.setScalar(1);
@@ -270,8 +322,8 @@ export class StompEngine {
 
   // --- Effets -------------------------------------------------------------
 
-  impact(x: number, z: number, kind: Kind) {
-    const color = KIND_COLORS[kind].rim;
+  impact(x: number, z: number, kind: Kind, owner = 0) {
+    const color = this.rimOf(kind, owner);
     this.ripples.push({ x, z, t: this.time, strength: kind === "gold" ? 1.6 : 1 });
     if (this.ripples.length > 8) this.ripples.shift();
     // Gerbe de particules.
