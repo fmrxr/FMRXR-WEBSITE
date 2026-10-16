@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { social } from "@/lib/seo";
 import { Suspense } from "react";
 import { PageHero } from "@/components/site/PageHero";
 import { ExperienceCatalog } from "@/components/site/ExperienceCatalog";
@@ -13,12 +14,12 @@ export const metadata: Metadata = {
   description:
     "FMRXR's interactive experiences: the AI Photobooth for brand events, and playable web works running live in your browser.",
   alternates: { canonical: "/experiences" },
-  openGraph: {
-    type: "website",
+  ...social({
     url: "/experiences",
     title: "Experiences · FMRXR//",
-    description: "Interactive experiences by FMRXR Studio.",
-  },
+    description: "The AI Photobooth for brand events, and playable web works by FMRXR Studio, running live in your browser.",
+    images: [{ url: "/photobooth/og.jpg", width: 1200, height: 630, alt: "FMRXR AI Photo Booth portraits" }],
+  }),
 };
 
 export default async function Experiences() {

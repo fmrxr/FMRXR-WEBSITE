@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { clip, social } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
@@ -20,15 +21,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const r = await getBySlug("industries", slug);
   if (!r) return { title: "Sector not found", robots: { index: false, follow: false } };
 
-  const description = (r.note || "").replace(/\s+/g, " ").trim().slice(0, 300)
+  const description = clip(r.note || "")
     || `Immersive and new media art work for ${r.name}, by FMRXR Studio.`;
   const url = `/industries/${r.slug}`;
+  // Apercu : la couverture d'un projet du secteur.
+  const projects = (await getPublished("projects")) as { cover_url?: string | null; industries?: string[] | null }[];
+  const cover = projects.find((p) => p.cover_url && (p.industries ?? []).includes(r.slug))?.cover_url ?? undefined;
 
   return {
     title: r.name,
     description,
     alternates: { canonical: url },
-    openGraph: { type: "website", url, title: r.name, description },
+    ...social({ url, title: `${r.name} · FMRXR//`, description, images: cover ? [{ url: cover, alt: r.name }] : undefined }),
   };
 }
 

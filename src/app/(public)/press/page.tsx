@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { social } from "@/lib/seo";
 import Link from "next/link";
 import { PageHero } from "@/components/site/PageHero";
 
@@ -8,12 +9,11 @@ export const metadata: Metadata = {
     "Press coverage, media kit and fact sheet for FMRXR Studio and Effet Mère. Work covered by La Presse, Leaders, Business News, L'Instant M, Kapitalis and Le Temps.",
   keywords: ["FMRXR press", "Effet Mère press", "media kit", "press kit", "new media art Tunisia press"],
   alternates: { canonical: "/press" },
-  openGraph: {
-    type: "website",
+  ...social({
     url: "/press",
     title: "Press & media · FMRXR Studio",
     description: "Press coverage, media kit and fact sheet for FMRXR Studio and Effet Mère.",
-  },
+  }),
 };
 
 // Les retombées presse réelles, vérifiées une par une. Elles servent autant de

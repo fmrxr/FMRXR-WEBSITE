@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import { getSiteSettings } from "@/lib/public-data";
 import { Analytics } from "@/components/site/Analytics";
@@ -43,11 +44,13 @@ export const metadata: Metadata = {
     title: "FMRXR// Creative Technology · New media art studio, Tunis",
     description:
       "Generative systems, immersive installations and live A/V. Emotional data, immersive arts, intelligent realities.",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     site: "@fmrxrstudio",
     creator: "@fmrxrstudio",
+    images: [DEFAULT_OG_IMAGE.url],
   },
   robots: { index: true, follow: true },
   // Renseigner le code fourni par Google Search Console pour valider la propriété.

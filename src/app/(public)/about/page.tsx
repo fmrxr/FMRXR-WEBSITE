@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { social } from "@/lib/seo";
 import Link from "next/link";
 import { getSiteSettings } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
@@ -13,20 +14,18 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "About · Creative technology studio, Tunis",
   description:
-    "FMRXR Studio builds generative systems and immersive installations. New media art, projection mapping, XR and live A/V, shown at the Francophonie Summit, B7L9 Art Centre, Interference Tunis and the National Museum of Carthage.",
+    "FMRXR Studio builds generative systems and immersive installations: new media art, projection mapping, XR and live A/V. Tunis, working internationally.",
   keywords: [
     "creative technology studio", "new media art studio", "generative systems",
     "immersive installation", "projection mapping", "XR", "live A/V",
     "TouchDesigner studio", "Tunis", "Tunisia", "FMRXR Studio", "Effet Mère",
   ],
   alternates: { canonical: "/about" },
-  openGraph: {
-    type: "website",
+  ...social({
     url: "/about",
     title: "About · FMRXR Studio, creative technology, Tunis",
-    description:
-      "Generative systems and immersive installations. Systems over spectacle, shipped under live conditions.",
-  },
+    description: "Generative systems and immersive installations. Systems over spectacle, shipped under live conditions.",
+  }),
 };
 
 // Le contenu vit en données plutôt qu'en JSX : le balisage reste identique d'une

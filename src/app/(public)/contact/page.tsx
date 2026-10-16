@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { social } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
 
@@ -14,12 +15,11 @@ export const metadata: Metadata = {
   description:
     "Talk to FMRXR Studio about an immersive installation, a projection mapping, a brand activation or a live A/V set. Tunis, working internationally.",
   alternates: { canonical: "/contact" },
-  openGraph: {
-    type: "website",
+  ...social({
     url: "/contact",
     title: "Contact · FMRXR Studio",
     description: "Brief to opening night. Tell us about the project, the venue and the date.",
-  },
+  }),
 };
 
 export default async function Contact() {

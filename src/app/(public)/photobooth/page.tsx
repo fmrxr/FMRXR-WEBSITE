@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { social } from "@/lib/seo";
 import Link from "next/link";
 import { StyleDeck } from "@/components/site/StyleDeck";
 import { ScrollFilm } from "@/components/site/ScrollFilm";
@@ -13,27 +14,20 @@ const STYLE_COUNT = STYLE_IDS.length;
 export const metadata: Metadata = {
   title: "AI Photo Booth for Brand Activations & Events",
   description:
-    `Turn any photobooth, or an iPhone, into an AI portrait studio for brand events. Gesture-controlled, your logo on every image, ${STYLE_COUNT} styles from magazine covers to movie posters and trading cards. Print, QR sharing, fixed packages.`,
+    `Turn any photobooth or an iPhone into an AI portrait studio for brand events. Gesture-controlled, your logo on every image, ${STYLE_COUNT} styles, print and QR sharing.`,
   keywords: [
     "AI photo booth", "AI photobooth", "branded photo booth", "brand activation", "event photo booth",
     "magazine cover photo booth", "movie poster photo booth", "trading card photo booth", "instant photo booth",
     "AI portrait", "gesture photo booth", "photobooth Tunisia", "photobooth Paris", "FMRXR",
   ],
   alternates: { canonical: "/photobooth" },
-  openGraph: {
-    type: "website",
+  // Apercu des liens (WhatsApp, LinkedIn) : scripts/photobooth/og.mjs.
+  ...social({
     url: "/photobooth",
     title: "AI Photo Booth for Brand Activations · FMRXR//",
     description: "Your guests leave with a portrait signed by your brand, in under a minute. Works with the booth you already have.",
-    // Apercu des liens (WhatsApp, LinkedIn) : scripts/photobooth/og.mjs.
     images: [{ url: "/photobooth/og.jpg", width: 1200, height: 630, alt: "FMRXR AI Photo Booth: tarot, magazine cover and collectible card portraits" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "AI Photo Booth for Brand Activations · FMRXR//",
-    description: "Your guests leave with a portrait signed by your brand, in under a minute.",
-    images: ["/photobooth/og.jpg"],
-  },
+  }),
 };
 
 // Questions des acheteurs (FAQ visible + donnees structurees FAQPage).

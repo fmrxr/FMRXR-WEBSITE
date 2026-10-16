@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { clip, social } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   // À défaut d'extrait, on ouvre sur le premier paragraphe : mieux vaut une
   // description tirée du texte qu'un repli générique partagé par toutes les pages.
-  const description = (a.excerpt || a.body?.[0] || "").replace(/\s+/g, " ").trim().slice(0, 300);
+  const description = clip(a.excerpt || a.body?.[0] || "");
   const url = `/journal/${a.slug}`;
   const images = a.cover_url ? [{ url: a.cover_url, alt: a.title }] : undefined;
 
@@ -30,12 +31,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: a.title,
     description,
     alternates: { canonical: url },
-    openGraph: {
+    ...social({
       type: "article", url, title: a.title, description, images,
-      ...(a.date ? { publishedTime: a.date } : {}),
-      authors: ["Haïfa Al Jamila Becheikh"],
-    },
-    twitter: { card: "summary_large_image", title: a.title, description, images: images?.map((i) => i.url) },
+      article: { ...(a.date ? { publishedTime: a.date } : {}), authors: ["Haïfa Al Jamila Becheikh"] },
+    }),
   };
 }
 

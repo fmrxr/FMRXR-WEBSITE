@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { social } from "@/lib/seo";
 import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
@@ -13,12 +14,12 @@ export const dynamic = "force-dynamic";
 // Titre, description et canonical propres : sans eux la page héritait de ceux
 // de l"accueil, canonical "/" compris, et Google la lisait comme un doublon.
 export const metadata: Metadata = {
-  title: "Industries · Culture, telecom, automotive, festivals, brands",
+  title: "Industries · Culture, brands, telecom, festivals",
   description:
     "How FMRXR Studio works across music, festivals, art and galleries, corporate brands, cultural institutions, telecom, automotive, nightlife, finance and tech.",
   keywords: ["immersive experiences for brands", "cultural institutions", "festivals", "automotive launch", "telecom activation", "music visuals"],
   alternates: { canonical: "/industries" },
-  openGraph: { type: "website", url: "/industries", title: "Industries · Culture, telecom, automotive, festivals, brands · FMRXR//", description: "How FMRXR Studio works across music, festivals, art and galleries, corporate brands, cultural institutions, telecom, automotive, nightlife, finance and tech." },
+  ...social({ url: "/industries", title: "Industries · Culture, brands, telecom, festivals · FMRXR//", description: "How FMRXR Studio works across music, festivals, art and galleries, corporate brands, cultural institutions, telecom, automotive, nightlife, finance and tech." }),
 };
 
 export default async function Industries() {

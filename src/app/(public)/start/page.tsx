@@ -1,3 +1,4 @@
+import { social } from "@/lib/seo";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
 import { StartForm } from "@/components/site/StartForm";
@@ -8,6 +9,11 @@ export const metadata = {
   description:
     "Brief FMRXR Studio on an immersive installation, projection mapping, live A/V show or brand activation. Budget, timing and venue help us answer with a real plan.",
   alternates: { canonical: "/start" },
+  ...social({
+    url: "/start",
+    title: "Start a project · FMRXR//",
+    description: "Brief FMRXR Studio on an immersive installation, projection mapping, live A/V show or brand activation.",
+  }),
 };
 
 export default async function StartPage({

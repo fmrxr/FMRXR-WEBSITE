@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { clip, social } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const s = await getBySlug("services", slug);
   if (!s) return { title: "Service not found", robots: { index: false, follow: false } };
 
-  const description = (s.short || s.description || "").replace(/\s+/g, " ").trim().slice(0, 300)
+  const description = clip(s.short || s.description || "")
     || `${s.title} by FMRXR Studio, Tunis.`;
   const url = `/services/${s.slug}`;
 
@@ -33,7 +34,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description,
     keywords: [...(s.outcomes ?? []), s.title, "FMRXR Studio", "new media art", "Tunis"].filter(Boolean),
     alternates: { canonical: url },
-    openGraph: { type: "website", url, title: s.title, description },
+    // Apercu : l'affiche du film du service.
+    ...social({ url, title: `${s.title} · FMRXR//`, description, images: serviceFilm(s.slug) ? [{ url: serviceFilm(s.slug)!.poster, width: 1920, height: 1080, alt: s.title }] : undefined }),
   };
 }
 

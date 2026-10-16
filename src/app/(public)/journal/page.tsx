@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { social } from "@/lib/seo";
 import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
@@ -13,12 +14,12 @@ export const dynamic = "force-dynamic";
 // Titre, description et canonical propres : sans eux la page héritait de ceux
 // de l"accueil, canonical "/" compris, et Google la lisait comme un doublon.
 export const metadata: Metadata = {
-  title: "Journal · Notes on generative systems and live conditions",
+  title: "Journal · Generative systems, live conditions",
   description:
     "Field notes from FMRXR Studio: generative systems, TouchDesigner pipelines, live production and the practice behind the work.",
   keywords: ["generative systems", "TouchDesigner pipeline", "immersive art Tunisia", "live production", "new media art"],
   alternates: { canonical: "/journal" },
-  openGraph: { type: "website", url: "/journal", title: "Journal · Notes on generative systems and live conditions · FMRXR//", description: "Field notes from FMRXR Studio: generative systems, TouchDesigner pipelines, live production and the practice behind the work." },
+  ...social({ url: "/journal", title: "Journal · Generative systems, live conditions · FMRXR//", description: "Field notes from FMRXR Studio: generative systems, TouchDesigner pipelines, live production and the practice behind the work." }),
 };
 
 export default async function Journal() {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { clip, social } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
@@ -39,18 +40,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!p) return { title: "Projet introuvable", robots: { index: false, follow: false } };
 
   const context = [p.client, p.year, p.location].filter(Boolean).join(" · ");
-  const description = (p.summary || p.description || "").replace(/\s+/g, " ").trim().slice(0, 300)
+  const description = clip(p.summary || p.description || "")
     || `${p.title}${context ? `. ${context}` : ""}`;
   const url = `/projects/${p.slug}`;
   const images = p.cover_url ? [{ url: p.cover_url, alt: p.title }] : undefined;
 
   return {
-    title: `${p.title}${p.category ? ` · ${p.category}` : ""}`,
+    // Titre sous 60 caracteres avec « · FMRXR// » : la categorie saute si elle depasse.
+    title: `${p.title} · ${p.category}`.length <= 51 && p.category ? `${p.title} · ${p.category}` : p.title,
     description,
     keywords: [...(p.tags ?? []), ...(p.stack ?? []), p.client, p.category].filter(Boolean),
     alternates: { canonical: url },
-    openGraph: { type: "article", url, title: p.title, description, images },
-    twitter: { card: "summary_large_image", title: p.title, description, images: images?.map((i) => i.url) },
+    ...social({ type: "article", url, title: p.title, description, images }),
   };
 }
 

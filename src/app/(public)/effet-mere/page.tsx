@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
+import { social } from "@/lib/seo";
 import Link from "next/link";
 import { PageHero } from "@/components/site/PageHero";
 
 export const metadata: Metadata = {
   title: "Effet Mère · New media artist, generative systems",
   description:
-    "Effet Mère is the artistic identity of Haïfa Becheikh: new media art, generative systems, immersive installation and audiovisual performance. The real is not represented, it is generated.",
+    "Effet Mère, the artistic identity of Haïfa Becheikh: new media art, generative systems, immersive installation and A/V performance. The real is generated.",
   keywords: [
     "Effet Mère", "new media artist", "generative art", "generative systems",
     "immersive installation", "audiovisual performance", "computational aesthetics",
     "post-digital", "algorithmic art", "Haïfa Becheikh", "digital artist Tunisia",
   ],
   alternates: { canonical: "/effet-mere" },
-  openGraph: {
+  ...social({
     type: "profile",
     url: "/effet-mere",
     title: "Effet Mère · New media artist, generative systems",
-    description:
-      "New media art, generative systems and immersive environments. The real is not represented, it is generated.",
-  },
+    description: "New media art, generative systems and immersive environments. The real is not represented, it is generated.",
+  }),
 };
 
 // Une section de texte : un intertitre, puis ses paragraphes. On garde la
