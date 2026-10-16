@@ -36,7 +36,7 @@ export function CampaignActions({ id, status, boothPath, hasUnknown }: {
       )}
       <Button
         size="sm" variant="ghost"
-        onClick={() => confirm("L’ancien lien de la borne cessera de fonctionner. Continuer ?") && run(rotateAccessKey(id), "Nouvelle clé générée")}
+        onClick={() => confirm("L’ancien lien de la borne et l’ancien lien de la galerie équipe cesseront de fonctionner. Continuer ?") && run(rotateAccessKey(id), "Nouvelle clé générée")}
       >
         Régénérer la clé
       </Button>

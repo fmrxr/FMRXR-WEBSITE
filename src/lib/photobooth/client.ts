@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveConfig } from "./config";
 import { quotaState } from "./quota";
 import { isShareActive, shareUrl } from "./server";
+import { isHidden } from "./gallery-access";
 
 // Donnees de l'espace client. Lues en service_role, mais seulement pour les
 // campagnes dont l'utilisateur est membre : l'appartenance est verifiee ici,
@@ -94,7 +95,7 @@ export async function clientGallery(campaignId: string) {
   if (!campaign) return null;
   const cfg = resolveConfig(campaign.config);
   const share = cfg.ok && cfg.config.shareEnabled;
-  const items: GalleryItem[] = (rows ?? []).filter((r) => isShareActive(r.completed_at)).map((r) => {
+  const items: GalleryItem[] = (rows ?? []).filter((r) => isShareActive(r.completed_at) && !isHidden(r.mood)).map((r) => {
     const mood = r.mood as { title?: Record<string, string> } | null;
     return {
       id: r.id,

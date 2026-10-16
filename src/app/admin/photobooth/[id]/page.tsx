@@ -6,6 +6,8 @@ import { CampaignForm } from "../CampaignForm";
 import { QuotaBar, StatusBadge } from "../ui";
 import { CampaignActions, ReleaseButton } from "./actions";
 import { ClientAccess } from "./client-access";
+import { LinkActions } from "./link-actions";
+import { galleryPath, galleryPin } from "@/lib/photobooth/gallery-access";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ export default async function Page({ params, searchParams }: {
   const { campaign: c, usage: u, history, audit } = d;
   const q = quotaState({ quota: c.quota_limit, succeeded: u.succeeded, active: u.active, warning: c.warning_threshold, critical: c.critical_threshold });
   const boothPath = `/experience/photobooth/${c.slug}?k=${c.access_key}`;
+  const teamGalleryPath = galleryPath(c.slug, c.access_key);
 
   if (edit) {
     return (
@@ -66,6 +69,17 @@ export default async function Page({ params, searchParams }: {
         <p className="text-sm font-medium">Lien de la borne</p>
         <p className="mt-1 break-all font-mono text-xs text-muted-foreground">https://fmrxr.com{boothPath}</p>
         <CampaignActions id={c.id} status={c.status} boothPath={boothPath} hasUnknown={u.unknown > 0 || u.active > 0} />
+        <p className="mt-5 text-sm font-medium">Lien de la galerie (équipe sur place)</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Sans compte : QR, téléchargement, impression et suppression des portraits. À ne partager qu’avec l’équipe.
+          Régénérer la clé de la campagne coupe aussi ce lien.
+        </p>
+        <p className="mt-1 break-all font-mono text-xs text-muted-foreground">https://fmrxr.com{teamGalleryPath}</p>
+        <p className="mt-2 text-sm">
+          Code équipe, à saisir sur la première page de la borne (bouton « Galerie ») :{" "}
+          <span className="rounded bg-muted px-2 py-0.5 font-mono font-semibold tracking-[0.2em]">{galleryPin(c.access_key)}</span>
+        </p>
+        <LinkActions path={teamGalleryPath} openLabel="Ouvrir la galerie équipe" />
       </section>
 
       <ClientAccess campaignId={c.id} members={members} />
@@ -115,6 +129,8 @@ export default async function Page({ params, searchParams }: {
                   : a.action === "update" ? `modifié : ${changed.map((k) => `${k} ${JSON.stringify(before[k])} → ${JSON.stringify(after[k])}`).join(", ") || "clé d’accès"}`
                   : a.action === "client_access_granted" ? `accès client donné à ${String(after.email ?? "")}`
                   : a.action === "client_access_revoked" ? "accès client retiré"
+                  : a.action === "portrait_deleted" ? `portrait supprimé (${after.via === "gallery_link" ? "lien galerie équipe" : after.via === "client" ? "espace client" : "admin"})`
+                  : a.action === "nsfw_retry" ? "relance après un faux refus nsfw"
                   : a.action
                 }
               </li>

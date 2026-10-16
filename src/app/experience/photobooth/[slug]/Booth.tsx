@@ -9,6 +9,7 @@ import { ERROR_ALIAS, ERRORS, GESTURE_GLYPH, UI } from "./strings";
 import s from "./booth.module.css";
 import { PAGE_SIZE, usePrinter } from "./usePrinter";
 import { useExpressionReader } from "./useExpression";
+import { TeamGallery } from "./TeamGallery";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
 import { STYLES, type StyleId } from "@/lib/photobooth/styles";
 
@@ -793,6 +794,7 @@ export function Booth({
             {t[`printer_${printer.state.kind}`] ?? printer.state.kind}
           </span>
         )}
+        {step === "attract" && <TeamGallery slug={slug} accessKey={accessKey} t={t} />}
         {step === "attract" && config.locales.length > 1 && (
           <div className="flex gap-1 font-mono text-xs">
             {config.locales.map((l) => (

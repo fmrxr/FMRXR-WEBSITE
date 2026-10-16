@@ -1,3 +1,5 @@
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { isHidden } from "@/lib/photobooth/gallery-access";
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseDb, relayPortrait } from "@/lib/photobooth/server";
 
@@ -19,5 +21,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!u || u.session_id !== session || u.status !== "succeeded" || !u.result_url) {
     return new NextResponse("Not found", { status: 404 });
   }
+  // Portrait supprime depuis une galerie : plus telechargeable.
+  const { data: m } = await getSupabaseAdmin().from("photobooth_usage").select("mood").eq("id", id).maybeSingle();
+  if (isHidden(m?.mood)) return new NextResponse("Not found", { status: 404 });
   return relayPortrait(u.result_url, id, req.nextUrl.searchParams.get("dl") ? `fmrxr-portrait-${id.slice(0, 8)}` : null);
 }

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { currentRoles } from "@/lib/auth";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { isShareActive } from "@/lib/photobooth/server";
+import { isHidden } from "@/lib/photobooth/gallery-access";
+import { DeletePortrait } from "./delete-portrait";
 
 export const dynamic = "force-dynamic";
 
@@ -21,17 +23,18 @@ export default async function Gallery({ params }: { params: Promise<{ id: string
       .eq("campaign_id", id).eq("status", "succeeded").order("completed_at", { ascending: false }).limit(300),
   ]);
   if (!campaign) notFound();
+  const visible = (rows ?? []).filter((r) => !isHidden(r.mood));
 
   return (
     <div className="max-w-6xl">
       <Link href={`/admin/photobooth/${id}`} className="text-xs text-muted-foreground hover:underline">← {campaign.name}</Link>
       <div className="mt-2 mb-6 flex items-baseline justify-between">
         <h1 className="text-2xl font-bold">Galerie</h1>
-        <span className="text-sm text-muted-foreground">{rows?.length ?? 0} portraits</span>
+        <span className="text-sm text-muted-foreground">{visible.length} portraits</span>
       </div>
-      {(rows ?? []).length === 0 && <p className="text-muted-foreground">Aucun portrait réussi pour l’instant.</p>}
+      {visible.length === 0 && <p className="text-muted-foreground">Aucun portrait réussi pour l’instant.</p>}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {(rows ?? []).map((r) => {
+        {visible.map((r) => {
           const expired = !isShareActive(r.completed_at);
           const mood = r.mood as { id?: string; title?: { fr?: string } } | null;
           return (
@@ -49,7 +52,10 @@ export default async function Gallery({ params }: { params: Promise<{ id: string
                   <span className="block font-medium">{mood?.title?.fr ?? mood?.id}</span>
                   <span className="text-muted-foreground">{r.completed_at ? new Date(r.completed_at).toLocaleString("fr-FR") : ""} · {r.model}</span>
                 </span>
-                {!expired && <a href={`/api/photobooth/image/${r.id}?dl=1`} className="shrink-0 underline">Télécharger</a>}
+                <span className="flex shrink-0 flex-col items-end gap-1">
+                  {!expired && <a href={`/api/photobooth/image/${r.id}?dl=1`} className="underline">Télécharger</a>}
+                  <DeletePortrait id={r.id} />
+                </span>
               </figcaption>
             </figure>
           );

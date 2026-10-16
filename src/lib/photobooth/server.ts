@@ -9,6 +9,7 @@ import { finalFromUrl, type FinalOptions } from "./branding";
 import { STYLES, isStyleId } from "./styles";
 import { EXPRESSION_LABEL, EXPRESSIONS, type ExpressionId } from "./expression";
 import type { Locale } from "./config";
+import { isHidden } from "./gallery-access";
 
 // Cote serveur uniquement : client service_role, cle Higgsfield.
 
@@ -163,7 +164,7 @@ export async function findShared(token: string): Promise<
     .select("id, status, result_url, completed_at, mood, campaign:photobooth_campaigns(name, config)")
     .eq("share_token", token)
     .maybeSingle();
-  if (!data || data.status !== "succeeded" || !data.result_url) return { ok: false, reason: "NOT_FOUND" };
+  if (!data || data.status !== "succeeded" || !data.result_url || isHidden(data.mood)) return { ok: false, reason: "NOT_FOUND" };
   const campaign = (Array.isArray(data.campaign) ? data.campaign[0] : data.campaign) as { name: string; config: unknown } | null;
   const cfg = resolveConfig(campaign?.config);
   if (!cfg.ok || !cfg.config.shareEnabled) return { ok: false, reason: "NOT_FOUND" };
