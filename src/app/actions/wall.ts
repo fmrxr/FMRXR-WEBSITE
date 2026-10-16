@@ -137,11 +137,21 @@ export async function removeModerator(id: string, moderatorId: string): Promise<
   return saveModerators(id, list.filter((m) => m.id !== moderatorId));
 }
 
-/** Nouvelle cle : coupe d'un coup les anciens liens invite, ecran et moderation. */
+/**
+ * Nouvelle cle : coupe d'un coup les anciens liens invite, ecran et
+ * moderation, y compris les liens personnels des moderateurs (regeneres).
+ */
 export async function rotateWallKey(id: string): Promise<{ ok: true } | { error: string }> {
   await assertRole(["admin"]);
   const sb = await getSupabaseServer();
-  const { error } = await sb.from("wall_campaigns").update({ access_key: randomBytes(16).toString("hex"), updated_at: new Date().toISOString() }).eq("id", id);
+  const { data } = await sb.from("wall_campaigns").select("config").eq("id", id).maybeSingle();
+  if (!data) return { error: "Mur introuvable" };
+  const moderators = (await currentModerators(id)).map((m) => ({ ...m, key: randomBytes(16).toString("hex") }));
+  const { error } = await sb.from("wall_campaigns").update({
+    access_key: randomBytes(16).toString("hex"),
+    config: { ...(data.config as object), moderators },
+    updated_at: new Date().toISOString(),
+  }).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath(`/admin/wall/${id}`);
   return { ok: true };

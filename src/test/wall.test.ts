@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
+
+process.env.WALL_KEY_SECRET ||= "test-secret-not-for-production";
 import { DEFAULT_CONFIG, publicConfig, resolveConfig } from "@/lib/wall/config";
 import { accessFor, modKey, screenKey } from "@/lib/wall/keys";
 import { cleanText, flagText } from "@/lib/wall/moderation";
@@ -13,6 +16,13 @@ describe("live wall : acces", () => {
     expect(accessFor(key, { k: screenKey(key) })).toBeNull();
     expect(accessFor(key, { m: key })).toBeNull();
     expect(accessFor(key, {})).toBeNull();
+  });
+  it("connaitre la cle invite (QR public) ne permet pas de calculer s ou m", () => {
+    // L'ancienne derivation sans secret, que n'importe quel invite pouvait refaire.
+    const naive = (r: string) => createHash("sha256").update(`${key}:wall:${r}`).digest("hex").slice(0, 32);
+    expect(accessFor(key, { m: naive("mod") })).toBeNull();
+    expect(accessFor(key, { s: naive("screen") })).toBeNull();
+    expect(modKey(key)).not.toBe(naive("mod"));
   });
   it("changer la cle coupe les liens derives", () => {
     expect(accessFor("b".repeat(32), { s: screenKey(key) })).toBeNull();

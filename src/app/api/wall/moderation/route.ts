@@ -53,15 +53,17 @@ export async function POST(req: Request) {
     return json({ ok: true });
   }
 
-  const { data: p } = await sb.from("wall_posts").select("id, pos").eq("id", id).eq("campaign_id", campaignId).maybeSingle();
+  const { data: p } = await sb.from("wall_posts").select("id, pos, status").eq("id", id).eq("campaign_id", campaignId).maybeSingle();
   if (!p) return json({ ok: false, error: "NOT_FOUND" }, 404);
   let patch: Record<string, unknown>;
   if (action === "approve") {
     // Une carte validee prend sa place sur le mur, au premier plan.
-    patch = { status: "approved", moderated_at: now, pos: p.pos ?? autoPos(await placedCount(campaignId), zNow()) };
+    patch = { status: "approved", moderated_at: now, pos: p.pos ? { ...p.pos, z: zNow() } : autoPos(await placedCount(campaignId), zNow()) };
   } else if (action === "hide") patch = { status: "hidden", moderated_at: now };
-  else if (action === "pin") patch = { pinned: true };
-  else if (action === "unpin") patch = { pinned: false };
+  else if (action === "pin" || action === "unpin") {
+    if (p.status !== "approved") return json({ ok: false, error: "NOT_PUBLISHED" }, 400);
+    patch = { pinned: action === "pin" };
+  }
   else return json({ ok: false, error: "BAD_ACTION" }, 400);
   const { error } = await sb.from("wall_posts").update({ ...patch, moderated_by: by, updated_at: now }).eq("id", p.id);
   if (error) return json({ ok: false, error: "SAVE_FAILED" }, 500);

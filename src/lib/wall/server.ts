@@ -53,7 +53,9 @@ export function rateLimited(key: string, max: number, windowMs = 60_000) {
   const list = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
   list.push(now);
   hits.set(key, list);
-  if (hits.size > 5000) hits.clear();
+  // Au-dela de 5000 cles, on oublie les plus anciennes (ordre d'insertion) :
+  // inonder de fausses IP ne remet plus les compteurs de tout le monde a zero.
+  if (hits.size > 5000) for (const k of [...hits.keys()].slice(0, 1000)) hits.delete(k);
   return list.length > max;
 }
 
@@ -78,7 +80,8 @@ export async function wallFeed(campaignId: string, max: number, session: string 
   const sb = getSupabaseAdmin();
   const { data: rows } = await sb.from("wall_posts").select(POST_COLS)
     .eq("campaign_id", campaignId).eq("status", "approved")
-    .order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(max);
+    // Ordre de validation : un message valide tard par l'equipe entre bien sur le mur.
+    .order("pinned", { ascending: false }).order("moderated_at", { ascending: false, nullsFirst: false }).limit(max);
   const posts = (rows ?? []) as unknown as PostRow[];
   if (posts.length === 0) return [];
   const ids = posts.map((p) => p.id);
@@ -124,6 +127,16 @@ export async function placedCount(campaignId: string) {
   const { count } = await getSupabaseAdmin().from("wall_posts").select("id", { count: "exact", head: true })
     .eq("campaign_id", campaignId).not("pos", "is", null);
   return count ?? 0;
+}
+
+/**
+ * Plafond par mur, en base : quel que soit le nombre de sessions ou d'IP
+ * inventees, un mur n'accepte pas plus de `max` envois par minute.
+ */
+export async function campaignBusy(table: "wall_posts" | "wall_comments", campaignId: string, max: number) {
+  const { count } = await getSupabaseAdmin().from(table).select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId).gte("created_at", new Date(Date.now() - 60_000).toISOString());
+  return (count ?? 0) >= max;
 }
 
 export const json = (body: unknown, status = 200) =>

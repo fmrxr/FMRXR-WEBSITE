@@ -133,7 +133,7 @@ drop policy if exists wall_likes_admin on public.wall_likes;
 create policy wall_likes_admin on public.wall_likes for all
   using (has_role(auth.uid(), 'admin')) with check (has_role(auth.uid(), 'admin'));
 
--- Photos des invites : bucket prive, servies par /api/wall/media/<id>.
+-- Photos des invites : bucket prive, servies par /api/wall/asset/<id>.
 insert into storage.buckets (id, name, public)
 values ('wall-media', 'wall-media', false)
 on conflict (id) do nothing;

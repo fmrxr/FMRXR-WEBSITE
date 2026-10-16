@@ -50,8 +50,11 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
     return () => { live = false; window.clearInterval(id); };
   }, [slug, m]);
 
+  const [modError, setModError] = useState<string | null>(null);
   const moderate = async (target: "post" | "comment", id: string, action: string) => {
-    await fetch("/api/wall/moderation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, m, target, id, action }) });
+    const r = await fetch("/api/wall/moderation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, m, target, id, action }) }).catch(() => null);
+    if (!r?.ok) return setModError(r?.status === 404 ? "Accès de modération refusé : ce lien a peut-être été retiré." : "Action impossible, réessayez.");
+    setModError(null);
     if (target === "post" && action === "hide") setFocus(null);
   };
 
@@ -109,7 +112,7 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
   const newest = fresh.length ? posts.find((p) => p.id === fresh[fresh.length - 1]) : null;
 
   return (
-    <main className="fm grid h-dvh w-full grid-rows-[auto_1fr] overflow-hidden text-fmfg" style={{ background: config.background }}>
+    <main dir={config.defaultLocale === "ar" ? "rtl" : "ltr"} className="fm grid h-dvh w-full grid-rows-[auto_1fr] overflow-hidden text-fmfg" style={{ background: config.background }}>
       <header className="relative z-20 flex items-center justify-between gap-6 px-[2.5vw] py-[1.8vh]">
         <div className="flex items-center gap-[1.2vw]">
           {config.clientLogoUrl && (
@@ -182,6 +185,7 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
             {mod && (
               <div className="flex w-[22vw] min-w-64 flex-col gap-3 rounded-2xl border border-fmborder bg-fmbg/95 p-4 text-sm">
                 <p className="text-xs uppercase tracking-widest text-fmmuted">Modération</p>
+                {modError && <p className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-1 text-xs">{modError}</p>}
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => void moderate("post", focused.id, "hide")} className="flex items-center gap-1 rounded-full border border-red-400/50 px-3 py-1.5 text-red-300"><EyeOff className="h-3.5 w-3.5" />Masquer du mur</button>
                   {focused.pinned

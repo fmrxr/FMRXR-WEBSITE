@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { cleanText, flagText } from "@/lib/wall/moderation";
 import { autoPos, parseStickers, parseStrokes, zNow } from "@/lib/wall/shapes";
-import { availability, clientIp, isSession, json, loadWall, MEDIA_BUCKET, placedCount, rateLimited } from "@/lib/wall/server";
+import { availability, campaignBusy, clientIp, isSession, json, loadWall, MEDIA_BUCKET, placedCount, rateLimited } from "@/lib/wall/server";
 import { KINDS, type Kind } from "@/lib/wall/config";
 
 // POST /api/wall/post (multipart) — un invite envoie un message au mur.
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
   const kind = str("kind") as Kind;
   if (!KINDS.includes(kind) || !config.kinds[kind]) return json({ ok: false, error: "KIND_DISABLED" }, 400);
 
+  if (await campaignBusy("wall_posts", campaign.id, 90)) return json({ ok: false, error: "RATE_LIMITED" }, 429);
   const sb = getSupabaseAdmin();
   // Limites par invite : nombre de messages et delai entre deux envois.
   const { data: recent } = await sb.from("wall_posts").select("created_at")

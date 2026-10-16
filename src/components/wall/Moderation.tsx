@@ -36,8 +36,10 @@ export function Moderation({ slug, m, stickers, compact }: { slug: string; m: st
     return () => window.clearInterval(id);
   }, [load]);
 
+  const [error, setError] = useState<string | null>(null);
   const act = async (target: "post" | "comment", id: string, action: string) => {
-    await fetch("/api/wall/moderation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, m, target, id, action }) });
+    const r = await fetch("/api/wall/moderation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, m, target, id, action }) }).catch(() => null);
+    setError(r?.ok ? null : r?.status === 404 ? "Accès de modération refusé : ce lien a peut-être été retiré." : "Action impossible, réessayez.");
     void load();
   };
 
@@ -48,6 +50,7 @@ export function Moderation({ slug, m, stickers, compact }: { slug: string; m: st
 
   return (
     <div className="flex flex-col gap-4">
+      {error && <p className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm">{error}</p>}
       {data.by && <p className="text-xs text-fmmuted">Connecté·e : <span className="text-fmfg">{data.by}</span></p>}
       <div className="flex flex-wrap gap-2">
         {(["pending", "approved", "hidden"] as const).map((s) => (

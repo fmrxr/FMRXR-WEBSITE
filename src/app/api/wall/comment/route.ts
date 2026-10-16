@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { cleanText, flagText } from "@/lib/wall/moderation";
-import { availability, clientIp, isSession, json, loadWall, rateLimited } from "@/lib/wall/server";
+import { availability, campaignBusy, clientIp, isSession, json, loadWall, rateLimited } from "@/lib/wall/server";
 
 // POST /api/wall/comment { slug, k, session, postId, author, body, sticker }
 // Un commentaire texte, ou une reaction en sticker de marque, ou les deux.
@@ -26,6 +26,7 @@ export async function POST(req: Request) {
   const sticker = typeof b.sticker === "string" && config.stickersEnabled && config.stickers.some((s) => s.id === b.sticker) ? b.sticker : null;
   if (!body && !sticker) return json({ ok: false, error: "EMPTY" }, 400);
 
+  if (await campaignBusy("wall_comments", campaign.id, 150)) return json({ ok: false, error: "RATE_LIMITED" }, 429);
   const sb = getSupabaseAdmin();
   const { data: post } = await sb.from("wall_posts").select("id").eq("id", String(b.postId ?? ""))
     .eq("campaign_id", campaign.id).eq("status", "approved").maybeSingle();
