@@ -84,7 +84,7 @@ export function Screen({ slug, s, initial, qrSvg }: { slug: string; s: string; i
   const newest = fresh.length ? posts.find((p) => p.id === fresh[fresh.length - 1]) : null;
 
   return (
-    <main className="fm fixed inset-0 grid grid-rows-[auto_1fr] overflow-hidden text-fmfg" style={{ background: config.background }}>
+    <main className="fm grid h-dvh w-full grid-rows-[auto_1fr] overflow-hidden text-fmfg" style={{ background: config.background }}>
       <header className="relative z-20 flex items-center justify-between gap-6 px-[2.5vw] py-[1.8vh]">
         <div className="flex items-center gap-[1.2vw]">
           {config.clientLogoUrl && (
@@ -111,7 +111,7 @@ export function Screen({ slug, s, initial, qrSvg }: { slug: string; s: string; i
 
       <div ref={boardRef} className="relative min-h-0">
         <Board
-          posts={posts} config={config} t={t} asset={asset} fresh={fresh} cardFrac={0.12}
+          posts={posts} config={config} t={t} asset={asset} fresh={fresh} cardFrac={cardFrac(posts.length)}
           canMove={() => touch} onMove={move}
           onOpen={touch ? (p) => setFocus(p.id) : undefined}
           onLike={touch && config.likes ? (p) => void like(p.id) : undefined}
@@ -156,3 +156,6 @@ export function Screen({ slug, s, initial, qrSvg }: { slug: string; s: string; i
 }
 
 const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, n));
+
+/** Cartes grandes quand le mur est peu rempli, plus petites a mesure qu'il se remplit. */
+const cardFrac = (n: number) => clamp(0.2 - n * 0.002, 0.11, 0.18);
