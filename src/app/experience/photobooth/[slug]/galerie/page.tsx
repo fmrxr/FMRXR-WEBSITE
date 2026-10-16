@@ -34,9 +34,18 @@ export default async function TeamGallery({
   return (
     <main className="fm fm-canvas relative min-h-dvh">
       <div className="mx-auto max-w-6xl px-5 py-10 md:px-8">
-        <p className="fm-display text-sm tracking-[0.08em]" dir="ltr">
-          FMRXR<span className="text-fmaccent">{"//"}</span>
-        </p>
+        <div className="flex items-center justify-between gap-4">
+          <p className="fm-display text-sm tracking-[0.08em]" dir="ltr">
+            FMRXR<span className="text-fmaccent">{"//"}</span>
+          </p>
+          {/* Retour a la borne : l'equipe ouvre la galerie depuis la premiere page. */}
+          <a
+            href={`/experience/photobooth/${slug}?k=${encodeURIComponent(c.access_key)}`}
+            className="rounded-full border border-fmborder px-5 py-2 text-sm text-fmfg/85 hover:border-fmfg/50"
+          >
+            ← Retour à la borne
+          </a>
+        </div>
         <h1 className="fm-display mt-8 text-3xl md:text-5xl">{gallery.name}</h1>
         <p className="mt-3 max-w-2xl text-sm text-fmmuted">
           {gallery.items.length} portrait{gallery.items.length > 1 ? "s" : ""} des 7 derniers jours{c.client_name ? `, ${c.client_name}` : ""}.

@@ -10,6 +10,7 @@ import s from "./booth.module.css";
 import { PAGE_SIZE, usePrinter } from "./usePrinter";
 import { useExpressionReader } from "./useExpression";
 import { TeamGallery } from "./TeamGallery";
+import { CameraPicker, readCamera } from "./CameraPicker";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
 import { STYLES, type StyleId } from "@/lib/photobooth/styles";
 
@@ -86,6 +87,8 @@ export function Booth({
   const [style, setStyle] = useState<StyleId>(config.styles[0]);
   const [captureAspect, setCaptureAspect] = useState<CampaignConfig["aspectRatio"]>(config.aspectRatio);
   const [answers, setAnswers] = useState<string[]>([]);
+  // Camera choisie sur cette borne (CameraPicker), memorisee dans le navigateur.
+  const [cameraId, setCameraId] = useState<string | null>(() => (typeof window === "undefined" ? null : readCamera(slug)));
   const [chosen, setChosen] = useState<string | null>(null);
   const [tracker, setTracker] = useState<Tracker>("idle");
   // hand : une main est dans l'image (meme sans geste reconnu) ;
@@ -201,18 +204,34 @@ export function Booth({
     // Le modele des gestes se charge pendant l'autorisation camera et le scan,
     // pas apres : il est pret quand arrive la premiere question.
     loadTracker();
+    // Camera choisie sur cette borne (webcam USB, iPhone en webcam...), sinon
+    // la camera frontale par defaut.
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const constraints = (deviceId: string | null): MediaStreamConstraints => ({
+      // Telephone / tablette : 1280x720 suffit au portrait et divise par deux la
+      // memoire de l'image. Sur iPhone, Safari tue l'onglet (et le recharge)
+      // quand camera pleine resolution + MediaPipe depassent sa limite memoire.
+      video: {
+        ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "user" }),
+        // Poste fixe / borne : la meilleure definition de la webcam (jusqu'a 4K),
+        // sans sacrifier la fluidite de l'apercu et du suivi de la main.
+        ...(coarse
+          ? { width: { ideal: 1280 }, height: { ideal: 720 } }
+          : { width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } }),
+      },
+      audio: false,
+    });
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        // Telephone / tablette : 1280x720 suffit au portrait et divise par deux la
-        // memoire de l'image. Sur iPhone, Safari tue l'onglet (et le recharge)
-        // quand camera pleine resolution + MediaPipe depassent sa limite memoire.
-        video: window.matchMedia("(pointer: coarse)").matches
-          ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
-          // Poste fixe / borne : la meilleure definition de la webcam (jusqu'a 4K),
-          // sans sacrifier la fluidite de l'apercu et du suivi de la main.
-          : { facingMode: "user", width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } },
-        audio: false,
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints(cameraId));
+      } catch (e) {
+        // Camera memorisee debranchee : on repart sur la camera par defaut.
+        const name = (e as DOMException)?.name;
+        if (!cameraId || (name !== "OverconstrainedError" && name !== "NotFoundError" && name !== "NotReadableError")) throw e;
+        setCameraId(null);
+        stream = await navigator.mediaDevices.getUserMedia(constraints(null));
+      }
       streamRef.current = stream;
       const v = videoRef.current!;
       v.srcObject = stream;
@@ -222,7 +241,7 @@ export function Booth({
       const name = (e as DOMException)?.name;
       fail(name === "NotAllowedError" || name === "SecurityError" ? "CAMERA_DENIED" : "CAMERA_UNAVAILABLE");
     }
-  }, [fail, loadTracker]);
+  }, [fail, loadTracker, cameraId]);
 
   useEffect(() => () => {
     stopCamera();
@@ -795,6 +814,7 @@ export function Booth({
           </span>
         )}
         {step === "attract" && <TeamGallery slug={slug} accessKey={accessKey} t={t} />}
+        {step === "attract" && <CameraPicker slug={slug} value={cameraId} onChange={setCameraId} t={t} />}
         {step === "attract" && config.locales.length > 1 && (
           <div className="flex gap-1 font-mono text-xs">
             {config.locales.map((l) => (
