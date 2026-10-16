@@ -321,3 +321,41 @@ export async function renderLayout(layout: Exclude<Layout, "none">, src: Buffer,
     case "card": return card(src, t, client);
   }
 }
+
+/**
+ * Image d'apercu d'un lien de campagne (WhatsApp, Instagram, iMessage...) :
+ * 1200x630, titre de la campagne, accroche, aura dans les couleurs des
+ * ambiances, logo client officiel et FMRXR//.
+ */
+export async function renderLinkCard(o: { title: string; subtitle: string; palette: string[]; client: Buffer | null }): Promise<Buffer> {
+  const W = 1200, H = 630, M = 64;
+  const c = o.palette.length ? o.palette : ["#5C85BD", "#C9C5DF", "#F18D85"];
+  const at = (i: number) => c[i % c.length];
+  // Aura : halos flous superposes et anneaux concentriques nets, cote droit.
+  const aura = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">` +
+    `<defs><filter id="b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="70"/></filter></defs>` +
+    `<rect width="${W}" height="${H}" fill="#0d0c14"/>` +
+    `<g filter="url(#b)">` +
+    `<circle cx="900" cy="330" r="230" fill="${at(0)}" fill-opacity="0.55"/>` +
+    `<circle cx="990" cy="220" r="170" fill="${at(1)}" fill-opacity="0.5"/>` +
+    `<circle cx="830" cy="450" r="160" fill="${at(2)}" fill-opacity="0.45"/>` +
+    `</g>` +
+    [250, 310, 370, 430].map((r, i) => `<circle cx="900" cy="315" r="${r}" fill="none" stroke="${at(i)}" stroke-opacity="${0.4 - i * 0.08}" stroke-width="2"/>`).join("") +
+    // Voile a gauche : le texte reste lisible quelle que soit la couleur.
+    `<rect width="${W}" height="${H}" fill="url(#v)"/>` +
+    `<defs><linearGradient id="v" x1="0" x2="1"><stop offset="0" stop-color="#0d0c14" stop-opacity="0.92"/><stop offset="0.55" stop-color="#0d0c14" stop-opacity="0.35"/><stop offset="1" stop-color="#0d0c14" stop-opacity="0"/></linearGradient></defs>` +
+    `</svg>`,
+  );
+  const layers: sharp.OverlayOptions[] = [];
+  const logo = await fmrxrLogo(30);
+  layers.push({ input: logo.input, top: M, left: M });
+  const title = await fitText(o.title.toUpperCase(), "black", 104, "#f5f5f8", 680, "left");
+  const titleTop = 200;
+  layers.push({ input: title.input, top: titleTop, left: M });
+  const sub = o.subtitle ? await text(o.subtitle, "medium", 30, "#c9c8d4", 600, "left") : null;
+  if (sub) layers.push({ input: sub.input, top: titleTop + title.height + 26, left: M });
+  const plate = await clientPlate(o.client, 84);
+  if (plate) layers.push({ input: plate.input, top: H - M - plate.height, left: M });
+  return sharp(aura).composite(layers).jpeg({ quality: 88 }).toBuffer();
+}

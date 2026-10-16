@@ -17,7 +17,7 @@ const CACHE = new Map<string, Buffer>(); // portrait source -> portrait brande
 const LOGOS = new Map<string, Buffer | null>(); // url du logo client -> image
 const MAX_CACHE = 40;
 
-async function clientLogo(url: string): Promise<Buffer | null> {
+export async function clientLogo(url: string): Promise<Buffer | null> {
   if (LOGOS.has(url)) return LOGOS.get(url)!;
   let buf: Buffer | null = null;
   try {

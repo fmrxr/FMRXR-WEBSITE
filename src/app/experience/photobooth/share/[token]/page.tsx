@@ -1,19 +1,37 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { findShared } from "@/lib/photobooth/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Votre portrait",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
-};
+const getShared = cache(findShared);
+
+/** Apercu du lien de partage : le portrait lui-meme, avec son ambiance et la campagne. */
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const base: Metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" };
+  const s = await getShared(token);
+  if (!s.ok) return { ...base, title: "Votre portrait" };
+  const mood = s.title?.en || s.title?.fr || "Portrait";
+  const title = `${mood} · ${s.campaignName}`;
+  const description = "My portrait from the FMRXR// AI photobooth. Link valid for 7 days.";
+  const url = `/experience/photobooth/share/${token}`;
+  const image = `/api/photobooth/share/${token}`;
+  return {
+    ...base,
+    title: { absolute: `${title} · FMRXR//` },
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "website", siteName: "FMRXR Studio", title, description, url, images: [{ url: image, alt: title }] },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
+  };
+}
 
 // Page ouverte par le QR code de la borne, sur le telephone du visiteur.
 export default async function SharePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const s = await findShared(token);
+  const s = await getShared(token);
 
   if (!s.ok && s.reason === "NOT_FOUND") notFound();
 
