@@ -98,7 +98,7 @@ function Comments({ list, total, t, byId, tone }: { list: WallComment[]; total: 
               <span className="text-[0.66em] font-semibold text-[#1b1a22]">{tone === "reddit" ? `u/${handle(c.author)}` : c.author || "guest"} </span>
               {c.body && <span className="text-[0.66em] text-[#262626] [overflow-wrap:anywhere]">{c.body}</span>}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {st && <img src={st.url} alt={st.label} className="mt-[0.15em] block h-[2.2em] w-auto" draggable={false} />}
+              {st && <img src={st.url} alt={st.label} className="mt-[0.2em] block h-[3.4em] w-auto max-w-full object-contain" draggable={false} />}
             </div>
           </div>
         );
@@ -154,7 +154,9 @@ export function Card(props: CardProps) {
       <div className="relative w-[16em] rounded-[0.25em] p-[0.7em] text-[#1b1a22] shadow-[0_0.8em_1.6em_-0.6em_rgba(0,0,0,0.6)]" style={{ background: paper }}>
         <span className="absolute -top-[0.55em] left-1/2 h-[1.1em] w-[4.5em] -translate-x-1/2 rotate-[-3deg] bg-white/55 shadow-sm backdrop-blur-[1px]" />
         {post.kind === "text" ? (
-          <div className="relative">
+          // Zone des stickers = toute la largeur de la carte (marge comprise),
+          // identique a l'apercu du telephone (Guest.tsx).
+          <div className="relative -m-[0.7em] p-[0.7em]">
             <p className="min-h-[5em] text-[1.3em] font-semibold leading-snug [overflow-wrap:anywhere]">{post.body}</p>
             <StickerLayer list={post.stickers} byId={byId} />
           </div>

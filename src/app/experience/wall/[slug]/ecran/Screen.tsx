@@ -26,7 +26,7 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
   // localStorage n'existe qu'au navigateur : lu apres le montage.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setSession(sessionId(`screen-${slug}`)); }, [slug]);
-  const { feed, fresh, move, like } = useWall(slug, keys, session);
+  const { feed, fresh, move, like, notice } = useWall(slug, keys, session);
   const config = feed?.config ?? initial;
   const t = STRINGS[config.defaultLocale];
   const posts = useMemo(() => feed?.posts ?? [], [feed]);
@@ -42,8 +42,8 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
     if (!m) return;
     let live = true;
     const tick = async () => {
-      const r = await fetch(`/api/wall/moderation?slug=${slug}&m=${m}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
-      if (live && r?.ok) setPending(r.posts.filter((p: { status: string }) => p.status === "pending").length + r.comments.filter((c: { status: string }) => c.status === "pending").length);
+      const r = await fetch(`/api/wall/moderation?slug=${slug}&m=${m}&count=1`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
+      if (live && r?.ok) setPending(r.pending);
     };
     void tick();
     const id = window.setInterval(tick, 4000);
@@ -53,7 +53,7 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
   const [modError, setModError] = useState<string | null>(null);
   const moderate = async (target: "post" | "comment", id: string, action: string) => {
     const r = await fetch("/api/wall/moderation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, m, target, id, action }) }).catch(() => null);
-    if (!r?.ok) return setModError(r?.status === 404 ? "Accès de modération refusé : ce lien a peut-être été retiré." : "Action impossible, réessayez.");
+    if (!r?.ok) return setModError(r?.status === 404 ? t.screen.denied : t.screen.failed);
     setModError(null);
     if (target === "post" && action === "hide") setFocus(null);
   };
@@ -127,17 +127,17 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
         <div className="flex items-center gap-4">
           {mod && (
             <button onClick={() => setDrawer(true)} className="relative flex items-center gap-2 rounded-full border border-fmborder px-3 py-1.5 text-xs hover:text-fmfg">
-              <ShieldCheck className="h-4 w-4" />Modération
+              <ShieldCheck className="h-4 w-4" />{t.screen.moderation}
               {pending > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold text-black" style={{ background: config.accent }}>{pending}</span>}
             </button>
           )}
           {config.sensor === "camera" && (
             <span className="flex items-center gap-2 rounded-full border border-fmborder px-3 py-1 text-xs text-fmmuted">
               <HandIcon className="h-3.5 w-3.5" />
-              {status === "ready" ? "Poing fermé pour attraper, main ouverte pour lâcher" : status === "failed" ? "Caméra indisponible" : "Caméra…"}
+              {status === "ready" ? t.screen.sensorReady : status === "failed" ? t.screen.sensorFailed : t.screen.sensorLoading}
             </span>
           )}
-          <button onClick={() => document.documentElement.requestFullscreen?.().catch(() => undefined)} className="rounded-full border border-fmborder p-2 text-fmmuted hover:text-fmfg" aria-label="Plein écran">
+          <button onClick={() => document.documentElement.requestFullscreen?.().catch(() => undefined)} className="rounded-full border border-fmborder p-2 text-fmmuted hover:text-fmfg" aria-label={t.screen.fullscreen}>
             <Maximize className="h-4 w-4" />
           </button>
         </div>
@@ -148,11 +148,11 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
           posts={posts} config={config} t={t} asset={asset} fresh={fresh} cardFrac={cardFrac(posts.length)}
           canMove={() => touch} onMove={move}
           onOpen={touch ? (p) => setFocus(p.id) : undefined}
-          onLike={touch && config.likes ? (p) => void like(p.id) : undefined}
+          onLike={touch && config.likes ? (p) => void like(p.id, true) : undefined}
           onComment={touch ? (p) => setFocus(p.id) : undefined}
           highlight={hover} grabbed={grabbed}
         />
-        {posts.length === 0 && <p className="fm-display absolute inset-0 grid place-items-center text-[5vh] text-fmfg/70">{t.empty}</p>}
+        {feed && posts.length === 0 && <p className="fm-display absolute inset-0 grid place-items-center text-[5vh] text-fmfg/70">{t.empty}</p>}
 
         {/* Curseurs du capteur */}
         {hands.map((h) => (
@@ -169,6 +169,11 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
           </div>
         </div>
 
+        {notice && (
+          <div className="pointer-events-none absolute left-1/2 top-[2vh] z-[2147483600] -translate-x-1/2 rounded-full border border-red-400/40 bg-black/80 px-4 py-2 text-[1.8vh]">
+            {notice === "move" ? t.screen.moveRefused : t.screen.likeRefused}
+          </div>
+        )}
         {newest && newest.author && (
           <div key={newest.id} className="fm-wall-toast pointer-events-none absolute bottom-[3vh] left-1/2 z-[2147483500] -translate-x-1/2 rounded-full px-[1.6vw] py-[1vh] text-[2vh] font-semibold text-black" style={{ background: config.accent }}>
             {newest.author} · {t.kinds[newest.kind]}
@@ -180,25 +185,25 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
         <div className="fixed inset-0 z-[2147483647] grid place-items-center bg-black/75 backdrop-blur-sm" onClick={() => setFocus(null)}>
           <div onClick={(e) => e.stopPropagation()} className="flex max-h-[92vh] items-start gap-[2vw]">
             <div style={{ fontSize: "min(3.4vh, 2.2vw)" }}>
-              <Card post={focused} config={config} t={t} asset={asset} onLike={config.likes ? () => void like(focused.id) : undefined} />
+              <Card post={focused} config={config} t={t} asset={asset} onLike={config.likes ? () => void like(focused.id, true) : undefined} />
             </div>
             {mod && (
               <div className="flex w-[22vw] min-w-64 flex-col gap-3 rounded-2xl border border-fmborder bg-fmbg/95 p-4 text-sm">
-                <p className="text-xs uppercase tracking-widest text-fmmuted">Modération</p>
+                <p className="text-xs uppercase tracking-widest text-fmmuted">{t.screen.moderation}</p>
                 {modError && <p className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-1 text-xs">{modError}</p>}
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => void moderate("post", focused.id, "hide")} className="flex items-center gap-1 rounded-full border border-red-400/50 px-3 py-1.5 text-red-300"><EyeOff className="h-3.5 w-3.5" />Masquer du mur</button>
+                  <button onClick={() => void moderate("post", focused.id, "hide")} className="flex items-center gap-1 rounded-full border border-red-400/50 px-3 py-1.5 text-red-300"><EyeOff className="h-3.5 w-3.5" />{t.screen.hideFromWall}</button>
                   {focused.pinned
-                    ? <button onClick={() => void moderate("post", focused.id, "unpin")} className="flex items-center gap-1 rounded-full border border-fmborder px-3 py-1.5"><PinOff className="h-3.5 w-3.5" />Désépingler</button>
-                    : <button onClick={() => void moderate("post", focused.id, "pin")} className="flex items-center gap-1 rounded-full border border-fmborder px-3 py-1.5"><Pin className="h-3.5 w-3.5" />Épingler</button>}
+                    ? <button onClick={() => void moderate("post", focused.id, "unpin")} className="flex items-center gap-1 rounded-full border border-fmborder px-3 py-1.5"><PinOff className="h-3.5 w-3.5" />{t.screen.unpin}</button>
+                    : <button onClick={() => void moderate("post", focused.id, "pin")} className="flex items-center gap-1 rounded-full border border-fmborder px-3 py-1.5"><Pin className="h-3.5 w-3.5" />{t.screen.pin}</button>}
                 </div>
                 {focused.comments.length > 0 && (
                   <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto">
-                    <p className="text-xs text-fmmuted">Commentaires</p>
+                    <p className="text-xs text-fmmuted">{t.screen.comments}</p>
                     {focused.comments.map((c) => (
                       <div key={c.id} className="flex items-start gap-2 rounded-lg bg-fmmutedbg p-2">
-                        <p className="min-w-0 flex-1 text-xs [overflow-wrap:anywhere]"><b>{c.author || "anonyme"}</b> {c.body}{c.sticker ? ` (sticker ${c.sticker})` : ""}</p>
-                        <button onClick={() => void moderate("comment", c.id, "hide")} aria-label="Retirer le commentaire" className="shrink-0 rounded-full p-1 text-red-300 hover:bg-red-500/20"><X className="h-3.5 w-3.5" /></button>
+                        <p className="min-w-0 flex-1 text-xs [overflow-wrap:anywhere]"><b>{c.author || t.mod.anon}</b> {c.body}{c.sticker ? ` (sticker ${c.sticker})` : ""}</p>
+                        <button onClick={() => void moderate("comment", c.id, "hide")} aria-label={t.screen.removeComment} className="shrink-0 rounded-full p-1 text-red-300 hover:bg-red-500/20"><X className="h-3.5 w-3.5" /></button>
                       </div>
                     ))}
                   </div>
@@ -212,10 +217,10 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
         <div className="fixed inset-0 z-[2147483647] flex justify-end bg-black/50" onClick={() => setDrawer(false)}>
           <div onClick={(e) => e.stopPropagation()} className="h-full w-[min(560px,92vw)] overflow-y-auto border-l border-fmborder bg-fmbg p-5">
             <div className="mb-4 flex items-center justify-between">
-              <p className="fm-display text-xl">Modération</p>
-              <button onClick={() => setDrawer(false)} aria-label="Fermer" className="rounded-full p-1.5 hover:bg-fmmutedbg"><X className="h-5 w-5" /></button>
+              <p className="fm-display text-xl">{t.screen.moderation}</p>
+              <button onClick={() => setDrawer(false)} aria-label={t.screen.close} className="rounded-full p-1.5 hover:bg-fmmutedbg"><X className="h-5 w-5" /></button>
             </div>
-            <Moderation slug={slug} m={m!} stickers={config.stickers} compact />
+            <Moderation slug={slug} m={m!} stickers={config.stickers} locale={config.defaultLocale} compact />
           </div>
         </div>
       )}

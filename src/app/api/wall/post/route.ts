@@ -1,8 +1,8 @@
 import sharp from "sharp";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { cleanText, flagText } from "@/lib/wall/moderation";
-import { autoPos, parseStickers, parseStrokes, zNow } from "@/lib/wall/shapes";
-import { availability, campaignBusy, clientIp, isSession, json, loadWall, MEDIA_BUCKET, placedCount, rateLimited } from "@/lib/wall/server";
+import { parseStickers, parseStrokes } from "@/lib/wall/shapes";
+import { availability, campaignBusy, clientIp, freePos, isSession, json, loadWall, MEDIA_BUCKET, rateLimited } from "@/lib/wall/server";
 import { KINDS, type Kind } from "@/lib/wall/config";
 
 // POST /api/wall/post (multipart) — un invite envoie un message au mur.
@@ -29,6 +29,10 @@ export async function POST(req: Request) {
 
   const session = str("session");
   if (!isSession(session)) return json({ ok: false, error: "BAD_SESSION" }, 400);
+  // La session est choisie par le telephone : une session neuve ne doit pas
+  // rouvrir les limites. Plafond par IP et par mur, sur l'heure.
+  const ipCap = Math.max(10, config.maxPostsPerSession * 4);
+  if (rateLimited(`post-ip:${campaign.id}:${clientIp(req)}`, ipCap, 3_600_000)) return json({ ok: false, error: "SESSION_LIMIT" }, 429);
   const kind = str("kind") as Kind;
   if (!KINDS.includes(kind) || !config.kinds[kind]) return json({ ok: false, error: "KIND_DISABLED" }, 400);
 
@@ -88,7 +92,7 @@ export async function POST(req: Request) {
     if (error) return json({ ok: false, error: "STORAGE_FAILED" }, 500);
   }
 
-  const pos = status === "approved" ? autoPos(await placedCount(campaign.id), zNow()) : null;
+  const pos = status === "approved" ? await freePos(campaign.id, id) : null;
   const { error } = await sb.from("wall_posts").insert({
     id, campaign_id: campaign.id, session_id: session, kind, author, body, color,
     strokes, stickers, photo_path: photoPath, status, flag, pos,

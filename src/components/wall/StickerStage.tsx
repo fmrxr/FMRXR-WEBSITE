@@ -19,8 +19,11 @@ export function StickerStage({ children, value, onChange, stickers, max, t }: {
 
   const add = (id: string) => {
     if (value.length >= max) return;
+    // Les coins d'abord : un sticker ajoute ne doit pas cacher le message.
+    const CORNERS = [[0.84, 0.18], [0.16, 0.84], [0.84, 0.84], [0.16, 0.18], [0.5, 0.9], [0.5, 0.1]];
     const n = value.length;
-    const next = [...value, { id, x: 0.3 + ((n * 0.17) % 0.4), y: 0.3 + ((n * 0.23) % 0.4), s: 0.28, r: ((n % 3) - 1) * 8 }];
+    const [x, y] = CORNERS[n % CORNERS.length];
+    const next = [...value, { id, x, y, s: 0.26, r: ((n % 3) - 1) * 10 }];
     onChange(next);
     setSel(next.length - 1);
   };

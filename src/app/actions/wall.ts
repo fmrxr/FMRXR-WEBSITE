@@ -24,12 +24,22 @@ export async function listWalls() {
   const sb = await getSupabaseServer();
   const { data, error } = await sb.from("wall_campaigns").select("*").order("created_at", { ascending: false });
   if (error) return { error: error.message, walls: [] as { campaign: WallCampaignRow; counts: WallCounts }[] };
-  const walls = await Promise.all((data as WallCampaignRow[]).map(async (c) => ({ campaign: c, counts: await counts(c.id) })));
-  return { error: null, walls };
+  // Tous les compteurs en une requete (migration 0022), service-role apres le controle de role.
+  const { data: rows, error: rpcError } = await getSupabaseAdmin().rpc("wall_campaign_counts");
+  if (rpcError) {
+    // Migration 0022 pas encore appliquee : comptage mur par mur.
+    const walls = await Promise.all((data as WallCampaignRow[]).map(async (c) => ({ campaign: c, counts: await slowCounts(c.id) })));
+    return { error: null, walls };
+  }
+  const byId = new Map<string, WallCounts>(((rows ?? []) as Record<string, unknown>[]).map((r) => [r.campaign_id as string, {
+    pending: Number(r.pending), approved: Number(r.approved), hidden: Number(r.hidden), comments: Number(r.comments), likes: Number(r.likes),
+  }]));
+  const empty: WallCounts = { pending: 0, approved: 0, hidden: 0, comments: 0, likes: 0 };
+  return { error: null, walls: (data as WallCampaignRow[]).map((c) => ({ campaign: c, counts: byId.get(c.id) ?? empty })) };
 }
 
-async function counts(id: string): Promise<WallCounts> {
-  const sb = await getSupabaseServer();
+async function slowCounts(id: string): Promise<WallCounts> {
+  const sb = getSupabaseAdmin();
   const n = async (status: string) => (await sb.from("wall_posts").select("id", { count: "exact", head: true }).eq("campaign_id", id).eq("status", status)).count ?? 0;
   const [pending, approved, hidden, comments, likes] = await Promise.all([
     n("pending"), n("approved"), n("hidden"),
@@ -37,6 +47,16 @@ async function counts(id: string): Promise<WallCounts> {
     sb.from("wall_posts").select("likes").eq("campaign_id", id).then((r) => (r.data ?? []).reduce((s, x) => s + x.likes, 0)),
   ]);
   return { pending, approved, hidden, comments, likes };
+}
+
+async function counts(id: string): Promise<WallCounts> {
+  const { data, error } = await getSupabaseAdmin().rpc("wall_campaign_counts");
+  if (error) return slowCounts(id);
+  const r = ((data ?? []) as Record<string, unknown>[]).find((x) => x.campaign_id === id);
+  return {
+    pending: Number(r?.pending ?? 0), approved: Number(r?.approved ?? 0), hidden: Number(r?.hidden ?? 0),
+    comments: Number(r?.comments ?? 0), likes: Number(r?.likes ?? 0),
+  };
 }
 
 export async function getWall(id: string) {
@@ -160,12 +180,19 @@ export async function rotateWallKey(id: string): Promise<{ ok: true } | { error:
 export async function deleteWall(id: string): Promise<{ ok: true } | { error: string }> {
   await assertRole(["admin"]);
   const sb = await getSupabaseServer();
-  const { data: photos } = await sb.from("wall_posts").select("photo_path").eq("campaign_id", id).not("photo_path", "is", null);
-  const paths = (photos ?? []).map((p) => p.photo_path as string);
-  // Bucket prive sans politique : seul le service-role y ecrit (role admin verifie ci-dessus).
-  if (paths.length) await getSupabaseAdmin().storage.from("wall-media").remove(paths);
+  // Toutes les photos, par pages de 1000 (PostgREST tronque au-dela).
+  const paths: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data: page } = await sb.from("wall_posts").select("photo_path").eq("campaign_id", id)
+      .not("photo_path", "is", null).order("id").range(from, from + 999);
+    paths.push(...(page ?? []).map((p) => p.photo_path as string));
+    if (!page || page.length < 1000) break;
+  }
+  // La base d'abord : si elle refuse, aucun message ne pointe vers une photo effacee.
   const { error } = await sb.from("wall_campaigns").delete().eq("id", id);
   if (error) return { error: error.message };
+  // Bucket prive sans politique : seul le service-role y ecrit (role admin verifie ci-dessus).
+  for (let i = 0; i < paths.length; i += 500) await getSupabaseAdmin().storage.from("wall-media").remove(paths.slice(i, i + 500));
   revalidatePath("/admin/wall");
   return { ok: true };
 }

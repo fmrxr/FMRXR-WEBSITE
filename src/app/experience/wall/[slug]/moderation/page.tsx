@@ -23,7 +23,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       <div className="relative z-10 mx-auto max-w-5xl">
         <p className="fm-display text-2xl">{campaign.name}</p>
         <p className="mb-5 text-sm text-fmmuted">Modération · {config.moderation === "auto" ? "automatique, les messages signalés attendent ici" : "manuelle, tout attend ici"}</p>
-        <Moderation slug={slug} m={m!} stickers={config.stickers} />
+        <Moderation slug={slug} m={m!} stickers={config.stickers} locale={config.defaultLocale} />
       </div>
     </main>
   );

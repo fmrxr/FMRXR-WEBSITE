@@ -2,6 +2,7 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveConfig, type WallConfig } from "./config";
 import { accessFor, moderatorName, type Access } from "./keys";
+import { autoPos, zNow } from "./shapes";
 import type { Pos, WallComment, WallPost } from "./types";
 
 // Acces serveur du Live Wall (service-role). Chaque route verifie la cle
@@ -59,8 +60,16 @@ export function rateLimited(key: string, max: number, windowMs = 60_000) {
   return list.length > max;
 }
 
+/**
+ * IP du visiteur telle que la voit le proxy d'Hostinger. Le premier element de
+ * x-forwarded-for est fourni par le client (falsifiable) ; x-real-ip et le
+ * DERNIER element sont poses par le proxy, juste devant le serveur.
+ */
 export function clientIp(req: Request) {
-  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "local";
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
+  const xff = req.headers.get("x-forwarded-for");
+  return xff?.split(",").map((s) => s.trim()).filter(Boolean).pop() || "local";
 }
 
 type PostRow = {
@@ -70,6 +79,18 @@ type PostRow = {
 };
 
 const POST_COLS = "id, session_id, kind, author, body, color, stickers, likes, pos, pinned, has_strokes, photo_path, created_at, updated_at";
+
+/**
+ * Version du mur : la date de la derniere modification d'un message (envoi,
+ * deplacement, like, commentaire, moderation touchent tous updated_at).
+ * Une seule ligne lue : les telephones qui interrogent toutes les 2 s ne
+ * declenchent la lecture complete que si le mur a change.
+ */
+export async function wallVersion(campaignId: string): Promise<string> {
+  const { data } = await getSupabaseAdmin().from("wall_posts").select("updated_at")
+    .eq("campaign_id", campaignId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  return data?.updated_at ?? "empty";
+}
 
 /**
  * Messages valides du mur, du plus recent au plus ancien, avec leurs derniers
@@ -85,18 +106,20 @@ export async function wallFeed(campaignId: string, max: number, session: string 
   const posts = (rows ?? []) as unknown as PostRow[];
   if (posts.length === 0) return [];
   const ids = posts.map((p) => p.id);
-  const [{ data: comments }, { data: liked }] = await Promise.all([
-    sb.from("wall_comments").select("id, post_id, author, body, sticker, created_at")
-      .in("post_id", ids).eq("status", "approved").order("created_at", { ascending: true }).limit(1000),
+  // Les 12 derniers commentaires de chaque message et leur total (migration 0022).
+  const [comments, { data: liked }] = await Promise.all([
+    feedComments(ids),
     session
       ? sb.from("wall_likes").select("post_id").in("post_id", ids).eq("session_id", session)
       : Promise.resolve({ data: [] as { post_id: string }[] }),
   ]);
   const byPost = new Map<string, WallComment[]>();
-  for (const c of comments ?? []) {
+  const totals = new Map<string, number>();
+  for (const c of comments) {
     const list = byPost.get(c.post_id) ?? [];
     list.push({ id: c.id, author: c.author, body: c.body, sticker: c.sticker, at: c.created_at });
     byPost.set(c.post_id, list);
+    totals.set(c.post_id, Number(c.total));
   }
   const likedSet = new Set((liked ?? []).map((l) => l.post_id));
   return posts.map((p, i) => {
@@ -110,9 +133,33 @@ export async function wallFeed(campaignId: string, max: number, session: string 
       hasStrokes: p.has_strokes, hasPhoto: Boolean(p.photo_path),
       mine: session !== null && p.session_id === session,
       at: p.created_at, rev: p.updated_at,
-      comments: all.slice(-12), commentCount: all.length,
+      comments: all, commentCount: totals.get(p.id) ?? 0,
     };
   });
+}
+
+type FeedComment = { post_id: string; id: string; author: string; body: string; sticker: string | null; created_at: string; total: number };
+
+/**
+ * Les 12 derniers commentaires valides de chaque message et leur total, via
+ * la fonction de la migration 0022. Si elle n'est pas encore appliquee :
+ * ancienne methode (1000 commentaires au plus pour tout le mur).
+ */
+async function feedComments(ids: string[]): Promise<FeedComment[]> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb.rpc("wall_feed_comments", { p_posts: ids, p_per: 12 });
+  if (!error) return (data ?? []) as FeedComment[];
+  const { data: rows } = await sb.from("wall_comments").select("id, post_id, author, body, sticker, created_at")
+    .in("post_id", ids).eq("status", "approved").order("created_at", { ascending: true }).limit(1000);
+  const all = rows ?? [];
+  const total = new Map<string, number>();
+  for (const r of all) total.set(r.post_id, (total.get(r.post_id) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  return all.filter((r) => {
+    const n = (seen.get(r.post_id) ?? 0) + 1;
+    seen.set(r.post_id, n);
+    return n > (total.get(r.post_id) ?? 0) - 12;
+  }).map((r) => ({ ...r, total: total.get(r.post_id) ?? 0 }));
 }
 
 /** Etat des messages de cet invite (en attente, publie, masque). */
@@ -122,11 +169,34 @@ export async function myPosts(campaignId: string, session: string) {
   return (data ?? []).map((r) => ({ id: r.id, kind: r.kind, status: r.status, at: r.created_at }));
 }
 
-/** Nombre de messages deja places : sert de rang pour la position automatique. */
-export async function placedCount(campaignId: string) {
-  const { count } = await getSupabaseAdmin().from("wall_posts").select("id", { count: "exact", head: true })
-    .eq("campaign_id", campaignId).not("pos", "is", null);
-  return count ?? 0;
+/**
+ * Place libre pour une nouvelle carte : parmi 16 positions candidates bien
+ * reparties (suite de Halton), celle qui est la plus loin des cartes deja
+ * posees. Un petit decalage tire de l'identifiant separe deux cartes validees
+ * au meme instant (elles liraient le meme mur et choisiraient la meme place).
+ */
+export async function freePos(campaignId: string, postId: string) {
+  const { data } = await getSupabaseAdmin().from("wall_posts").select("pos")
+    .eq("campaign_id", campaignId).eq("status", "approved").not("pos", "is", null)
+    .order("moderated_at", { ascending: false, nullsFirst: false }).limit(150);
+  const taken = (data ?? []).map((r) => r.pos as Pos);
+  const start = taken.length;
+  let best = autoPos(start, 0), bestScore = -1;
+  for (let i = 0; i < 16; i++) {
+    const c = autoPos(start + i, 0);
+    // Coin bas droit reserve au QR de l'ecran : jamais de carte dessous.
+    if (c.x > 0.68 && c.y > 0.66) continue;
+    // Distance ponderee : le mur est plus large que haut (16:9).
+    const score = taken.length ? Math.min(...taken.map((t) => Math.hypot((t.x - c.x) * 1.78, t.y - c.y))) : 1;
+    if (score > bestScore) { best = c; bestScore = score; }
+  }
+  const h = parseInt(postId.replace(/-/g, "").slice(0, 8), 16) || 0;
+  const jx = ((h % 1000) / 1000 - 0.5) * 0.04, jy = ((Math.floor(h / 1000) % 1000) / 1000 - 0.5) * 0.04;
+  return {
+    x: Math.round(Math.min(0.92, Math.max(0.08, best.x + jx)) * 1000) / 1000,
+    y: Math.round(Math.min(0.88, Math.max(0.12, best.y + jy)) * 1000) / 1000,
+    r: best.r, z: zNow(),
+  };
 }
 
 /**

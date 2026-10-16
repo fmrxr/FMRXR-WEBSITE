@@ -27,6 +27,20 @@ const fr = {
   scan: "Scannez pour écrire sur le mur",
   now: "à l’instant", min: "min", h: "h",
   pending: "en attente", hidden: "non publié",
+  screen: {
+    sensorReady: "Poing fermé pour attraper, main ouverte pour lâcher",
+    sensorFailed: "Caméra indisponible", sensorLoading: "Caméra…", fullscreen: "Plein écran",
+    moderation: "Modération", hideFromWall: "Masquer du mur", pin: "Épingler", unpin: "Désépingler",
+    comments: "Commentaires", removeComment: "Retirer le commentaire", close: "Fermer",
+    denied: "Accès de modération refusé : ce lien a peut-être été retiré.", failed: "Action impossible, réessayez.",
+    moveRefused: "Déplacement refusé, la carte reprend sa place.", likeRefused: "Like non pris en compte.",
+  },
+  mod: {
+    pending: "En attente", published: "Publiés", hidden: "Masqués", nothing: "Rien ici.", loading: "Chargement…",
+    connected: "Connecté·e", publish: "Publier", hide: "Masquer", anon: "anonyme", comments: "Commentaires",
+    flagged: "Signalé", hiddenBy: "Masqué par", moderatedBy: "Modéré par", by: "par",
+    flags: { mot: "mot signalé", lien: "lien", numero: "numéro", compte: "@compte" } as Record<string, string>,
+  },
   errors: {
     COOLDOWN: "Doucement : réessayez dans quelques secondes.",
     SESSION_LIMIT: "Vous avez atteint le nombre de messages pour cet événement.",
@@ -64,6 +78,20 @@ const en: Strings = {
   scan: "Scan to write on the wall",
   now: "just now", min: "min", h: "h",
   pending: "pending", hidden: "not published",
+  screen: {
+    sensorReady: "Close your fist to grab, open your hand to drop",
+    sensorFailed: "Camera unavailable", sensorLoading: "Camera…", fullscreen: "Full screen",
+    moderation: "Moderation", hideFromWall: "Hide from the wall", pin: "Pin", unpin: "Unpin",
+    comments: "Comments", removeComment: "Remove comment", close: "Close",
+    denied: "Moderation access denied: this link may have been revoked.", failed: "Action failed, try again.",
+    moveRefused: "Move refused, the card goes back.", likeRefused: "Like not counted.",
+  },
+  mod: {
+    pending: "Pending", published: "Published", hidden: "Hidden", nothing: "Nothing here.", loading: "Loading…",
+    connected: "Signed in as", publish: "Publish", hide: "Hide", anon: "anonymous", comments: "Comments",
+    flagged: "Flagged", hiddenBy: "Hidden by", moderatedBy: "Moderated by", by: "by",
+    flags: { mot: "flagged word", lien: "link", numero: "phone number", compte: "@account" },
+  },
   errors: {
     COOLDOWN: "Easy: try again in a few seconds.",
     SESSION_LIMIT: "You reached the message limit for this event.",
@@ -99,6 +127,20 @@ const ar: Strings = {
   scan: "امسح الرمز لتكتب على الجدار",
   now: "الآن", min: "د", h: "س",
   pending: "قيد المراجعة", hidden: "غير منشور",
+  screen: {
+    sensorReady: "اقبض يدك للإمساك، وافتحها للإفلات",
+    sensorFailed: "الكاميرا غير متاحة", sensorLoading: "الكاميرا…", fullscreen: "ملء الشاشة",
+    moderation: "الإشراف", hideFromWall: "إخفاء من الجدار", pin: "تثبيت", unpin: "إلغاء التثبيت",
+    comments: "التعليقات", removeComment: "حذف التعليق", close: "إغلاق",
+    denied: "تم رفض صلاحية الإشراف: ربما أُلغي هذا الرابط.", failed: "تعذّر الإجراء، أعد المحاولة.",
+    moveRefused: "رُفض النقل، عادت البطاقة إلى مكانها.", likeRefused: "لم يُحتسب الإعجاب.",
+  },
+  mod: {
+    pending: "قيد المراجعة", published: "منشورة", hidden: "مخفية", nothing: "لا شيء هنا.", loading: "جارٍ التحميل…",
+    connected: "متصل(ة)", publish: "نشر", hide: "إخفاء", anon: "مجهول", comments: "التعليقات",
+    flagged: "مُبلَّغ عنه", hiddenBy: "أخفاه", moderatedBy: "راجعه", by: "بواسطة",
+    flags: { mot: "كلمة مبلَّغ عنها", lien: "رابط", numero: "رقم هاتف", compte: "@حساب" },
+  },
   errors: {
     COOLDOWN: "على مهلك: أعد المحاولة بعد ثوانٍ.",
     SESSION_LIMIT: "وصلت إلى الحد الأقصى من الرسائل لهذا الحدث.",

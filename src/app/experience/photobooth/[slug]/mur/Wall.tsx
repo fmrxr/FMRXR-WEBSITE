@@ -69,7 +69,7 @@ export function Wall({ slug, galleryKey, title, clientLogoUrl, locale }: { slug:
   const grid = items.filter((_, i) => i !== featured).slice(0, 12);
 
   return (
-    <main className="fm fixed inset-0 grid grid-rows-[auto_1fr_auto] overflow-hidden bg-[#08070d] text-fmfg">
+    <main className="fm grid h-dvh w-full grid-rows-[auto_1fr_auto] overflow-hidden bg-[#08070d] text-fmfg">
       <header className="flex items-center justify-between gap-6 px-[3vw] py-[2vh]">
         <div className="flex items-center gap-4">
           {clientLogoUrl && (

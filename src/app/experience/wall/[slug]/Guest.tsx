@@ -22,7 +22,7 @@ export function Guest({ slug, k, initial }: { slug: string; k: string; initial: 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setSession(sessionId(slug)); }, [slug]);
   const keys = useMemo(() => ({ k }), [k]);
-  const { feed, fresh, move, like, reload } = useWall(slug, keys, session);
+  const { feed, fresh, move, like, reload, notice } = useWall(slug, keys, session);
   const config = feed?.config ?? initial;
   const [locale, setLocale] = useState<Locale>(initial.defaultLocale);
   const t = STRINGS[locale];
@@ -55,11 +55,16 @@ export function Guest({ slug, k, initial }: { slug: string; k: string; initial: 
         <Compose slug={slug} k={k} session={session} config={config} locale={locale} onSent={() => void reload()} onSeeWall={() => setTab("wall")} />
       ) : (
         <WallTab
-          posts={posts} config={config} t={t} asset={asset} fresh={fresh} mine={feed?.mine ?? []}
+          posts={posts} config={config} t={t} asset={asset} fresh={fresh} mine={feed?.mine ?? []} loaded={Boolean(feed)}
           onMove={move} onLike={(p) => void like(p.id)} onOpen={(p) => setOpen(p.id)}
         />
       )}
 
+      {notice && (
+        <div className="fixed inset-x-4 top-16 z-50 rounded-xl border border-red-400/40 bg-black/85 px-4 py-3 text-center text-sm">
+          {notice === "move" ? t.screen.moveRefused : t.screen.likeRefused}
+        </div>
+      )}
       {openPost && session && (
         <CommentSheet post={openPost} config={config} t={t} asset={asset} slug={slug} k={k} session={session}
           onLike={() => void like(openPost.id)} onClose={() => setOpen(null)} onSent={() => void reload()} />
@@ -139,9 +144,14 @@ function Compose({ slug, k, session, config, locale, onSent, onSeeWall }: {
   }
 
   // Apercu sur lequel on pose les stickers (le dessin est fige pendant ce temps).
+  // Le mot doux est rendu exactement comme la carte « memoire » du mur
+  // (16 em de large, marge 0,7 em, texte a 1,3 em, 5 em de haut au moins) :
+  // un sticker pose ici retombe au meme endroit sur l'ecran.
   const preview = kind === "text" ? (
-    <div className="min-h-40 rounded-xl p-5 text-[#1b1a22] shadow-lg" style={{ background: color }}>
-      <p className="text-xl font-semibold leading-snug [overflow-wrap:anywhere]">{body || t.textPh}</p>
+    <div className="rounded-xl text-[#1b1a22] shadow-lg [container-type:inline-size]" style={{ background: color }}>
+      <div className="p-[0.7em]" style={{ fontSize: "calc(100cqw / 16)" }}>
+        <p className="min-h-[5em] text-[1.3em] font-semibold leading-snug [overflow-wrap:anywhere]">{body || t.textPh}</p>
+      </div>
     </div>
   ) : kind === "drawing" ? (
     <div className="aspect-square overflow-hidden rounded-xl bg-white"><StrokesSvg strokes={strokes} aspect={ASPECT.drawing} /></div>
@@ -226,7 +236,8 @@ function Compose({ slug, k, session, config, locale, onSent, onSeeWall }: {
   );
 }
 
-function WallTab({ posts, config, t, asset, fresh, mine, onMove, onLike, onOpen }: {
+function WallTab({ posts, config, t, asset, fresh, mine, loaded, onMove, onLike, onOpen }: {
+  loaded: boolean;
   posts: WallPost[]; config: PublicConfig; t: (typeof STRINGS)["fr"]; asset: (id: string, k: "strokes" | "photo") => string;
   fresh: string[]; mine: { id: string; status: string }[];
   onMove: Parameters<typeof Board>[0]["onMove"]; onLike: (p: WallPost) => void; onOpen: (p: WallPost) => void;
@@ -238,7 +249,7 @@ function WallTab({ posts, config, t, asset, fresh, mine, onMove, onLike, onOpen 
         <div className="relative aspect-video overflow-hidden rounded-xl border border-fmborder" style={{ background: config.background }}>
           <Board posts={posts} config={config} t={t} asset={asset} fresh={fresh} compact cardFrac={0.15}
             canMove={(p) => config.guestMove && p.mine} onMove={onMove} onOpen={onOpen} />
-          {posts.length === 0 && <p className="absolute inset-0 grid place-items-center text-sm text-fmmuted">{t.empty}</p>}
+          {loaded && posts.length === 0 && <p className="absolute inset-0 grid place-items-center text-sm text-fmmuted">{t.empty}</p>}
         </div>
         {config.guestMove && posts.some((p) => p.mine) && <p className="mt-2 text-xs text-fmmuted">{t.moveHint}</p>}
         {pending.length > 0 && (

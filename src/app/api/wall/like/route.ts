@@ -22,6 +22,8 @@ export async function POST(req: Request) {
   const { data: post } = await sb.from("wall_posts").select("id").eq("id", String(b.postId ?? ""))
     .eq("campaign_id", campaign.id).eq("status", "approved").maybeSingle();
   if (!post) return json({ ok: false, error: "NOT_FOUND" }, 404);
+  // Sessions inventees : au plus 3 changements de like par IP et par message, sur l'heure.
+  if (access === "guest" && rateLimited(`like-ip:${post.id}:${clientIp(req)}`, 3, 3_600_000)) return json({ ok: false, error: "RATE_LIMITED" }, 429);
   const { data, error } = await sb.rpc("wall_toggle_like", { p_post: post.id, p_session: b.session });
   if (error || !data?.[0]) return json({ ok: false, error: "SAVE_FAILED" }, 500);
   return json({ ok: true, liked: data[0].liked, likes: data[0].likes });

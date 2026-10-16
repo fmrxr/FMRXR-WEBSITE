@@ -31,7 +31,6 @@ export function Board(p: BoardProps) {
   const [w, setW] = useState(0);
   const drag = useRef<{ id: string; dx: number; dy: number; sx: number; sy: number; moved: boolean; pos: Pos } | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
-  const [replayed] = useState(() => new Set<string>());
 
   useEffect(() => {
     const el = ref.current;
@@ -77,8 +76,7 @@ export function Board(p: BoardProps) {
     <div ref={ref} className="relative h-full w-full touch-none select-none overflow-hidden" style={{ fontSize: `${em}px` }}>
       {w > 0 && sorted.map((post) => {
         const isFresh = p.fresh.includes(post.id);
-        const replay = isFresh && !replayed.has(post.id);
-        if (replay) queueMicrotask(() => replayed.add(post.id));
+        const replay = isFresh;
         const held = dragging === post.id || p.grabbed === post.id;
         return (
           <div

@@ -1,10 +1,12 @@
 import type { NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { autoPos, zNow } from "@/lib/wall/shapes";
-import { json, loadWall, placedCount } from "@/lib/wall/server";
+import { zNow } from "@/lib/wall/shapes";
+import { json, loadWall, freePos } from "@/lib/wall/server";
 
 // Moderation du mur, pour l'equipe (cle m), depuis un telephone ou l'admin.
-// GET  ?slug=&m=          -> messages et commentaires recents, en attente d'abord
+// GET  ?slug=&m=          -> tout ce qui attend (sans plafond pratique), puis
+//                            les 200 messages et 300 commentaires les plus recents
+// GET  ?slug=&m=&count=1  -> seulement le nombre en attente (badge de l'ecran)
 // Cle m : lien commun de l'equipe ou lien personnel d'un des 5 moderateurs ;
 // chaque action garde le nom de son auteur (moderated_by).
 // POST { slug, m, target: "post"|"comment", id, action: "approve"|"hide"|"pin"|"unpin" }
@@ -18,17 +20,30 @@ export async function GET(req: NextRequest) {
   if (!loaded.ok || loaded.wall.access !== "mod") return json({ ok: false }, 404);
   const id = loaded.wall.campaign.id;
   const sb = getSupabaseAdmin();
-  const [{ data: posts }, { data: comments }] = await Promise.all([
-    sb.from("wall_posts").select("id, kind, author, body, color, stickers, status, flag, likes, pinned, has_strokes, photo_path, created_at, moderated_by")
-      .eq("campaign_id", id).order("created_at", { ascending: false }).limit(200),
-    sb.from("wall_comments").select("id, post_id, author, body, sticker, status, flag, created_at, moderated_by")
-      .eq("campaign_id", id).order("created_at", { ascending: false }).limit(300),
+  if (q.get("count")) {
+    const [a, b] = await Promise.all([
+      sb.from("wall_posts").select("id", { count: "exact", head: true }).eq("campaign_id", id).eq("status", "pending"),
+      sb.from("wall_comments").select("id", { count: "exact", head: true }).eq("campaign_id", id).eq("status", "pending"),
+    ]);
+    return json({ ok: true, pending: (a.count ?? 0) + (b.count ?? 0) });
+  }
+  const PCOLS = "id, kind, author, body, color, stickers, status, flag, likes, pinned, has_strokes, photo_path, created_at, moderated_by";
+  const CCOLS = "id, post_id, author, body, sticker, status, flag, created_at, moderated_by";
+  // L'attente d'abord et en entier : un message en attente ne doit jamais
+  // sortir de la liste parce que le mur est tres actif.
+  const [pp, pr, cp, cr] = await Promise.all([
+    sb.from("wall_posts").select(PCOLS).eq("campaign_id", id).eq("status", "pending").order("created_at", { ascending: true }).limit(1000),
+    sb.from("wall_posts").select(PCOLS).eq("campaign_id", id).neq("status", "pending").order("created_at", { ascending: false }).limit(200),
+    sb.from("wall_comments").select(CCOLS).eq("campaign_id", id).eq("status", "pending").order("created_at", { ascending: true }).limit(1000),
+    sb.from("wall_comments").select(CCOLS).eq("campaign_id", id).neq("status", "pending").order("created_at", { ascending: false }).limit(300),
   ]);
+  const posts = [...(pp.data ?? []), ...(pr.data ?? [])];
+  const comments = [...(cp.data ?? []), ...(cr.data ?? [])];
   return json({
     ok: true,
     by: loaded.wall.by,
-    posts: (posts ?? []).map(({ photo_path, has_strokes, ...p }) => ({ ...p, hasPhoto: Boolean(photo_path), hasStrokes: has_strokes })),
-    comments: comments ?? [],
+    posts: posts.map(({ photo_path, has_strokes, ...p }) => ({ ...p, hasPhoto: Boolean(photo_path), hasStrokes: has_strokes })),
+    comments,
   });
 }
 
@@ -58,7 +73,7 @@ export async function POST(req: Request) {
   let patch: Record<string, unknown>;
   if (action === "approve") {
     // Une carte validee prend sa place sur le mur, au premier plan.
-    patch = { status: "approved", moderated_at: now, pos: p.pos ? { ...p.pos, z: zNow() } : autoPos(await placedCount(campaignId), zNow()) };
+    patch = { status: "approved", moderated_at: now, pos: p.pos ? { ...p.pos, z: zNow() } : await freePos(campaignId, p.id) };
   } else if (action === "hide") patch = { status: "hidden", moderated_at: now };
   else if (action === "pin" || action === "unpin") {
     if (p.status !== "approved") return json({ ok: false, error: "NOT_PUBLISHED" }, 400);
