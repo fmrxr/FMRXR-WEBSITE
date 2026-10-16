@@ -5,6 +5,8 @@ import { json, loadWall, placedCount } from "@/lib/wall/server";
 
 // Moderation du mur, pour l'equipe (cle m), depuis un telephone ou l'admin.
 // GET  ?slug=&m=          -> messages et commentaires recents, en attente d'abord
+// Cle m : lien commun de l'equipe ou lien personnel d'un des 5 moderateurs ;
+// chaque action garde le nom de son auteur (moderated_by).
 // POST { slug, m, target: "post"|"comment", id, action: "approve"|"hide"|"pin"|"unpin" }
 
 export const runtime = "nodejs";
@@ -17,13 +19,14 @@ export async function GET(req: NextRequest) {
   const id = loaded.wall.campaign.id;
   const sb = getSupabaseAdmin();
   const [{ data: posts }, { data: comments }] = await Promise.all([
-    sb.from("wall_posts").select("id, kind, author, body, color, stickers, status, flag, likes, pinned, has_strokes, photo_path, created_at")
+    sb.from("wall_posts").select("id, kind, author, body, color, stickers, status, flag, likes, pinned, has_strokes, photo_path, created_at, moderated_by")
       .eq("campaign_id", id).order("created_at", { ascending: false }).limit(200),
-    sb.from("wall_comments").select("id, post_id, author, body, sticker, status, flag, created_at")
+    sb.from("wall_comments").select("id, post_id, author, body, sticker, status, flag, created_at, moderated_by")
       .eq("campaign_id", id).order("created_at", { ascending: false }).limit(300),
   ]);
   return json({
     ok: true,
+    by: loaded.wall.by,
     posts: (posts ?? []).map(({ photo_path, has_strokes, ...p }) => ({ ...p, hasPhoto: Boolean(photo_path), hasStrokes: has_strokes })),
     comments: comments ?? [],
   });
@@ -35,6 +38,7 @@ export async function POST(req: Request) {
   const loaded = await loadWall(String(b.slug ?? ""), { m: String(b.m ?? "") });
   if (!loaded.ok || loaded.wall.access !== "mod") return json({ ok: false }, 404);
   const campaignId = loaded.wall.campaign.id;
+  const by = loaded.wall.by ?? "Équipe";
   const id = String(b.id ?? "");
   const action = String(b.action ?? "");
   const sb = getSupabaseAdmin();
@@ -42,7 +46,7 @@ export async function POST(req: Request) {
 
   if (b.target === "comment") {
     if (action !== "approve" && action !== "hide") return json({ ok: false, error: "BAD_ACTION" }, 400);
-    const { data: c, error } = await sb.from("wall_comments").update({ status: action === "approve" ? "approved" : "hidden" })
+    const { data: c, error } = await sb.from("wall_comments").update({ status: action === "approve" ? "approved" : "hidden", moderated_by: by, moderated_at: now })
       .eq("id", id).eq("campaign_id", campaignId).select("post_id").maybeSingle();
     if (error || !c) return json({ ok: false, error: "NOT_FOUND" }, 404);
     await sb.from("wall_posts").update({ updated_at: now }).eq("id", c.post_id);
@@ -59,7 +63,7 @@ export async function POST(req: Request) {
   else if (action === "pin") patch = { pinned: true };
   else if (action === "unpin") patch = { pinned: false };
   else return json({ ok: false, error: "BAD_ACTION" }, 400);
-  const { error } = await sb.from("wall_posts").update({ ...patch, updated_at: now }).eq("id", p.id);
+  const { error } = await sb.from("wall_posts").update({ ...patch, moderated_by: by, updated_at: now }).eq("id", p.id);
   if (error) return json({ ok: false, error: "SAVE_FAILED" }, 500);
   return json({ ok: true });
 }

@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Hand as HandIcon, Maximize } from "lucide-react";
+import { EyeOff, Hand as HandIcon, Maximize, Pin, PinOff, ShieldCheck, X } from "lucide-react";
 import type { PublicConfig } from "@/lib/wall/config";
 import type { Pos } from "@/lib/wall/types";
 import { Board } from "@/components/wall/Board";
 import { Card } from "@/components/wall/Card";
+import { Moderation } from "@/components/wall/Moderation";
 import { useHandSensor } from "@/components/wall/HandSensor";
 import { STRINGS } from "@/components/wall/strings";
 import { keyQuery, sessionId, useWall } from "@/components/wall/useWall";
@@ -12,11 +13,15 @@ import { keyQuery, sessionId, useWall } from "@/components/wall/useWall";
 // Ecran geant : le mur en direct. Les cartes arrivent des telephones, se
 // deplacent au toucher (ecran tactile) ou a la main (option capteur), et
 // s'ouvrent en grand avec leurs commentaires.
+// Ouvert avec une cle de moderation (m), l'ecran devient aussi un poste de
+// moderation : tiroir « A valider », et sur chaque carte ouverte, masquer,
+// epingler, retirer un commentaire, directement devant le public.
 
 const FOCUS_MS = 20_000;
 
-export function Screen({ slug, s, initial, qrSvg }: { slug: string; s: string; initial: PublicConfig; qrSvg: string }) {
-  const keys = useMemo(() => ({ s }), [s]);
+export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: string; m?: string; initial: PublicConfig; qrSvg: string }) {
+  const keys = useMemo(() => (m ? { m } : { s }), [s, m]);
+  const mod = Boolean(m);
   const [session, setSession] = useState<string | null>(null);
   // localStorage n'existe qu'au navigateur : lu apres le montage.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -28,7 +33,27 @@ export function Screen({ slug, s, initial, qrSvg }: { slug: string; s: string; i
   const asset = (id: string, kind: "strokes" | "photo") => `/api/wall/asset/${id}?slug=${slug}&${keyQuery(keys)}&t=${kind}`;
   const [focus, setFocus] = useState<string | null>(null);
   const focused = posts.find((p) => p.id === focus) ?? null;
-  const touch = config.screenInteractive;
+  const touch = config.screenInteractive || mod;
+  const [drawer, setDrawer] = useState(false);
+  const [pending, setPending] = useState(0);
+
+  // Compteur « a valider » pour le badge du tiroir.
+  useEffect(() => {
+    if (!m) return;
+    let live = true;
+    const tick = async () => {
+      const r = await fetch(`/api/wall/moderation?slug=${slug}&m=${m}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
+      if (live && r?.ok) setPending(r.posts.filter((p: { status: string }) => p.status === "pending").length + r.comments.filter((c: { status: string }) => c.status === "pending").length);
+    };
+    void tick();
+    const id = window.setInterval(tick, 4000);
+    return () => { live = false; window.clearInterval(id); };
+  }, [slug, m]);
+
+  const moderate = async (target: "post" | "comment", id: string, action: string) => {
+    await fetch("/api/wall/moderation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, m, target, id, action }) });
+    if (target === "post" && action === "hide") setFocus(null);
+  };
 
   useEffect(() => {
     if (!focus) return;
@@ -97,6 +122,12 @@ export function Screen({ slug, s, initial, qrSvg }: { slug: string; s: string; i
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {mod && (
+            <button onClick={() => setDrawer(true)} className="relative flex items-center gap-2 rounded-full border border-fmborder px-3 py-1.5 text-xs hover:text-fmfg">
+              <ShieldCheck className="h-4 w-4" />Modération
+              {pending > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold text-black" style={{ background: config.accent }}>{pending}</span>}
+            </button>
+          )}
           {config.sensor === "camera" && (
             <span className="flex items-center gap-2 rounded-full border border-fmborder px-3 py-1 text-xs text-fmmuted">
               <HandIcon className="h-3.5 w-3.5" />
@@ -144,8 +175,43 @@ export function Screen({ slug, s, initial, qrSvg }: { slug: string; s: string; i
 
       {focused && (
         <div className="fixed inset-0 z-[2147483647] grid place-items-center bg-black/75 backdrop-blur-sm" onClick={() => setFocus(null)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ fontSize: "min(3.4vh, 2.2vw)" }}>
-            <Card post={focused} config={config} t={t} asset={asset} onLike={config.likes ? () => void like(focused.id) : undefined} />
+          <div onClick={(e) => e.stopPropagation()} className="flex max-h-[92vh] items-start gap-[2vw]">
+            <div style={{ fontSize: "min(3.4vh, 2.2vw)" }}>
+              <Card post={focused} config={config} t={t} asset={asset} onLike={config.likes ? () => void like(focused.id) : undefined} />
+            </div>
+            {mod && (
+              <div className="flex w-[22vw] min-w-64 flex-col gap-3 rounded-2xl border border-fmborder bg-fmbg/95 p-4 text-sm">
+                <p className="text-xs uppercase tracking-widest text-fmmuted">Modération</p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => void moderate("post", focused.id, "hide")} className="flex items-center gap-1 rounded-full border border-red-400/50 px-3 py-1.5 text-red-300"><EyeOff className="h-3.5 w-3.5" />Masquer du mur</button>
+                  {focused.pinned
+                    ? <button onClick={() => void moderate("post", focused.id, "unpin")} className="flex items-center gap-1 rounded-full border border-fmborder px-3 py-1.5"><PinOff className="h-3.5 w-3.5" />Désépingler</button>
+                    : <button onClick={() => void moderate("post", focused.id, "pin")} className="flex items-center gap-1 rounded-full border border-fmborder px-3 py-1.5"><Pin className="h-3.5 w-3.5" />Épingler</button>}
+                </div>
+                {focused.comments.length > 0 && (
+                  <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto">
+                    <p className="text-xs text-fmmuted">Commentaires</p>
+                    {focused.comments.map((c) => (
+                      <div key={c.id} className="flex items-start gap-2 rounded-lg bg-fmmutedbg p-2">
+                        <p className="min-w-0 flex-1 text-xs [overflow-wrap:anywhere]"><b>{c.author || "anonyme"}</b> {c.body}{c.sticker ? ` (sticker ${c.sticker})` : ""}</p>
+                        <button onClick={() => void moderate("comment", c.id, "hide")} aria-label="Retirer le commentaire" className="shrink-0 rounded-full p-1 text-red-300 hover:bg-red-500/20"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {mod && drawer && (
+        <div className="fixed inset-0 z-[2147483647] flex justify-end bg-black/50" onClick={() => setDrawer(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="h-full w-[min(560px,92vw)] overflow-y-auto border-l border-fmborder bg-fmbg p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="fm-display text-xl">Modération</p>
+              <button onClick={() => setDrawer(false)} aria-label="Fermer" className="rounded-full p-1.5 hover:bg-fmmutedbg"><X className="h-5 w-5" /></button>
+            </div>
+            <Moderation slug={slug} m={m!} stickers={config.stickers} compact />
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveConfig, type WallConfig } from "./config";
-import { accessFor, type Access } from "./keys";
+import { accessFor, moderatorName, type Access } from "./keys";
 import type { Pos, WallComment, WallPost } from "./types";
 
 // Acces serveur du Live Wall (service-role). Chaque route verifie la cle
@@ -16,7 +16,7 @@ export type WallCampaign = {
   starts_at: string | null; expires_at: string | null;
 };
 
-export type Loaded = { campaign: WallCampaign; config: WallConfig; access: Access };
+export type Loaded = { campaign: WallCampaign; config: WallConfig; access: Access; by: string | null };
 
 /** Campagne + acces, ou une erreur a renvoyer telle quelle. */
 export async function loadWall(
@@ -26,11 +26,12 @@ export async function loadWall(
   if (!/^[a-z0-9][a-z0-9-]{1,60}$/.test(slug)) return { ok: false, status: 404, error: "NOT_FOUND" };
   const { data: c } = await getSupabaseAdmin().from("wall_campaigns").select("*").eq("slug", slug).maybeSingle();
   if (!c) return { ok: false, status: 404, error: "NOT_FOUND" };
-  const access = accessFor(c.access_key, keys);
-  if (!access) return { ok: false, status: 404, error: "NOT_FOUND" };
   const cfg = resolveConfig(c.config);
   if (!cfg.ok) return { ok: false, status: 500, error: "CONFIG_INVALID" };
-  return { ok: true, wall: { campaign: c as WallCampaign, config: cfg.config, access } };
+  const access = accessFor(c.access_key, keys, cfg.config.moderators);
+  if (!access) return { ok: false, status: 404, error: "NOT_FOUND" };
+  const by = access === "mod" ? moderatorName(c.access_key, keys.m, cfg.config.moderators) : null;
+  return { ok: true, wall: { campaign: c as WallCampaign, config: cfg.config, access, by } };
 }
 
 /** Raison pour laquelle les invites ne peuvent pas ecrire, ou null. La moderation passe toujours. */

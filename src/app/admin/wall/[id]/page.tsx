@@ -4,12 +4,13 @@ import QRCode from "qrcode";
 import { currentRoles } from "@/lib/auth";
 import { getWall } from "@/app/actions/wall";
 import { resolveConfig } from "@/lib/wall/config";
-import { guestPath, modPath, screenPath } from "@/lib/wall/keys";
+import { guestPath, modPath, personalModPath, screenPath } from "@/lib/wall/keys";
 import { Moderation } from "@/components/wall/Moderation";
 import { LinkActions } from "../../photobooth/[id]/link-actions";
 import { StatusBadge } from "../../photobooth/ui";
 import { WallForm } from "../WallForm";
 import { WallActions } from "./WallActions";
+import { Moderators } from "./Moderators";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +56,25 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <LinkActions path={screenPath(c.slug, c.access_key)} openLabel="Ouvrir l’écran" />
           </div>
           <div>
-            <p className="font-semibold">Modération (téléphone de l’équipe)</p>
+            <p className="font-semibold">Modération, lien commun de l’équipe</p>
+            <p className="text-xs text-muted-foreground">Les actions faites avec ce lien sont signées « Équipe ». Pour savoir qui a fait quoi, donnez plutôt à chacun son lien personnel (ci-dessous).</p>
             <LinkActions path={mod} openLabel="Ouvrir la modération" />
           </div>
           <WallActions id={c.id} name={c.name} />
         </div>
+      </section>
+
+      <section>
+        <h2 className="mb-1 text-xl font-semibold">Modérateurs</h2>
+        <p className="mb-4 text-sm text-muted-foreground">Jusqu’à 5 personnes, chacune avec son lien : modération depuis le téléphone, ou directement sur l’écran géant. Chaque action garde le nom de son auteur.</p>
+        <Moderators
+          wallId={c.id}
+          list={(cfg.ok ? cfg.config.moderators : []).map((x) => ({
+            id: x.id, name: x.name,
+            phone: personalModPath(c.slug, x.key),
+            screen: `/experience/wall/${c.slug}/ecran?m=${x.key}`,
+          }))}
+        />
       </section>
 
       <section>

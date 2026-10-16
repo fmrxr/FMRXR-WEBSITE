@@ -12,22 +12,22 @@ import { ASPECT, StickerLayer } from "./Card";
 type ModPost = {
   id: string; kind: string; author: string; body: string; color: string; stickers: PlacedSticker[];
   status: "pending" | "approved" | "hidden"; flag: string | null; likes: number; pinned: boolean;
-  hasPhoto: boolean; hasStrokes: boolean; created_at: string;
+  hasPhoto: boolean; hasStrokes: boolean; created_at: string; moderated_by: string | null;
 };
-type ModComment = { id: string; post_id: string; author: string; body: string; sticker: string | null; status: string; flag: string | null; created_at: string };
+type ModComment = { id: string; post_id: string; author: string; body: string; sticker: string | null; status: string; flag: string | null; created_at: string; moderated_by: string | null };
 
 const FLAG: Record<string, string> = { mot: "mot signalé", lien: "lien", numero: "numéro", compte: "@compte" };
 const POLL_MS = 4000;
 
-export function Moderation({ slug, m, stickers }: { slug: string; m: string; stickers: Sticker[] }) {
-  const [data, setData] = useState<{ posts: ModPost[]; comments: ModComment[] } | null>(null);
+export function Moderation({ slug, m, stickers, compact }: { slug: string; m: string; stickers: Sticker[]; compact?: boolean }) {
+  const [data, setData] = useState<{ posts: ModPost[]; comments: ModComment[]; by: string | null } | null>(null);
   const [filter, setFilter] = useState<"pending" | "approved" | "hidden">("pending");
   const byId = new Map(stickers.map((s) => [s.id, s]));
   const asset = (id: string, t: "strokes" | "photo") => `/api/wall/asset/${id}?slug=${slug}&m=${m}&t=${t}`;
 
   const load = useCallback(async () => {
     const r = await fetch(`/api/wall/moderation?slug=${slug}&m=${m}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
-    if (r?.ok) setData({ posts: r.posts, comments: r.comments });
+    if (r?.ok) setData({ posts: r.posts, comments: r.comments, by: r.by });
   }, [slug, m]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -48,7 +48,8 @@ export function Moderation({ slug, m, stickers }: { slug: string; m: string; sti
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
+      {data.by && <p className="text-xs text-fmmuted">Connecté·e : <span className="text-fmfg">{data.by}</span></p>}
+      <div className="flex flex-wrap gap-2">
         {(["pending", "approved", "hidden"] as const).map((s) => (
           <button key={s} onClick={() => setFilter(s)} className={`rounded-full border px-3 py-1.5 text-sm ${filter === s ? "border-fmfg bg-fmfg text-fmbg" : "border-fmborder"}`}>
             {s === "pending" ? "En attente" : s === "approved" ? "Publiés" : "Masqués"} · {count(s)}
@@ -56,7 +57,7 @@ export function Moderation({ slug, m, stickers }: { slug: string; m: string; sti
         ))}
       </div>
       {posts.length === 0 && comments.length === 0 && <p className="text-sm text-fmmuted">Rien ici.</p>}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+      <div className={`grid gap-3 ${compact ? "grid-cols-2" : "grid-cols-[repeat(auto-fill,minmax(220px,1fr))]"}`}>
         {posts.map((p) => (
           <div key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-fmborder bg-fmcard">
             <div className="relative">
@@ -77,6 +78,7 @@ export function Moderation({ slug, m, stickers }: { slug: string; m: string; sti
               {p.kind !== "text" && p.body && <p className="[overflow-wrap:anywhere]">{p.body}</p>}
               <p className="text-xs text-fmmuted">{p.author || "anonyme"} · {p.kind} · {new Date(p.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · {p.likes} ♥</p>
               {p.flag && <p className="text-xs text-amber-400">Signalé : {FLAG[p.flag] ?? p.flag}</p>}
+              {p.moderated_by && <p className="text-xs text-fmmuted">{p.status === "hidden" ? "Masqué" : "Modéré"} par {p.moderated_by}</p>}
               <div className="mt-auto flex flex-wrap gap-2 pt-2">
                 {p.status !== "approved" && <Btn onClick={() => act("post", p.id, "approve")} icon={<Check className="h-3.5 w-3.5" />} label="Publier" primary />}
                 {p.status !== "hidden" && <Btn onClick={() => act("post", p.id, "hide")} icon={<EyeOff className="h-3.5 w-3.5" />} label="Masquer" />}
@@ -99,7 +101,7 @@ export function Moderation({ slug, m, stickers }: { slug: string; m: string; sti
                 {st && <img src={st.url} alt="" className="h-10 w-10 object-contain" />}
                 <div className="min-w-0 flex-1">
                   <p className="[overflow-wrap:anywhere]">{c.body}</p>
-                  <p className="text-xs text-fmmuted">{c.author || "anonyme"}{c.flag ? ` · signalé : ${FLAG[c.flag] ?? c.flag}` : ""}</p>
+                  <p className="text-xs text-fmmuted">{c.author || "anonyme"}{c.flag ? ` · signalé : ${FLAG[c.flag] ?? c.flag}` : ""}{c.moderated_by ? ` · par ${c.moderated_by}` : ""}</p>
                 </div>
                 {c.status !== "approved" && <Btn onClick={() => act("comment", c.id, "approve")} icon={<Check className="h-3.5 w-3.5" />} label="Publier" primary />}
                 {c.status !== "hidden" && <Btn onClick={() => act("comment", c.id, "hide")} icon={<EyeOff className="h-3.5 w-3.5" />} label="Masquer" />}

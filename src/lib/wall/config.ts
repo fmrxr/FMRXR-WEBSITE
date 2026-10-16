@@ -26,6 +26,16 @@ const stickerSchema = z.object({
 });
 export type Sticker = z.infer<typeof stickerSchema>;
 
+// Moderateurs nommes : chacun a son lien personnel (cle), revocable seul.
+// La cle ne quitte jamais le serveur et l'admin (publicConfig la retire).
+export const MAX_MODERATORS = 5;
+const moderatorSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]{6,16}$/),
+  name: z.string().min(1).max(40),
+  key: z.string().regex(/^[a-f0-9]{32}$/),
+});
+export type Moderator = z.infer<typeof moderatorSchema>;
+
 export const wallConfigSchema = z.object({
   title: localized, // en tete du mur
   prompt: localized, // la question posee a l'invite
@@ -43,6 +53,7 @@ export const wallConfigSchema = z.object({
   moderation: z.enum(["auto", "manual"]),
   photoModeration: z.enum(["auto", "manual"]), // une photo est le contenu le plus risque
   blockedWords: z.array(z.string().min(2).max(40)).max(200),
+  moderators: z.array(moderatorSchema).max(MAX_MODERATORS),
   // Option : set de stickers digitaux de marque.
   stickersEnabled: z.boolean(),
   stickers: z.array(stickerSchema).max(40),
@@ -93,6 +104,7 @@ export const DEFAULT_CONFIG: WallConfig = {
   moderation: "auto",
   photoModeration: "manual",
   blockedWords: [],
+  moderators: [],
   stickersEnabled: true,
   stickers: FMRXR_STICKERS,
   maxStickersPerPost: 6,
@@ -126,10 +138,10 @@ export function resolveConfig(override: unknown):
   return { ok: true, config: parsed.data };
 }
 
-/** Ce que les telephones et l'ecran recoivent : jamais les mots bloques. */
+/** Ce que les telephones et l'ecran recoivent : ni mots bloques, ni moderateurs. */
 export function publicConfig(c: WallConfig) {
-  const { blockedWords: _b, ...rest } = c;
-  void _b;
+  const { blockedWords: _b, moderators: _m, ...rest } = c;
+  void _b; void _m;
   return { ...rest, stickers: c.stickersEnabled ? c.stickers : [] };
 }
 export type PublicConfig = ReturnType<typeof publicConfig>;

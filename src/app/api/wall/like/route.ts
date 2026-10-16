@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { clientIp, isSession, json, loadWall, rateLimited } from "@/lib/wall/server";
 
-// POST /api/wall/like { slug, k|s, session, postId } — like ou retrait du like.
+// POST /api/wall/like { slug, k|s|m, session, postId } — like ou retrait du like.
 // Un like par session et par message, compte en base de facon atomique.
 
 export const runtime = "nodejs";
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   if (rateLimited(`like:${clientIp(req)}`, 60)) return json({ ok: false, error: "RATE_LIMITED" }, 429);
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!b) return json({ ok: false, error: "BAD_REQUEST" }, 400);
-  const loaded = await loadWall(String(b.slug ?? ""), { k: String(b.k ?? ""), s: String(b.s ?? "") });
+  const loaded = await loadWall(String(b.slug ?? ""), { k: String(b.k ?? ""), s: String(b.s ?? ""), m: String(b.m ?? "") });
   if (!loaded.ok) return json({ ok: false, error: loaded.error }, loaded.status);
   const { campaign, config, access } = loaded.wall;
   if (!config.likes) return json({ ok: false, error: "OPTION_DISABLED" }, 403);

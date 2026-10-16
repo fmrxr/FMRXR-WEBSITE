@@ -5,7 +5,7 @@ import { z } from "zod";
 import { assertRole } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { resolveConfig } from "@/lib/wall/config";
+import { MAX_MODERATORS, resolveConfig, type Moderator } from "@/lib/wall/config";
 
 // Administration des campagnes Live Wall. Reserve au role admin, verifie ici
 // (serveur) et par la RLS des tables.
@@ -91,11 +91,50 @@ export async function updateWall(id: string, raw: unknown): Promise<{ ok: true }
   const r = toRow(raw);
   if ("error" in r) return { error: r.error! };
   const sb = await getSupabaseServer();
-  const { error } = await sb.from("wall_campaigns").update({ ...r.row, updated_at: new Date().toISOString() }).eq("id", id);
+  // Les moderateurs se gerent a part (addModerator / removeModerator) : le
+  // formulaire ne les ecrase jamais, meme ouvert avant un ajout.
+  const moderators = await currentModerators(id);
+  const { error } = await sb.from("wall_campaigns").update({ ...r.row, config: { ...r.row.config, moderators }, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) return { error: error.code === "23505" ? "Ce slug existe déjà" : error.message };
   revalidatePath("/admin/wall");
   revalidatePath(`/admin/wall/${id}`);
   return { ok: true };
+}
+
+async function currentModerators(id: string): Promise<Moderator[]> {
+  const sb = await getSupabaseServer();
+  const { data } = await sb.from("wall_campaigns").select("config").eq("id", id).maybeSingle();
+  const r = resolveConfig(data?.config ?? {});
+  return r.ok ? r.config.moderators : [];
+}
+
+async function saveModerators(id: string, moderators: Moderator[]) {
+  const sb = await getSupabaseServer();
+  const { data } = await sb.from("wall_campaigns").select("config").eq("id", id).maybeSingle();
+  if (!data) return { error: "Mur introuvable" };
+  const { error } = await sb.from("wall_campaigns")
+    .update({ config: { ...(data.config as object), moderators }, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/wall/${id}`);
+  return { ok: true as const };
+}
+
+/** Ajoute un moderateur nomme, avec son propre lien. Cinq au plus par mur. */
+export async function addModerator(id: string, name: string): Promise<{ ok: true } | { error: string }> {
+  await assertRole(["admin"]);
+  const clean = name.trim().slice(0, 40);
+  if (!clean) return { error: "Nom requis" };
+  const list = await currentModerators(id);
+  if (list.length >= MAX_MODERATORS) return { error: `${MAX_MODERATORS} modérateurs au plus par mur` };
+  if (list.some((m) => m.name.toLowerCase() === clean.toLowerCase())) return { error: "Ce nom existe déjà" };
+  return saveModerators(id, [...list, { id: randomBytes(5).toString("hex"), name: clean, key: randomBytes(16).toString("hex") }]);
+}
+
+/** Retire un moderateur : son lien cesse de marcher aussitot. */
+export async function removeModerator(id: string, moderatorId: string): Promise<{ ok: true } | { error: string }> {
+  await assertRole(["admin"]);
+  const list = await currentModerators(id);
+  return saveModerators(id, list.filter((m) => m.id !== moderatorId));
 }
 
 /** Nouvelle cle : coupe d'un coup les anciens liens invite, ecran et moderation. */

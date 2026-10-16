@@ -86,3 +86,24 @@ describe("live wall : configuration", () => {
     expect(publicConfig({ ...DEFAULT_CONFIG, stickersEnabled: false }).stickers).toEqual([]);
   });
 });
+
+describe("live wall : moderateurs nommes", () => {
+  const key = "c".repeat(32);
+  const mods = [{ id: "abc123", name: "Rym", key: "d".repeat(32) }];
+  it("le lien personnel donne la moderation et signe les actions", async () => {
+    const { moderatorName } = await import("@/lib/wall/keys");
+    expect(accessFor(key, { m: "d".repeat(32) }, mods)).toBe("mod");
+    expect(moderatorName(key, "d".repeat(32), mods)).toBe("Rym");
+    expect(moderatorName(key, modKey(key), mods)).toBe("Équipe");
+  });
+  it("un moderateur retire perd l'acces", () => {
+    expect(accessFor(key, { m: "d".repeat(32) }, [])).toBeNull();
+  });
+  it("le lien personnel ne vaut pas cle invite", () => {
+    expect(accessFor(key, { k: "d".repeat(32) }, mods)).toBeNull();
+  });
+  it("les moderateurs ne partent jamais vers les telephones", () => {
+    const pub = publicConfig({ ...DEFAULT_CONFIG, moderators: mods });
+    expect(JSON.stringify(pub)).not.toContain("d".repeat(32));
+  });
+});
