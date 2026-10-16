@@ -1110,7 +1110,7 @@ export function Booth({
                   >
                     <span className="flex items-center gap-2 text-sm font-semibold leading-snug md:text-lg">
                       {st.label[locale]}
-                      {st.isNew && <span className="rounded-full bg-fmaccent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-fmbg">{t.newBadge}</span>}
+                      {st.isNew && <span className="fm-new">{t.newBadge}</span>}
                     </span>
                     <span className="text-[11px] leading-snug text-fmmuted md:text-sm">{st.blurb[locale]}</span>
                   </button>

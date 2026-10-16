@@ -179,7 +179,7 @@ export default function Photobooth() {
                     <p className="fm-display flex items-center gap-2 text-base text-fmfg">
                       {STYLES[id].label.en}
                       {STYLES[id].isNew && (
-                        <span className="rounded-full bg-fmaccent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-fmbg">New</span>
+                        <span className="fm-new">New</span>
                       )}
                     </p>
                     <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{STYLES[id].blurb.en}</p>
@@ -201,7 +201,7 @@ export default function Photobooth() {
             <div key={title} className="bg-fmbg p-6">
               <h3 className="fm-display flex items-center gap-2 text-lg text-fmfg">
                 {title}
-                {isNew && <span className="rounded-full bg-fmaccent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-fmbg">New</span>}
+                {isNew && <span className="fm-new">New</span>}
               </h3>
               <p className="fm-grotesk mt-2 text-[14px] leading-relaxed text-fmmuted">{body}</p>
             </div>

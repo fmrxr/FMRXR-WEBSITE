@@ -150,7 +150,7 @@ export function ConfigEditor({ value, onChange }: { value: CampaignConfig; onCha
                     <span>
                       <span className="font-medium">
                         {STYLES[id].label.fr}
-                        {STYLES[id].isNew && <span className="ms-2 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Nouveau</span>}
+                        {STYLES[id].isNew && <span className="fm-new ms-2">Nouveau</span>}
                       </span>
                       {STYLES[id].layout !== "none" && <span className="ml-1 text-[10px] uppercase text-muted-foreground">mise en page</span>}
                       <span className="block text-xs text-muted-foreground">{STYLES[id].blurb.fr}</span>
