@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { PRODUCTS } from "@/lib/products";
 import { EXPERIENCES, ROWS, findExperience, featuredExperience, experiencesByRow, allowFor, visibleExperiences, isVisible, heroSlug, PHOTOBOOTH_SLUG, LIVE_WALL_SLUG, PRODUCT_SLUGS, CONFIGURABLE_SLUGS } from "@/lib/experiences";
 import fs from "node:fs";
 
@@ -85,18 +86,23 @@ describe("hero réglé dans le CMS", () => {
 });
 
 describe("ce que le CMS peut enregistrer", () => {
-  it("accepte les deux blocs produit et tout le catalogue", () => {
+  it("accepte tous les blocs produit et tout le catalogue", () => {
     expect(CONFIGURABLE_SLUGS).toContain(PHOTOBOOTH_SLUG);
     expect(CONFIGURABLE_SLUGS).toContain(LIVE_WALL_SLUG);
+    for (const p of PRODUCTS) expect(CONFIGURABLE_SLUGS).toContain(p.slug);
     for (const e of EXPERIENCES) expect(CONFIGURABLE_SLUGS).toContain(e.slug);
     expect(new Set(CONFIGURABLE_SLUGS).size).toBe(CONFIGURABLE_SLUGS.length);
   });
   it("chaque bloc produit de la page admin est accepte a l'enregistrement", () => {
-    // la page admin liste ses blocs par constante : chacune doit etre un bloc produit connu
+    // la page admin liste ses blocs depuis la fiche produits : chacun doit etre accepte
     const src = fs.readFileSync("src/app/admin/experiences/page.tsx", "utf8");
-    const used = [...src.matchAll(/slug: ([A-Z_]+_SLUG)/g)].map((m) => m[1]);
-    const known: Record<string, string> = { PHOTOBOOTH_SLUG, LIVE_WALL_SLUG };
-    expect(used.length).toBeGreaterThan(0);
-    for (const k of used) expect(PRODUCT_SLUGS as readonly string[]).toContain(known[k]);
+    expect(src).toContain("PRODUCTS.map");
+    for (const p of PRODUCTS) expect(PRODUCT_SLUGS).toContain(p.slug);
+  });
+  it("chaque produit a sa page Decouvrir", () => {
+    for (const p of PRODUCTS) {
+      const page = p.slug === "photobooth" ? "src/app/(public)/photobooth/page.tsx" : `src/app/(public)/${p.slug}/page.tsx`;
+      expect(fs.existsSync(page)).toBe(true);
+    }
   });
 });

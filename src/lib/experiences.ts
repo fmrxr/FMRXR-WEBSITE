@@ -1,3 +1,5 @@
+import { PRODUCTS } from "./products";
+
 // Catalogue des expériences web jouables sur /experiences. Une entrée par
 // expérience, ses fichiers dans public/experiences/<slug>/ (préparés par
 // scripts/experiences/prepare.py). La fiche et ses fichiers partent dans le
@@ -103,13 +105,15 @@ export const EXPERIENCES: Experience[] = [
 // visibilité se règle au même endroit dans le CMS.
 export const PHOTOBOOTH_SLUG = "photobooth";
 
-// Bloc Live Wall : meme principe, cache tant qu'on ne l'active pas dans le CMS.
+// Les autres produits (Live Wall, ROOFTOP, STOMP) : src/lib/products.ts, meme principe.
 export const LIVE_WALL_SLUG = "live-wall";
 
 // Tout ce que le CMS peut afficher ou cacher : les blocs produit, puis le
 // catalogue. L'enregistrement n'accepte que ces slugs ; un bloc ajoute a la
 // page admin sans l'etre ici etait refuse (« Expérience inconnue », 16/10/2026).
-export const PRODUCT_SLUGS = [PHOTOBOOTH_SLUG, LIVE_WALL_SLUG] as const;
+// Les blocs produit viennent de la fiche produits : un produit ajoute la-bas
+// est aussitot accepte ici (ROOFTOP et STOMP le 16/10/2026).
+export const PRODUCT_SLUGS: readonly string[] = PRODUCTS.map((p) => p.slug);
 export const CONFIGURABLE_SLUGS: readonly string[] = [...PRODUCT_SLUGS, ...EXPERIENCES.map((e) => e.slug)];
 
 /**

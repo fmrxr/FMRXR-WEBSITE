@@ -1,6 +1,7 @@
 import { currentRoles } from "@/lib/auth";
 import { getExperienceVisibility } from "@/app/actions/experiences";
-import { EXPERIENCES, LIVE_WALL_SLUG, PHOTOBOOTH_SLUG, ROWS } from "@/lib/experiences";
+import { EXPERIENCES, ROWS } from "@/lib/experiences";
+import { PRODUCTS } from "@/lib/products";
 import { VisibilityForm, type Item } from "./form";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +14,8 @@ export default async function Page() {
   const { visible, error } = await getExperienceVisibility();
   const rowLabel = Object.fromEntries(ROWS.map((r) => [r.id, r.label]));
   const items: Item[] = [
-    { slug: PHOTOBOOTH_SLUG, title: "AI Photobooth", group: "Bloc produit", poster: "/photobooth/hero-photobooth.webp", pitch: "Bloc de présentation et lien vers /photobooth." },
-    { slug: LIVE_WALL_SLUG, title: "Live Wall", group: "Bloc produit", poster: "/wall/live-wall-poster.webp", pitch: "Bloc de présentation avec mini-mur de démo (cartes déplaçables, 4 formats) et lien vers le brief." },
+    // Un bloc par produit : presentation, demo et liens vers sa page Decouvrir (/<slug>) et le brief.
+    ...PRODUCTS.map((p) => ({ slug: p.slug, title: p.name.join(""), group: "Bloc produit", poster: p.poster, pitch: `${p.tagline} Page Découvrir : /${p.slug}.` })),
     ...EXPERIENCES.map((e) => ({ slug: e.slug, title: e.title, group: rowLabel[e.row], poster: e.poster, pitch: e.pitch })),
   ];
 

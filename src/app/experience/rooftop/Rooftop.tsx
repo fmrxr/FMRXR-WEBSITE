@@ -177,7 +177,11 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
       onPresence: (pts) => { presence = pts; engine.lookFrom(pts); },
     }, s.ws);
 
-    if (s.debug) (window as unknown as { __rooftop?: unknown }).__rooftop = { phase: () => phaseRef.current, game: () => game, lineup: () => line };
+    if (s.debug) (window as unknown as { __rooftop?: unknown }).__rooftop = {
+      phase: () => phaseRef.current, game: () => game, lineup: () => line,
+      // Image du rendu en cours (vignettes, captures de reglage sur site).
+      snapshot: (type = "image/jpeg") => { engine.render(0); return canvas.toDataURL(type, 0.88); },
+    };
 
     const sideViews = () => line.sides.map((side, i) => ({ ...sideIdentity(line, i), score: game?.sides[i].score ?? 0, mult: game ? game.multiplierOf(i) : 1, zone: side.zone }));
     const timing = (g: RooftopGame) => ({ warn: g.c.warnSeconds, sink: g.c.sinkSeconds, rise: g.c.riseSeconds });

@@ -171,7 +171,10 @@ export function Stomp({ s }: { s: StompSettings }) {
     }, s.ws);
 
     // Mode debug : etat lisible depuis la console (tests automatises, reglage sur site).
-    if (s.debug) (window as unknown as { __stomp?: unknown }).__stomp = { phase: () => phaseRef.current, game: () => game, lineup: () => line };
+    if (s.debug) (window as unknown as { __stomp?: unknown }).__stomp = {
+      phase: () => phaseRef.current, game: () => game, lineup: () => line,
+      snapshot: (type = "image/jpeg") => { engine.render(0); return canvas.toDataURL(type, 0.88); },
+    };
 
     const sideViews = () => line.sides.map((side, i) => ({ ...sideIdentity(line, i), score: game?.sides[i].score ?? 0, mult: game ? game.multiplierOf(i) : 1, zone: side.zone }));
 

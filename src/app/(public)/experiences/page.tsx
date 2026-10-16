@@ -4,9 +4,10 @@ import { Suspense } from "react";
 import { PageHero } from "@/components/site/PageHero";
 import { ExperienceCatalog } from "@/components/site/ExperienceCatalog";
 import { PhotoboothCTA } from "@/components/site/PhotoboothCTA";
-import { LiveWallCTA } from "@/components/site/LiveWallCTA";
+import { ProductCTA } from "@/components/site/ProductCTA";
+import { PRODUCTS } from "@/lib/products";
 import { getSiteSettings } from "@/lib/public-data";
-import { LIVE_WALL_SLUG, PHOTOBOOTH_SLUG, heroSlug, isVisible, visibleExperiences } from "@/lib/experiences";
+import { PHOTOBOOTH_SLUG, heroSlug, isVisible, visibleExperiences } from "@/lib/experiences";
 
 export const dynamic = "force-dynamic";
 
@@ -27,15 +28,17 @@ export default async function Experiences() {
   // Ce qui s'affiche se règle dans le CMS (/admin/experiences).
   const { experiences_visible: visible = null } = await getSiteSettings();
   const playable = visibleExperiences(visible).length > 0;
-  const booth = isVisible(PHOTOBOOTH_SLUG, visible);
-  // Hero choisi dans le CMS : le Photobooth passe alors avant le catalogue ;
-  // une expérience du catalogue s'ouvre, elle, dans le lecteur du haut.
+  // Blocs produits (Photobooth, Live Wall, ROOFTOP, STOMP), chacun active dans
+  // le CMS. Celui qui est en hero passe avant le catalogue ; une experience du
+  // catalogue en hero s'ouvre, elle, dans le lecteur du haut.
   const hero = heroSlug(visible);
-  const boothFirst = booth && hero === PHOTOBOOTH_SLUG;
-  const boothBlock = booth && <PhotoboothCTA index="For your event" source="experiences" />;
-  const wall = isVisible(LIVE_WALL_SLUG, visible);
-  const wallFirst = wall && hero === LIVE_WALL_SLUG;
-  const wallBlock = wall && <LiveWallCTA index="For your event" source="experiences" />;
+  const blocks = PRODUCTS.filter((p) => isVisible(p.slug, visible)).map((p) => ({
+    slug: p.slug,
+    node: p.slug === PHOTOBOOTH_SLUG
+      ? <PhotoboothCTA key={p.slug} index="For your event" source="experiences" />
+      : <ProductCTA key={p.slug} product={p} index="For your event" source="experiences" />,
+  }));
+  const first = blocks.find((b) => b.slug === hero);
 
   return (
     <>
@@ -52,16 +55,14 @@ export default async function Experiences() {
           intro="Interactive systems we bring to brand activations, launches and festivals, run under live conditions."
         />
       )}
-      {wallFirst && wallBlock}
-      {boothFirst && boothBlock}
+      {first?.node}
       {playable && (
         // useSearchParams exige une frontière Suspense pour le prérendu.
         <Suspense>
           <ExperienceCatalog visible={visible} />
         </Suspense>
       )}
-      {!boothFirst && boothBlock}
-      {!wallFirst && wallBlock}
+      {blocks.filter((b) => b !== first).map((b) => b.node)}
     </>
   );
 }
