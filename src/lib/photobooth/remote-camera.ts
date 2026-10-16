@@ -9,6 +9,12 @@
 //
 // Photo : la borne demande a l'iPhone une image de son capteur en pleine
 // definition (canal de donnees), plutot qu'une capture du flux compresse.
+//
+// Gestes : MediaPipe tourne sur l'iPhone, sur l'image directe du capteur, et
+// seul le geste decide part vers la borne (quelques octets). Analyser la
+// video apres le reseau ajoutait la latence de WebRTC a chaque geste.
+
+import type { Gesture } from "./config";
 
 export const channelName = (pairId: string) => `pb-cam-${pairId}`;
 
@@ -29,7 +35,8 @@ export type Control =
   | { t: "snap"; id: string }
   | { t: "photo-start"; id: string; size: number; mime: string; facing: Facing }
   | { t: "photo-end"; id: string }
-  | { t: "photo-error"; id: string };
+  | { t: "photo-error"; id: string }
+  | { t: "hand"; g: Gesture | null; hand: boolean };
 
 export const CHUNK = 16 * 1024;
 

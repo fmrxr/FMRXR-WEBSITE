@@ -10,7 +10,7 @@ import s from "./booth.module.css";
 import { PAGE_SIZE, usePrinter } from "./usePrinter";
 import { useExpressionReader } from "./useExpression";
 import { TeamGallery } from "./TeamGallery";
-import { CameraPicker, readCamera } from "./CameraPicker";
+import { CameraPicker, readCamera, readMirror, subscribeMirror } from "./CameraPicker";
 import { useRemoteCamera } from "./useRemoteCamera";
 import { RemotePair } from "./RemotePair";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
@@ -94,6 +94,10 @@ export function Booth({
   // Camera iPhone a distance (QR, meme Wi-Fi) : prioritaire quand elle est connectee.
   const remote = useRemoteCamera(slug);
   const [pairOpen, setPairOpen] = useState(false);
+  // Image reelle par defaut (ecran et photo) ; miroir sur option, memorise.
+  const mirror = useSyncExternalStore(subscribeMirror, () => readMirror(slug), () => false);
+  const mirrorRef = useRef(mirror);
+  useEffect(() => { mirrorRef.current = mirror; }, [mirror]);
   const [usingRemote, setUsingRemote] = useState(false);
   const [chosen, setChosen] = useState<string | null>(null);
   const [tracker, setTracker] = useState<Tracker>("idle");
@@ -406,7 +410,19 @@ export function Booth({
       lastRun = now;
       let g: Gesture | null = null;
       let hand = false;
-      try {
+      // iPhone par QR : le geste est detecte sur le telephone, sur l'image
+      // directe du capteur, et arrive en quelques millisecondes. Sans nouvelles
+      // depuis 0,6 s, la borne reprend sa propre detection sur le flux.
+      const rh = usingRemote ? remote.hand.current : null;
+      if (rh && now - rh.at < 600) {
+        g = rh.g;
+        hand = rh.hand;
+        frames++;
+        const d = debugRef.current;
+        d.category = "iphone";
+        d.decided = g;
+        d.landmarks = null;
+      } else try {
         if (!v.videoWidth || !v.videoHeight) return;
         // La vignette suit le format reel de la camera. iOS annonce d'abord la
         // camera en paysage (1280x720) puis la passe en portrait (720x1280) :
@@ -471,7 +487,7 @@ export function Booth({
       dbg.landmarks = null;
       dbg.decided = null;
     };
-  }, [step, tracker, qIndex, shot, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose, chooseShot, leaveHowto, loadTracker]);
+  }, [step, tracker, qIndex, shot, config.questions, config.gestureHoldMs, config.gestureMinScore, answers, choose, chooseShot, leaveHowto, loadTracker, usingRemote, remote.hand]);
 
   // Lumiere : luminance moyenne de l'image, mesuree sur une vignette.
   // Sous ~55/255 la reconnaissance chute (calibrage : poing perdu a 80 % de noir).
@@ -571,13 +587,13 @@ export function Booth({
       const v = videoRef.current;
       const m = stateRef.current.step === "quiz" ? debugRef.current.landmarks : null;
       if (v && v.videoWidth && m) {
-        // meme cadrage que la video : object-cover puis miroir
+        // meme cadrage que la video : object-cover, puis miroir si l'option est cochee
         const scale = Math.max(w / v.videoWidth, h / v.videoHeight);
         const dw = v.videoWidth * scale;
         const dh = v.videoHeight * scale;
         const ox = (w - dw) / 2;
         const oy = (h - dh) / 2;
-        const P = (p: Point) => [w - (ox + p.x * dw), oy + p.y * dh];
+        const P = (p: Point) => [mirrorRef.current ? w - (ox + p.x * dw) : ox + p.x * dw, oy + p.y * dh];
         ctx.strokeStyle = debugRef.current.decided ? "#7bef7b" : "#f5f5f8";
         ctx.lineWidth = 3;
         for (const [a, b] of BONES) {
@@ -611,8 +627,7 @@ export function Booth({
     let source: CanvasImageSource | null = null;
     let w = 0;
     let h = 0;
-    // Miroir comme l'apercu ; camera arriere de l'iPhone : jamais inversee.
-    let mirror = !(usingRemote && remote.facing === "environment");
+    // Photo comme l'apercu : reelle, ou en miroir si l'option est cochee.
     if (usingRemote) {
       const r = await remote.requestPhoto();
       const bmp = r ? await createImageBitmap(r.blob).catch(() => null) : null;
@@ -620,7 +635,6 @@ export function Booth({
         source = bmp;
         w = bmp.width;
         h = bmp.height;
-        mirror = r.facing === "user";
       }
     }
     if (!source) {
@@ -660,7 +674,7 @@ export function Booth({
       setStep("confirm");
     };
     c.toBlob((b) => done(b, false), "image/jpeg", 0.92);
-  }, [captureAspect, config.maxUploadBytes, fail, usingRemote, remote]);
+  }, [captureAspect, config.maxUploadBytes, fail, usingRemote, remote, mirror]);
 
   const startCountdown = useCallback(() => {
     if (count !== null) return;
@@ -815,8 +829,8 @@ export function Booth({
         muted
         style={{
           opacity: cameraOn ? 1 : 0, filter: step === "mood" ? "blur(18px) brightness(0.5)" : "none",
-          // Camera arriere de l'iPhone : on ne retourne pas l'image.
-          ...(usingRemote && remote.facing === "environment" ? { transform: "none" } : {}),
+          // Image reelle par defaut ; miroir seulement si l'option est cochee.
+          transform: mirror ? "scaleX(-1)" : "none",
         }}
       />
       <div className={s.veil} />
@@ -865,7 +879,7 @@ export function Booth({
         )}
         {step === "attract" && (
           <CameraPicker
-            slug={slug} value={cameraId} onChange={setCameraId} t={t}
+            slug={slug} value={cameraId} onChange={setCameraId} mirror={mirror} t={t}
             extra={{ label: remote.status === "connected" ? `${t.remoteOption} ✓` : t.remoteOption, onSelect: () => { if (!remote.pairId) remote.pair(); setPairOpen(true); } }}
           />
         )}

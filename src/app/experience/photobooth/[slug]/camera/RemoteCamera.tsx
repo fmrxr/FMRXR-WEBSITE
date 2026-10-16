@@ -2,6 +2,30 @@
 import { useEffect, useRef, useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { CHUNK, ICE_SERVERS, channelName, type Control, type Facing, type Signal } from "@/lib/photobooth/remote-camera";
+import { decideGesture, type Point } from "@/lib/photobooth/gestures";
+import type { GestureRecognizer } from "@mediapipe/tasks-vision";
+
+/**
+ * Detection des gestes sur l'iPhone : meme modele, meme vignette de 640 px et
+ * meme decision que la borne. GPU d'abord, CPU en secours.
+ */
+async function loadRecognizer(): Promise<GestureRecognizer | null> {
+  try {
+    const { FilesetResolver, GestureRecognizer } = await import("@mediapipe/tasks-vision");
+    const files = await FilesetResolver.forVisionTasks("/photobooth/mediapipe/wasm");
+    const make = (delegate: "GPU" | "CPU") => GestureRecognizer.createFromOptions(files, {
+      baseOptions: { modelAssetPath: "/photobooth/mediapipe/gesture_recognizer.task", delegate },
+      runningMode: "VIDEO",
+      numHands: 1,
+      minHandDetectionConfidence: 0.5,
+      minHandPresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+    return await make("GPU").catch(() => make("CPU"));
+  } catch {
+    return null;
+  }
+}
 
 // Page ouverte sur l'iPhone (QR de la borne) : envoie la camera a la borne en
 // WebRTC sur le Wi-Fi, et lui renvoie une photo pleine definition a chaque
@@ -9,7 +33,7 @@ import { CHUNK, ICE_SERVERS, channelName, type Control, type Facing, type Signal
 
 type State = "starting" | "connecting" | "connected" | "error";
 
-export function RemoteCamera({ pairId, campaign }: { pairId: string; campaign: string }) {
+export function RemoteCamera({ pairId, campaign, minScore }: { pairId: string; campaign: string; minScore: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [facing, setFacing] = useState<Facing>("environment");
   const [state, setState] = useState<State>("starting");
@@ -22,6 +46,9 @@ export function RemoteCamera({ pairId, campaign }: { pairId: string; campaign: s
     let stream: MediaStream | null = null;
     let wake: WakeLockSentinel | null = null;
     let queued: RTCIceCandidateInit[] = [];
+    let ctl: RTCDataChannel | null = null; // canal de donnees de la connexion en cours
+    let recognizer: GestureRecognizer | null = null;
+    let raf = 0;
     const sb = getSupabaseBrowser();
     const ch = sb.channel(channelName(pairId), { config: { broadcast: { self: false } } });
     const send = (m: Signal) => ch.send({ type: "broadcast", event: "sig", payload: m });
@@ -57,15 +84,23 @@ export function RemoteCamera({ pairId, campaign }: { pairId: string; campaign: s
       const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       pc = peer;
       const track = stream.getVideoTracks()[0];
+      // Latence avant nettete : l'apercu doit suivre le geste.
+      track.contentHint = "motion";
       const sender = peer.addTrack(track, stream);
-      // Capteur en haute definition pour la photo ; apercu allege pour la borne.
+      // Capteur en haute definition pour la photo ; apercu en 720p au plus pour la borne.
       const set = track.getSettings();
-      if (Math.max(set.width ?? 0, set.height ?? 0) > 2000) {
-        const p = sender.getParameters();
-        p.encodings = [{ ...(p.encodings?.[0] ?? {}), scaleResolutionDownBy: 2, maxBitrate: 4_000_000 }];
-        await sender.setParameters(p).catch(() => undefined);
-      }
+      const longSide = Math.max(set.width ?? 0, set.height ?? 0);
+      const p = sender.getParameters();
+      p.degradationPreference = "maintain-framerate";
+      p.encodings = [{
+        ...(p.encodings?.[0] ?? {}),
+        maxFramerate: 30,
+        maxBitrate: 2_500_000,
+        ...(longSide > 1280 ? { scaleResolutionDownBy: longSide / 1280 } : {}),
+      }];
+      await sender.setParameters(p).catch(() => undefined);
       const dc = peer.createDataChannel("ctl");
+      ctl = dc;
       dc.binaryType = "arraybuffer";
       dc.onmessage = (e) => {
         if (typeof e.data !== "string") return;
@@ -102,7 +137,8 @@ export function RemoteCamera({ pairId, campaign }: { pairId: string; campaign: s
     (async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } },
+          // 1080p : Safari ferme l'onglet quand une camera 4K tourne avec MediaPipe.
+          video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
           audio: false,
         });
       } catch {
@@ -115,16 +151,56 @@ export function RemoteCamera({ pairId, campaign }: { pairId: string; campaign: s
       await v.play().catch(() => undefined);
       wake = await navigator.wakeLock?.request("screen").catch(() => null) ?? null;
       ch.subscribe((status) => { if (status === "SUBSCRIBED") void connect(); });
+
+      // Gestes detectes ici, envoyes a la borne : changement immediat, sinon 5 fois par seconde.
+      recognizer = await loadRecognizer();
+      if (!recognizer || cancelled) return;
+      const frame = document.createElement("canvas");
+      const fctx = frame.getContext("2d")!;
+      let lastTime = -1;
+      let lastSent = "";
+      let lastAt = 0;
+      const loop = () => {
+        raf = requestAnimationFrame(loop);
+        if (!recognizer || v.readyState < 2 || v.currentTime === lastTime || !v.videoWidth) return;
+        lastTime = v.currentTime;
+        const h = Math.round((640 * v.videoHeight) / v.videoWidth);
+        if (frame.width !== 640 || frame.height !== h) {
+          frame.width = 640;
+          frame.height = h;
+        }
+        fctx.drawImage(v, 0, 0, frame.width, frame.height);
+        let g: ReturnType<typeof decideGesture> = null;
+        let hand = false;
+        try {
+          const res = recognizer.recognizeForVideo(frame, performance.now());
+          const marks = res.landmarks?.[0] as Point[] | undefined;
+          g = decideGesture(res.gestures?.[0]?.[0], marks, minScore);
+          hand = Boolean(marks?.length);
+        } catch {
+          return;
+        }
+        const msg = JSON.stringify({ t: "hand", g, hand } satisfies Control);
+        const now = performance.now();
+        if (ctl?.readyState === "open" && (msg !== lastSent || now - lastAt > 200)) {
+          ctl.send(msg);
+          lastSent = msg;
+          lastAt = now;
+        }
+      };
+      raf = requestAnimationFrame(loop);
     })();
 
     return () => {
       cancelled = true;
+      cancelAnimationFrame(raf);
+      try { recognizer?.close(); } catch { /* deja ferme */ }
       pc?.close();
       stream?.getTracks().forEach((tr) => tr.stop());
       void wake?.release().catch(() => undefined);
       void sb.removeChannel(ch);
     };
-  }, [pairId, facing]);
+  }, [pairId, facing, minScore]);
 
   const label = state === "connected" ? "Connecté à la borne" : state === "error" ? "Caméra refusée : autorisez la caméra dans Safari (Réglages › Safari › Caméra)." : "Connexion à la borne…";
 

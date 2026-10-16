@@ -2,6 +2,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { ICE_SERVERS, channelName, newPairId, type Control, type Facing, type Signal } from "@/lib/photobooth/remote-camera";
+import type { Gesture } from "@/lib/photobooth/config";
+
+/** Dernier geste detecte sur l'iPhone, avec son heure de reception. */
+export type RemoteHand = { g: Gesture | null; hand: boolean; at: number };
 
 // Cote borne : recoit la camera de l'iPhone (voir lib/photobooth/remote-camera).
 // Le code d'appairage est garde sur la borne : si elle se recharge, elle dit
@@ -36,6 +40,7 @@ export function useRemoteCamera(slug: string) {
   const dcRef = useRef<RTCDataChannel | null>(null);
   const pending = useRef(new Map<string, Pending>());
   const current = useRef<string | null>(null);
+  const handRef = useRef<RemoteHand | null>(null);
 
   useEffect(() => {
     if (!pairId) return;
@@ -48,6 +53,10 @@ export function useRemoteCamera(slug: string) {
     const onControl = (e: MessageEvent) => {
       if (typeof e.data === "string") {
         const m = JSON.parse(e.data) as Control;
+        if (m.t === "hand") {
+          handRef.current = { g: m.g, hand: m.hand, at: performance.now() };
+          return;
+        }
         if (m.t === "photo-start") {
           const p = pending.current.get(m.id);
           if (p) Object.assign(p, { size: m.size, mime: m.mime, facing: m.facing, chunks: [], got: 0 });
@@ -78,6 +87,10 @@ export function useRemoteCamera(slug: string) {
         const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         pc = peer;
         peer.ontrack = (e) => {
+          // Latence minimale : pas de reserve anti-saccades (Chrome, Edge).
+          const r = e.receiver as RTCRtpReceiver & { jitterBufferTarget?: number | null; playoutDelayHint?: number };
+          try { r.jitterBufferTarget = 0; } catch { /* non pris en charge */ }
+          try { r.playoutDelayHint = 0; } catch { /* non pris en charge */ }
           streamRef.current = e.streams[0] ?? new MediaStream([e.track]);
           setStatus("connected");
         };
@@ -114,6 +127,7 @@ export function useRemoteCamera(slug: string) {
       pc?.close();
       dcRef.current = null;
       streamRef.current = null;
+      handRef.current = null;
       void sb.removeChannel(ch);
     };
   }, [pairId]);
@@ -149,5 +163,5 @@ export function useRemoteCamera(slug: string) {
     return result;
   }, []);
 
-  return { pairId, status, facing, stream: streamRef, pair, unpair, requestPhoto };
+  return { pairId, status, facing, stream: streamRef, hand: handRef, pair, unpair, requestPhoto };
 }

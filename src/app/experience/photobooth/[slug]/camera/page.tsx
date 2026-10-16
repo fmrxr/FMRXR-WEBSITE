@@ -26,5 +26,5 @@ export default async function CameraPage({
   const { k, p } = await searchParams;
   const loaded = await loadCampaign(slug, k ?? null);
   if (!loaded.ok || !isPairId(p)) notFound();
-  return <RemoteCamera pairId={p} campaign={loaded.config.title[loaded.config.defaultLocale]} />;
+  return <RemoteCamera pairId={p} campaign={loaded.config.title[loaded.config.defaultLocale]} minScore={loaded.config.gestureMinScore} />;
 }

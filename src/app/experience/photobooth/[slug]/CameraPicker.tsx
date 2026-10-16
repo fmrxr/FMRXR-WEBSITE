@@ -24,10 +24,37 @@ function saveCamera(slug: string, id: string | null) {
   }
 }
 
+// Image en miroir (comme une glace) ou reelle. Reelle par defaut : en miroir,
+// textes et logos des vetements sortaient inverses (retour du 16/10/2026).
+const mirrorKey = (slug: string) => `pb-mirror:${slug}`;
+export function readMirror(slug: string): boolean {
+  try {
+    return localStorage.getItem(mirrorKey(slug)) === "1";
+  } catch {
+    return false;
+  }
+}
+// Abonnement (useSyncExternalStore) : la borne relit l'option apres
+// l'hydratation, et a chaque changement.
+const mirrorListeners = new Set<() => void>();
+export function subscribeMirror(cb: () => void) {
+  mirrorListeners.add(cb);
+  return () => { mirrorListeners.delete(cb); };
+}
+function saveMirror(slug: string, on: boolean) {
+  try {
+    localStorage.setItem(mirrorKey(slug), on ? "1" : "0");
+  } catch {
+    // stockage indisponible : le choix vaut pour cette visite
+  }
+  mirrorListeners.forEach((cb) => cb());
+}
+
 type Cam = { id: string; label: string };
 
-export function CameraPicker({ slug, value, onChange, t, extra }: {
-  slug: string; value: string | null; onChange: (id: string | null) => void; t: Record<string, string>;
+export function CameraPicker({ slug, value, onChange, mirror, t, extra }: {
+  slug: string; value: string | null; onChange: (id: string | null) => void;
+  mirror: boolean; t: Record<string, string>;
   /** Option supplementaire en bas de la liste (ex. « iPhone par QR »). */
   extra?: { label: string; onSelect: () => void };
 }) {
@@ -79,6 +106,19 @@ export function CameraPicker({ slug, value, onChange, t, extra }: {
               {cams?.map((c) => <Option key={c.id} active={value === c.id} onClick={() => choose(c.id)} label={c.label} />)}
               {extra && <Option active={false} onClick={() => { setOpen(false); extra.onSelect(); }} label={extra.label} />}
             </div>
+            <label className="mt-1 flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                data-testid="camera-mirror"
+                checked={mirror}
+                onChange={(e) => saveMirror(slug, e.target.checked)}
+                className="size-4 accent-[var(--color-fmaccent)]"
+              />
+              <span>
+                {t.camMirror}
+                <span className="block text-xs text-fmmuted">{t.camMirrorHelp}</span>
+              </span>
+            </label>
             <button onClick={() => setOpen(false)} className="mt-1 self-end rounded-full border border-fmborder px-5 py-2 text-sm text-fmfg/80">
               {t.galleryCancel}
             </button>
