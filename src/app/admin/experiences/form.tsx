@@ -65,13 +65,15 @@ export function VisibilityForm({ items, initial }: { items: Item[]; initial: str
             {items.filter((i) => i.group === g).map((i) => {
               const on = visible.includes(i.slug);
               return (
-                <label key={i.slug} data-testid={`exp-${i.slug}`} className={`flex cursor-pointer items-center gap-4 rounded-lg border p-3 transition ${on ? "" : "opacity-60"}`}>
+                <label key={i.slug} data-testid={`exp-${i.slug}`} className={`flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border p-3 transition sm:flex-nowrap ${on ? "" : "opacity-60"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={i.poster} alt="" loading="lazy" className="h-12 w-20 shrink-0 rounded object-cover" />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">{i.title}</span>
                     <span className="block truncate text-xs text-muted-foreground">{i.pitch}</span>
                   </span>
+                  {/* telephone : les reglages passent sur une seconde ligne, a droite */}
+                  <span className="flex w-full shrink-0 items-center justify-end gap-3 sm:w-auto">
                   {i.slug === hero ? (
                     <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">Hero</span>
                   ) : (
@@ -87,6 +89,7 @@ export function VisibilityForm({ items, initial }: { items: Item[]; initial: str
                   )}
                   <span className="w-12 text-right text-xs text-muted-foreground">{on ? "Visible" : "Caché"}</span>
                   <Switch checked={on} disabled={pending} onCheckedChange={(v) => toggle(i.slug, v)} />
+                  </span>
                 </label>
               );
             })}

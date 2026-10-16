@@ -15,9 +15,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     // fm-admin remappe les variables shadcn sur la palette de marque, fm et
     // fm-canvas posent le fond et la grille. La portee s'arrete a /admin.
-    <div className="fm fm-admin fm-canvas relative flex min-h-screen">
+    <div className="fm fm-admin fm-canvas relative min-h-screen md:flex">
       <Sidebar roles={roles} />
-      <main className="relative z-10 flex-1 p-8">{children}</main>
+      {/* min-w-0 : un tableau large defile dans son cadre au lieu d'elargir la page */}
+      <main className="relative z-10 min-w-0 flex-1 p-4 md:p-8">{children}</main>
       <Toaster theme="dark" />
     </div>
   );

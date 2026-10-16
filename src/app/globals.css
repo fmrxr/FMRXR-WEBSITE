@@ -216,6 +216,14 @@
   color: var(--color-fmfg);
 }
 
+/* Telephone : un select prend la largeur de sa plus longue option, un champ
+   sa taille par defaut ; plafonnes a leur conteneur pour ne pas elargir la page. */
+.fm-admin select,
+.fm-admin input,
+.fm-admin textarea {
+  max-width: 100%;
+}
+
 .fm {
   background-color: var(--color-fmbg);
   color: var(--color-fmfg);

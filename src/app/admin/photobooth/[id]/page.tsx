@@ -117,7 +117,7 @@ export default async function Page({ params, searchParams }: {
 
       <section className="mt-6">
         <h2 className="mb-2 text-lg font-semibold">Journal des modifications</h2>
-        <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+        <ul className="flex flex-col gap-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
           {audit.map((a) => {
             const before = (a.before ?? {}) as Record<string, unknown>;
             const after = (a.after ?? {}) as Record<string, unknown>;
