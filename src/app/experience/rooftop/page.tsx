@@ -31,6 +31,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
     oy: num(q.oy, 0, 8192, null),
     debug: q.debug === "1",
     // Sans parametre : l'accueil propose SOLO, 2v2 et 4 JOUEURS. Sinon le mode est bloque.
+    tone: q.tone === "agx" ? "agx" : "aces",
     mode: q.mode === "solo" || q.players === "1" ? "solo" : q.mode === "2v2" ? "teams" : q.mode === "4" || q.players === "4" ? "versus" : "menu",
   };
   return <Rooftop s={s} />;

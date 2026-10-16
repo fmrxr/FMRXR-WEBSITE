@@ -10,7 +10,18 @@ const EXTENT = 26; // demi-cote de la ville
 const BLOCK = 6; // pas de la grille (ilot + rue)
 const STREET = 1.8;
 
-export type CityPalette = { neonA: THREE.Color; neonB: THREE.Color; sunset: THREE.Color; haze: THREE.Color; ocean: THREE.Color };
+export type CityPalette = {
+  neonA: THREE.Color; neonB: THREE.Color; sunset: THREE.Color; haze: THREE.Color; ocean: THREE.Color;
+  /**
+   * Brume de hauteur a trois couleurs : le coucher de soleil, impossible a
+   * montrer dans le ciel en vue de dessus, se lit a la verticale (bleu nuit au
+   * niveau des toits, magenta a mi-hauteur, ambre sodium dans la rue).
+   * Absente : brume violette d'origine (STOMP).
+   */
+  sunsetFog?: { top: THREE.Color; mid: THREE.Color; low: THREE.Color };
+  /** Balises rouges d'obstacle sur les tours (30 eclats/min, phase par immeuble). */
+  beacons?: boolean;
+};
 
 export const DEFAULT_PALETTE: CityPalette = {
   neonA: new THREE.Color("#ff2d95"), // rose neon
@@ -20,13 +31,40 @@ export const DEFAULT_PALETTE: CityPalette = {
   ocean: new THREE.Color("#0b5f7a"),
 };
 
+/** Palette « neon coast » de ROOFTOP (rapport 3D, estimations a valider sur le sol LED). */
+export const NEON_COAST: CityPalette = {
+  neonA: new THREE.Color("#ff2bd6"), // magenta
+  neonB: new THREE.Color("#00e5ff"), // cyan
+  sunset: new THREE.Color("#ffb46b"), // sodium 2000-2700 K
+  haze: new THREE.Color("#3a1e4e"),
+  ocean: new THREE.Color("#1fd6c9"),
+  sunsetFog: { top: new THREE.Color("#141a3a"), mid: new THREE.Color("#7a2560"), low: new THREE.Color("#5a3418") },
+  beacons: true,
+};
+
+const fogUniforms = (p: CityPalette) => ({
+  uHaze: { value: p.haze }, uDepth: { value: CITY_DEPTH },
+  uFog3: { value: p.sunsetFog ? 1 : 0 },
+  uFogTop: { value: p.sunsetFog?.top ?? p.haze }, uFogMid: { value: p.sunsetFog?.mid ?? p.haze }, uFogLow: { value: p.sunsetFog?.low ?? p.haze },
+});
+
 const FOG = /* glsl */ `
 uniform vec3 uHaze;
 uniform float uDepth;
+uniform float uFog3;
+uniform vec3 uFogTop; uniform vec3 uFogMid; uniform vec3 uFogLow;
 vec3 applyHaze(vec3 col, float worldY) {
-  // Plus c'est profond, plus la brume violette mange la couleur.
   float k = clamp(-worldY / uDepth, 0.0, 1.0);
-  return mix(col, uHaze * 0.7, smoothstep(0.2, 1.0, k) * 0.5);
+  if (uFog3 < 0.5) {
+    // Plus c'est profond, plus la brume violette mange la couleur.
+    return mix(col, uHaze * 0.7, smoothstep(0.2, 1.0, k) * 0.5);
+  }
+  // Coucher de soleil vertical : quasi rien au niveau des toits, magenta a
+  // mi-hauteur, ambre « halo urbain » en bas, jamais noir ni totalement voile.
+  vec3 fog = mix(uFogTop, uFogMid, smoothstep(0.08, 0.5, k));
+  fog = mix(fog, uFogLow, smoothstep(0.5, 0.95, k));
+  float amount = smoothstep(0.03, 1.0, k) * 0.62;
+  return mix(col, fog * 1.25, amount);
 }
 `;
 
@@ -37,9 +75,9 @@ float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 export function buildingMaterial(p: CityPalette) {
   return new THREE.ShaderMaterial({
     uniforms: {
-      uHaze: { value: p.haze }, uDepth: { value: CITY_DEPTH },
+      ...fogUniforms(p),
       uSun: { value: p.sunset }, uNeonA: { value: p.neonA }, uNeonB: { value: p.neonB },
-      uTime: { value: 0 },
+      uTime: { value: 0 }, uBeacons: { value: p.beacons ? 1 : 0 },
     },
     vertexShader: /* glsl */ `
       attribute float aSeed;
@@ -53,7 +91,7 @@ export function buildingMaterial(p: CityPalette) {
         gl_Position = projectionMatrix * viewMatrix * world;
       }`,
     fragmentShader: /* glsl */ `
-      uniform vec3 uSun; uniform vec3 uNeonA; uniform vec3 uNeonB; uniform float uTime;
+      uniform vec3 uSun; uniform vec3 uNeonA; uniform vec3 uNeonB; uniform float uTime; uniform float uBeacons;
       varying vec3 vWorld; varying vec3 vNormalW; varying vec3 vLocal; varying float vSeed;
       ${FOG}
       ${HASH}
@@ -74,6 +112,13 @@ export function buildingMaterial(p: CityPalette) {
           // Piscine ou terrasse eclairee sur certains toits.
           float pool = step(0.82, fract(vSeed * 17.0)) * (1.0 - smoothstep(0.25, 0.3, max(e.x, e.y)));
           col = mix(col, vec3(0.1, 0.9, 1.1), pool);
+          // Balise rouge d'obstacle aux angles des tours : 30 eclats/min, phase propre a chaque immeuble.
+          if (uBeacons > 0.5 && vWorld.y > -uDepth * 0.72) {
+            vec2 corner = abs(vLocal.xz) * 2.0;
+            float dot_ = (1.0 - smoothstep(0.0, 0.07, length(corner - vec2(0.9)))) ;
+            float flash = step(0.86, fract(uTime * 0.5 + vSeed * 7.31));
+            col += vec3(4.0, 0.25, 0.15) * dot_ * flash;
+          }
         } else {
           // Facades : soleil couchant rasant d'un cote, fenetres allumees.
           float sun = max(0.0, dot(vNormalW, normalize(vec3(0.8, 0.2, -0.35))));
@@ -82,9 +127,13 @@ export function buildingMaterial(p: CityPalette) {
           vec2 cell = floor(grid);
           vec2 f = fract(grid);
           float win = step(0.18, f.x) * step(f.x, 0.82) * step(0.25, f.y) * step(f.y, 0.75);
-          float lit = step(0.66, hash(cell + vSeed * 31.0));
+          // Etages entiers eteints ou allumes, puis fenetre par fenetre.
+          float floorOn = step(0.25, hash(vec2(cell.y, floor(vSeed * 97.0))));
+          float lit = step(0.66, hash(cell + vSeed * 31.0)) * floorOn;
           vec3 warm = mix(vec3(1.4, 0.9, 0.5), vec3(0.7, 1.0, 1.5), step(0.8, hash(cell * 1.7)));
-          col += warm * win * lit * 0.55;
+          // Au fond du vide, la trame tend vers sa teinte moyenne (pas de moire sur le LED).
+          float deep = clamp(-vWorld.y / uDepth, 0.0, 1.0);
+          col += warm * mix(win * lit, 0.2, smoothstep(0.5, 0.95, deep)) * 0.55;
           // Bandeau neon vertical sur quelques facades (enseignes).
           float sign = step(0.9, fract(vSeed * 29.0)) * (1.0 - smoothstep(0.02, 0.06, abs(fract(grid.x * 0.125) - 0.5)));
           col += (fract(vSeed * 5.0) > 0.5 ? uNeonA : uNeonB) * sign * 2.5 * (0.85 + 0.15 * sin(uTime * 3.0 + vSeed * 40.0));
@@ -97,7 +146,7 @@ export function buildingMaterial(p: CityPalette) {
 function groundMaterial(p: CityPalette) {
   return new THREE.ShaderMaterial({
     uniforms: {
-      uHaze: { value: p.haze }, uDepth: { value: CITY_DEPTH }, uTime: { value: 0 },
+      ...fogUniforms(p), uTime: { value: 0 }, uSodium: { value: p.sunset }, uWet: { value: p.sunsetFog ? 1 : 0 },
       uNeonA: { value: p.neonA }, uNeonB: { value: p.neonB }, uOcean: { value: p.ocean },
       uBlock: { value: BLOCK }, uStreet: { value: STREET }, uShore: { value: EXTENT * 0.45 },
     },
@@ -106,7 +155,7 @@ function groundMaterial(p: CityPalette) {
       void main() { vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: /* glsl */ `
       uniform float uTime; uniform vec3 uNeonA; uniform vec3 uNeonB; uniform vec3 uOcean;
-      uniform float uBlock; uniform float uStreet; uniform float uShore;
+      uniform float uBlock; uniform float uStreet; uniform float uShore; uniform vec3 uSodium; uniform float uWet;
       varying vec3 vWorld;
       ${FOG}
       ${HASH}
@@ -130,6 +179,13 @@ function groundMaterial(p: CityPalette) {
           // Marquage au sol et bordures neon le long des avenues.
           float lane = road * (1.0 - smoothstep(0.03, 0.07, abs(min(d.x, d.y))));
           col += vec3(0.9, 0.8, 0.5) * lane * step(0.5, fract((d.x < d.y ? p.y : p.x) * 0.6)) * 0.5;
+          // Flaques de lumiere des lampadaires au sodium sur l'asphalte mouille.
+          if (uWet > 0.5) {
+            vec2 lamp = vec2(mod(p.x, 2.0) - 1.0, mod(p.y, 2.0) - 1.0);
+            float pool = road * exp(-dot(lamp, lamp) * 3.0);
+            float sheen = road * (0.5 + 0.5 * sin(p.x * 3.1 + p.y * 2.3)) * 0.25;
+            col += uSodium * (pool * 0.9 + sheen * 0.15);
+          }
           float curb = (1.0 - smoothstep(0.0, 0.08, abs(min(d.x, d.y) - uStreet * 0.5)));
           col += mix(uNeonA, uNeonB, step(0.5, fract(floor((p.x + p.y) / uBlock) * 0.5))) * curb * 2.2;
         }

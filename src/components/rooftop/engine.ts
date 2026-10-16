@@ -5,7 +5,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import type { Zone } from "@/lib/stomp/game";
 import { CELL, type Building, type Logo } from "@/lib/rooftop/game";
-import { buildCity, buildingMaterial, CITY_DEPTH, DEFAULT_PALETTE } from "@/components/stomp/city";
+import { buildCity, buildingMaterial, CITY_DEPTH, NEON_COAST } from "@/components/stomp/city";
 
 // Moteur de rendu ROOFTOP.
 //
@@ -40,19 +40,34 @@ function roofMaterial(style: number, w: number, h: number) {
         float g = hash(floor(m * 40.0)) * 0.06;
         // Beton chaud eclaire par le couchant (plus clair cote soleil), ombre
         // portee au pied de l'acrotere : un volume, pas un aplat.
-        vec3 col = mix(vec3(0.26, 0.2, 0.24), vec3(0.42, 0.3, 0.27), vUv.x) + g;
+        // Beton sombre (albedo bas) : le seul trait vraiment clair est le rebord.
+        vec3 col = mix(vec3(0.12, 0.09, 0.13), vec3(0.2, 0.13, 0.12), vUv.x) + g * 0.6;
         float e = min(min(m.x, uDim.x - m.x), min(m.y, uDim.y - m.y));
         col *= 0.72 + 0.28 * smoothstep(0.05, 0.22, e);
-        col = mix(col, vec3(0.95, 0.86, 0.8), 1.0 - smoothstep(0.035, 0.055, e));
-        col += uTrim * (1.0 - smoothstep(0.0, 0.025, abs(e - 0.07))) * 1.8;
+        // Rebord « toit sur » : blanc chaud lumineux, couleur reservee au jeu
+        // (absente du decor). C'est la ligne la plus claire de l'image.
+        col = mix(col, vec3(1.0, 0.957, 0.878) * 1.15, 1.0 - smoothstep(0.022, 0.04, e));
+        col += uTrim * (1.0 - smoothstep(0.0, 0.02, abs(e - 0.085))) * 0.6;
         vec2 c = m - uDim * 0.5;
         float big = min(uDim.x, uDim.y);
-        if (uStyle < 0.18 && big >= 1.5) {
-          // Piscine turquoise.
-          vec2 d = abs(c) - (uDim * 0.5 - 0.25);
-          float pool = step(max(d.x, d.y), 0.0);
-          float ripple = 0.08 * sin(m.x * 18.0 + uTime * 2.0) * sin(m.y * 14.0 - uTime * 1.6);
-          col = mix(col, vec3(0.05, 0.75, 0.95) + ripple, pool);
+        if (uStyle < 0.2) {
+          // Piscine de toit (un toit sur cinq) : plage claire, bassin turquoise eclaire de l'interieur,
+          // carrelage au fond, reflets qui bougent. Turquoise #1FD6C9.
+          float margin = big >= 1.5 ? 0.22 : 0.12;
+          vec2 d = abs(c) - (uDim * 0.5 - margin);
+          float inside = max(d.x, d.y);
+          float pool = step(inside, 0.0);
+          float deck = step(inside, 0.06) * (1.0 - pool);
+          col = mix(col, vec3(0.78, 0.7, 0.62), deck);
+          vec2 tile = abs(fract(m * 8.0) - 0.5);
+          float grout = 1.0 - smoothstep(0.42, 0.48, max(tile.x, tile.y));
+          float caustic = pow(abs(sin(m.x * 11.0 + uTime * 1.3) * sin(m.y * 9.0 - uTime * 1.1)), 3.0);
+          vec3 water = vec3(0.12, 0.84, 0.79) * (1.15 + 0.25 * (1.0 - grout)) + vec3(0.8, 1.0, 1.0) * caustic * 0.45;
+          // Lumiere de bassin plus forte vers le centre (spots immerges).
+          water *= 0.85 + 0.5 * (1.0 - smoothstep(0.0, big * 0.5, length(c)));
+          col = mix(col, water, pool);
+          // Echelle sur un bord.
+          col += vec3(0.9) * pool * step(abs(c.x - uDim.x * 0.5 + margin + 0.05), 0.012) * step(abs(c.y), 0.06);
         } else if (uStyle < 0.36 && big >= 1.5) {
           // Heliport : cercle et croix de balisage.
           float r = length(c);
@@ -64,8 +79,26 @@ function roofMaterial(style: number, w: number, h: number) {
           float box = step(0.75, hash(cell + uStyle * 9.0)) * step(0.15, fract(m.x * 2.0)) * step(fract(m.x * 2.0), 0.85) * step(0.15, fract(m.y * 2.0)) * step(fract(m.y * 2.0), 0.85);
           col = mix(col, vec3(0.32, 0.3, 0.36), box);
         } else if (uStyle < 0.62) {
-          // Toit-terrasse vegetalise.
-          col = mix(col, vec3(0.05, 0.22, 0.12) + g, step(0.12, e));
+          // Toit-terrasse vegetalise, avec des palmiers vus d'en haut (etoiles sombres).
+          col = mix(col, vec3(0.05, 0.2, 0.12) + g, step(0.12, e));
+          for (int i = 0; i < 3; i++) {
+            vec2 pc = vec2(hash(vec2(float(i), uStyle * 31.0)), hash(vec2(uStyle * 17.0, float(i)))) * (uDim - 0.4) + 0.2;
+            vec2 d = m - pc;
+            float ang = atan(d.y, d.x);
+            float frond = 0.17 * (0.55 + 0.45 * abs(cos(ang * 3.5)));
+            col = mix(col, vec3(0.03, 0.06, 0.05), 1.0 - smoothstep(frond - 0.02, frond, length(d)));
+          }
+        } else if (uStyle < 0.74) {
+          // Bar de toit : guirlandes de petites ampoules chaudes le long du bord.
+          float along = (e < 0.2) ? fract((m.x + m.y) * 5.0) : 1.0;
+          float bulb = (1.0 - smoothstep(0.0, 0.12, abs(along - 0.5))) * step(abs(e - 0.16), 0.03);
+          col += vec3(2.6, 1.6, 0.6) * bulb * (0.8 + 0.2 * sin(uTime * 3.0 + m.x * 9.0));
+          // Plancher en bois.
+          col = mix(col, vec3(0.32, 0.2, 0.13) + g, step(0.2, e) * 0.8);
+        } else if (uStyle < 0.86 && big >= 1.5) {
+          // Gradins Art deco : retraits concentriques plus clairs (pastel creme).
+          float step1 = step(0.25, e) * (1.0 - step(0.5, e));
+          col = mix(col, vec3(0.62, 0.52, 0.42), step1 * 0.55);
         }
         // Avertissement : le toit va s'effondrer. Bordure rouge qui clignote, fissures.
         float blink = 0.5 + 0.5 * sin(uTime * (10.0 + uWarn * 14.0));
@@ -122,7 +155,7 @@ function overlayMaterial() {
   });
 }
 
-type RoofMesh = { group: THREE.Group; roof: THREE.ShaderMaterial; b: Building };
+type RoofMesh = { group: THREE.Group; roof: THREE.ShaderMaterial; b: Building; level: number; tier: boolean };
 
 export class RooftopEngine {
   readonly renderer: THREE.WebGLRenderer;
@@ -134,7 +167,7 @@ export class RooftopEngine {
   private city: ReturnType<typeof buildCity>;
   private composer: EffectComposer;
   private bloom: UnrealBloomPass;
-  private bodyMat = buildingMaterial(DEFAULT_PALETTE);
+  private bodyMat = buildingMaterial(NEON_COAST);
   private roofs = new Map<number, RoofMesh>();
   private coins = new Map<number, THREE.Group>();
   private overlay: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
@@ -145,15 +178,19 @@ export class RooftopEngine {
   private shake = 0;
   frost = 0;
 
-  constructor(canvas: HTMLCanvasElement, opts: { size: number; logoUrl?: string }) {
+  constructor(canvas: HTMLCanvasElement, opts: { size: number; logoUrl?: string; tone?: string }) {
     this.size = opts.size;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.9;
+    // Le canvas a deja la taille du sol LED : pas de suréchantillonnage.
+    this.renderer.setPixelRatio(1);
+    // ACES par defaut : plus de contraste et de saturation au test ; AgX garde
+    // mieux les oranges mais aplatit l'image. ?tone=agx pour comparer sur le sol LED.
+    this.renderer.toneMapping = opts.tone === "agx" ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = opts.tone === "agx" ? 0.95 : 0.85;
 
-    // La ville du fond : celle de STOMP, ses tours restent loin sous les toits.
-    this.city = buildCity(DEFAULT_PALETTE);
+    // La ville du fond, en palette « neon coast » : coucher de soleil vertical,
+    // asphalte mouille au sodium, balises rouges sur les tours.
+    this.city = buildCity(NEON_COAST);
     this.scene = this.city.scene;
     this.scene.add(new THREE.HemisphereLight(0xffd0f0, 0x200030, 1.1));
 
@@ -163,9 +200,11 @@ export class RooftopEngine {
     this.overlay.renderOrder = 2;
     this.scene.add(this.overlay);
 
-    this.composer = new EffectComposer(this.renderer);
+    // Cible HDR anticrenelee (MSAA 4x) : les emissifs > 1 passent jusqu'au bloom
+    // a seuil, sans double rendu pour un bloom selectif.
+    this.composer = new EffectComposer(this.renderer, new THREE.WebGLRenderTarget(512, 512, { type: THREE.HalfFloatType, samples: 4 }));
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.6, 0.45, 1.05);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.5, 0.4, 1.0);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 
@@ -179,10 +218,19 @@ export class RooftopEngine {
     this.bloom.resolution.set(real.x / 2, real.y / 2);
   }
 
+  /**
+   * Parallaxe : l'oeil virtuel suit la position moyenne des joueurs, bornee a
+   * ±0,8 m (le fond du vide suit l'oeil a ~98 % : au-dela, il « penche » pour
+   * les joueurs eloignes) et ramenee au centre quand les joueurs sont disperses.
+   */
   lookFrom(points: { x: number; z: number }[]) {
-    if (points.length) {
-      this.eyeTarget.set(points.reduce((s, p) => s + p.x, 0) / points.length * 0.9, points.reduce((s, p) => s + p.z, 0) / points.length * 0.9);
-    } else this.eyeTarget.set(0, 0);
+    if (!points.length) { this.eyeTarget.set(0, 0); return; }
+    const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
+    const cz = points.reduce((s, p) => s + p.z, 0) / points.length;
+    const spread = Math.max(...points.map((p) => Math.hypot(p.x - cx, p.z - cz)));
+    const k = 0.6 / (1 + spread);
+    const clamp = (v: number) => Math.max(-0.8, Math.min(0.8, v * k));
+    this.eyeTarget.set(clamp(cx), clamp(cz));
   }
 
   setOwnerColors(colors: string[]) { this.ownerColors = colors.map((h) => new THREE.Color(h)); for (const [, g] of this.coins) this.scene.remove(g); this.coins.clear(); }
@@ -195,9 +243,10 @@ export class RooftopEngine {
   }
 
   private updateCamera() {
-    const driftX = Math.sin(this.time * 0.13) * 0.5, driftZ = Math.cos(this.time * 0.1) * 0.4;
-    this.eye.x += (this.eyeTarget.x + driftX - this.eye.x) * 0.035;
-    this.eye.z += (this.eyeTarget.y + driftZ - this.eye.z) * 0.035;
+    const driftX = Math.sin(this.time * 0.13) * 0.3, driftZ = Math.cos(this.time * 0.1) * 0.25;
+    // Lissage exponentiel doux : pas d'oscillation, peu de retard.
+    this.eye.x += (this.eyeTarget.x + driftX - this.eye.x) * 0.06;
+    this.eye.z += (this.eyeTarget.y + driftZ - this.eye.z) * 0.06;
     const sx = this.shake ? (Math.random() - 0.5) * this.shake : 0, sz = this.shake ? (Math.random() - 0.5) * this.shake : 0;
     const e = new THREE.Vector3(this.eye.x + sx, EYE_HEIGHT * (this.size / 4), this.eye.z + sz);
     const cam = this.camera;
@@ -212,10 +261,27 @@ export class RooftopEngine {
 
   // --- Immeubles ------------------------------------------------------------
 
+  /**
+   * Jeux de niveaux : trois hauteurs de toit (0, -0,22, -0,44 m) tirees de
+   * l'immeuble. Entre deux voisins de niveaux differents, on voit la facade :
+   * l'architecture prend du relief. Decalage limite pour que la parallaxe
+   * ne deplace pas un toit de plus de quelques centimetres sous les pieds.
+   */
+  static levelOf(b: Building) { return -Math.floor((b.style * 13.37) % 1 * 3) * 0.22; }
+
+  levelAt(c: number, r: number) {
+    for (const [, m] of this.roofs) {
+      const b = m.b;
+      if (b.state !== "gone" && c >= b.c0 && c < b.c0 + b.w && r >= b.r0 && r < b.r0 + b.h) return RooftopEngine.levelOf(b) + (m.tier && c > b.c0 && c < b.c0 + b.w - 1 && r > b.r0 && r < b.r0 + b.h - 1 ? 0.2 : 0);
+    }
+    return 0;
+  }
+
   private makeRoof(b: Building): RoofMesh {
     const W = b.w * CELL - 0.04, H = b.h * CELL - 0.04; // 2 cm de jour : on voit ou finit un toit
     const depth = CITY_DEPTH - 1;
     const group = new THREE.Group();
+    const level = RooftopEngine.levelOf(b);
     const bodyGeo = new THREE.BoxGeometry(W, depth, H);
     bodyGeo.translate(0, -depth / 2 - 0.002, 0);
     const seed = new Float32Array([b.style]);
@@ -227,10 +293,27 @@ export class RooftopEngine {
     const cap = new THREE.Mesh(new THREE.PlaneGeometry(W, H), roof);
     cap.rotation.x = -Math.PI / 2;
     group.add(cap);
+    // Gradin Art deco en volume sur les grands immeubles (3x3 cases et plus) :
+    // un retrait central qui monte de 20 cm, avec sa facade et son propre toit.
+    let tier = false;
+    if (b.w >= 3 && b.h >= 3 && b.style >= 0.2) {
+      tier = true;
+      const tw = (b.w - 2) * CELL - 0.04, th = (b.h - 2) * CELL - 0.04;
+      const tierGeo = new THREE.BoxGeometry(tw, 0.2, th);
+      tierGeo.translate(0, 0.1, 0);
+      tierGeo.setAttribute("aSeed", new THREE.InstancedBufferAttribute(new Float32Array([(b.style * 7.1) % 1]), 1));
+      const tierBody = new THREE.InstancedMesh(tierGeo, this.bodyMat, 1);
+      tierBody.setMatrixAt(0, new THREE.Matrix4());
+      group.add(tierBody);
+      const tierCap = new THREE.Mesh(new THREE.PlaneGeometry(tw, th), roofMaterial(0.4 + ((b.style * 3.7) % 0.1), b.w - 2, b.h - 2));
+      tierCap.rotation.x = -Math.PI / 2;
+      tierCap.position.y = 0.201;
+      group.add(tierCap);
+    }
     const x = -this.size / 2 + (b.c0 + b.w / 2) * CELL, z = -this.size / 2 + (b.r0 + b.h / 2) * CELL;
-    group.position.set(x, 0, z);
+    group.position.set(x, level, z);
     this.scene.add(group);
-    return { group, roof, b };
+    return { group, roof, b, level, tier };
   }
 
   syncCity(buildings: Building[], now: number, timing: { warn: number; sink: number; rise: number }) {
@@ -245,13 +328,13 @@ export class RooftopEngine {
       m.roof.uniforms.uWarn.value = b.state === "warning" ? Math.min(1, age / timing.warn) : 0;
       if (b.state === "sinking") {
         const k = Math.min(1, age / timing.sink);
-        m.group.position.y = -k * k * 14; // il plonge en accelerant
+        m.group.position.y = m.level - k * k * 14; // il plonge en accelerant
       } else if (b.state === "rising") {
         const k = Math.min(1, age / timing.rise);
-        m.group.position.y = -(1 - (1 - (1 - k) * (1 - k))) * 10;
+        m.group.position.y = m.level - (1 - (1 - (1 - k) * (1 - k))) * 10;
       } else if (b.state === "gone") {
         m.group.visible = false;
-      } else m.group.position.y = 0;
+      } else m.group.position.y = m.level;
     }
     for (const [id, m] of this.roofs) {
       if (seen.has(id)) continue;
@@ -284,7 +367,8 @@ export class RooftopEngine {
     halo.name = "halo";
     g.add(halo);
     const p = { x: -this.size / 2 + (l.c + 0.5) * CELL, z: -this.size / 2 + (l.r + 0.5) * CELL };
-    g.position.set(p.x, 0.12, p.z);
+    g.userData.base = this.levelAt(l.c, l.r);
+    g.position.set(p.x, g.userData.base + 0.12, p.z);
     this.scene.add(g);
     return g;
   }
@@ -300,7 +384,7 @@ export class RooftopEngine {
         // Ramasse : il saute un peu, tourne vite et s'evanouit sur place
         // (s'il montait vers l'oeil, il finirait par couvrir tout le sol).
         const k = Math.min(1, (now - l.takenAt) / 0.45);
-        g.position.y = 0.12 + Math.sin(k * Math.PI) * 0.35;
+        g.position.y = (g.userData.base ?? 0) + 0.12 + Math.sin(k * Math.PI) * 0.35;
         g.scale.setScalar(Math.max(0.01, 1 + k * 0.3 - k * k * 1.2));
         g.rotation.y += 0.5;
         g.traverse((o) => { const m = (o as THREE.Mesh).material as (THREE.Material & { opacity: number }) | undefined; if (m) { m.transparent = true; m.opacity = Math.max(0, 1 - k); } });
@@ -310,7 +394,7 @@ export class RooftopEngine {
         const appear = Math.min(1, age / 0.35);
         g.scale.setScalar(appear * (1 + Math.sin(now * 5) * 0.03));
         g.rotation.y = now * 2.2 + l.id;
-        g.position.y = 0.12 + Math.sin(now * 3 + l.id) * 0.02;
+        g.position.y = (g.userData.base ?? 0) + 0.12 + Math.sin(now * 3 + l.id) * 0.02;
         // Les dernieres secondes, le logo clignote : il va disparaitre.
         const left = l.life - age;
         g.visible = left > 1 || Math.sin(now * 20) > -0.3;

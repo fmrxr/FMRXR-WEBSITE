@@ -19,7 +19,7 @@ type Phase = "attract" | "lobby" | "freeze" | "play" | "reveal" | "results";
 // bas contre haut), 4 JOUEURS (un quart chacun, jouable a 2 ou 3).
 // « menu » : l'accueil propose les trois, on choisit en marchant sur sa plaque.
 export type Mode = "solo" | "teams" | "versus";
-export type RooftopSettings = { size: number; seconds: number; logo: string; ws: string | null; px: number | null; ox: number | null; oy: number | null; debug: boolean; mode: Mode | "menu" };
+export type RooftopSettings = { size: number; seconds: number; logo: string; ws: string | null; px: number | null; ox: number | null; oy: number | null; debug: boolean; mode: Mode | "menu"; tone: "agx" | "aces" };
 
 const MODE_LABEL: Record<Mode, string> = { solo: "SOLO", teams: "2v2", versus: "4 JOUEURS" };
 const MODE_HINT: Record<Mode, string> = { solo: "1 joueur", teams: "2 équipes de 2", versus: "2 à 4 joueurs" };
@@ -87,7 +87,7 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
 
   useEffect(() => {
     const canvas = canvasRef.current!, el = boxRef.current!;
-    const engine = new RooftopEngine(canvas, { size: s.size, logoUrl: s.logo });
+    const engine = new RooftopEngine(canvas, { size: s.size, logoUrl: s.logo, tone: s.tone });
     engineRef.current = engine;
     const audio = new StompAudio();
     engine.resize(canvas.clientWidth || 600);
@@ -282,7 +282,7 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
     };
     raf = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(raf); detach(); audio.stopPulse(); engine.dispose(); engineRef.current = null; };
-  }, [s.size, s.seconds, s.logo, s.ws, s.debug, s.mode]);
+  }, [s.size, s.seconds, s.logo, s.ws, s.debug, s.mode, s.tone]);
 
   useEffect(() => { engineRef.current?.resize(box.size); }, [box.size]);
 
