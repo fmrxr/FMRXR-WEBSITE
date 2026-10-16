@@ -39,6 +39,13 @@ export function RemoteCamera({ pairId, campaign, minScore }: { pairId: string; c
   const [state, setState] = useState<State>("starting");
   const [photos, setPhotos] = useState(0);
   const [flash, setFlash] = useState(false);
+  // Toujours pas connecte apres 20 s : aide reseau.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (state === "connected") return;
+    const id = window.setTimeout(() => setSlow(true), 20_000);
+    return () => window.clearTimeout(id);
+  }, [state]);
 
   useEffect(() => {
     let cancelled = false;
@@ -217,7 +224,20 @@ export function RemoteCamera({ pairId, campaign, minScore }: { pairId: string; c
           <span className={`size-2.5 rounded-full ${state === "connected" ? "bg-fmaccent" : state === "error" ? "bg-red-500" : "animate-pulse bg-fmfg/60"}`} />
           {label}
         </p>
-        <p className="text-xs text-fmfg/70">Caméra de la borne · même Wi-Fi · {photos} photo{photos > 1 ? "s" : ""}. Gardez cette page ouverte.</p>
+        <p role="note" className="rounded-xl border border-amber-400/60 bg-amber-400/15 px-4 py-2.5 text-xs font-semibold text-amber-100">
+          Cet iPhone et la borne doivent être connectés au même réseau Wi-Fi.
+        </p>
+        {slow && state !== "connected" && (
+          <div role="alert" className="max-w-sm rounded-xl bg-black/60 px-4 py-3 text-start text-xs leading-relaxed text-fmfg/90 backdrop-blur">
+            <p className="font-semibold">Toujours pas connecté ?</p>
+            <ul className="mt-1.5 list-disc space-y-1 ps-4">
+              <li>Vérifiez dans Réglages › Wi-Fi que cet iPhone est sur le même réseau que la borne, et pas en 4G/5G.</li>
+              <li>Certains Wi-Fi invités ou d’événement empêchent les appareils de se parler : utilisez un autre réseau.</li>
+              <li>En dernier recours : activez le partage de connexion d’un téléphone et connectez-y la borne et cet iPhone.</li>
+            </ul>
+          </div>
+        )}
+        <p className="text-xs text-fmfg/70">Caméra de la borne · {photos} photo{photos > 1 ? "s" : ""}. Gardez cette page ouverte.</p>
         <button
           onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
           className="rounded-full border border-white/30 bg-black/40 px-5 py-2.5 text-sm backdrop-blur"
