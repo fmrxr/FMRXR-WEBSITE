@@ -87,7 +87,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     extra: "Let the lower quarter of the image fall into dark, calm shadow for the film title. No text in the image.",
   },
   card: {
-    id: "card", family: "editorial", layout: "card",
+    id: "card", family: "editorial", layout: "card", isNew: true,
     label: L("Carte à collectionner", "Collectible card", "بطاقة للجمع"),
     blurb: L(
       "Une carte 1/1 dans son boîtier gradé, statistiques tirées des réponses de l'invité. Faite pour être collectionnée et partagée.",
@@ -98,7 +98,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     extra: "Keep the face and shoulders centred with some space on all sides. No text in the image.",
   },
   era70: {
-    id: "era70", family: "transform", layout: "none",
+    id: "era70", family: "transform", layout: "none", isNew: true,
     label: L("Voyage dans le temps · 70s", "Time travel · 70s", "رحلة عبر الزمن · السبعينيات"),
     blurb: L("Vous, photographié dans les années 70.", "You, photographed in the 1970s.", "أنت في السبعينيات."),
     transform: "a 1970s photograph of this person: period hairstyle details and clothing of the 1970s, a 1970s interior, warm faded Kodachrome-like colours and film grain",

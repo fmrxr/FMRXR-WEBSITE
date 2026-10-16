@@ -75,9 +75,9 @@ const INTEGRATION: [string, string, BoothIconKind][] = [
 const FEATURES: [string, string, boolean?][] = [
   ["Likeness first", "Editorial styles change the light, the set and the colour grade only. The guest's face, pose, gesture and framing stay their own, and a small or soft face is cleaned up, never redrawn."],
   ["Your brand on every image", "Your official logo and ours, on the screen, the download, the shared page and the print. The AI also receives your logo as a reference, so it never invents a fake brand mark."],
-  ["A team gallery", "From the booth's first page, a team code opens every portrait of the event: QR, download, reprint, or remove a portrait in one tap.", true],
+  ["A team gallery", "From the booth's first page, a team code opens every portrait of the event: QR, download, reprint, or remove a portrait in one tap."],
   ["An iPhone as the camera", "Scan a QR code on the same Wi-Fi and an iPhone streams to the booth, no app. Gestures are read on the phone for an instant response, photos come from its sensor.", true],
-  ["Layouts framed on faces", "Cards and Polaroids are cropped around the faces measured at capture, solo or group, never around an empty wall.", true],
+  ["Layouts framed on faces", "Cards and Polaroids are cropped around the faces measured at capture, solo or group, never around an empty wall."],
   ["Package control", "Each campaign has an image quota, a daily limit and a budget, reserved atomically before every paid request."],
   ["A client space", "Your team follows usage live: portraits made, remaining, period, booth link."],
   ["Print on site", "A local print agent detects the printer and prints 10×15 edge to edge, no dialog."],
