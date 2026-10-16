@@ -3,6 +3,7 @@ import { currentRoles, currentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { canSeeCampaign } from "@/lib/photobooth/client";
 import { isGalleryKey, isHidden } from "@/lib/photobooth/gallery-access";
+import { deleteStoredPortrait } from "@/lib/photobooth/server";
 
 // POST /api/photobooth/portrait/<usageId>/delete  {g?: cle de galerie}
 // Supprime un portrait d'une galerie : il est masque (drapeau dans mood),
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const mood = { ...((u.mood as Record<string, unknown> | null) ?? {}), hidden: true, hidden_at: new Date().toISOString() };
   const { error } = await sb.from("photobooth_usage").update({ mood }).eq("id", id);
   if (error) return NextResponse.json({ ok: false }, { status: 500 });
+  await deleteStoredPortrait(id);
   await sb.from("photobooth_audit").insert({
     campaign_id: u.campaign_id, actor: user?.id ?? null, action: "portrait_deleted",
     before: { usage_id: id }, after: { via },

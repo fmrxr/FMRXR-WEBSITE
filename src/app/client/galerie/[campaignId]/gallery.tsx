@@ -7,10 +7,11 @@ import { PAGE_SIZE, usePrinter } from "@/app/experience/photobooth/[slug]/usePri
 import { DeletePortrait } from "@/components/photobooth/DeletePortrait";
 
 // Image du portrait : connexion (espace client) ou cle de galerie d'equipe.
-const imageUrl = (id: string, galleryKey: string | null, dl = false) => {
+const imageUrl = (id: string, galleryKey: string | null, dl = false, w?: number) => {
   const q = new URLSearchParams();
   if (galleryKey) q.set("g", galleryKey);
   if (dl) q.set("dl", "1");
+  if (w) q.set("w", String(w));
   const s = q.toString();
   return `/api/photobooth/client-image/${id}${s ? `?${s}` : ""}`;
 };
@@ -102,7 +103,7 @@ function Card({ item, galleryKey, onPrint, printing, onDeleted }: {
     QRCode.toString(item.shareUrl, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#0d0c14", light: "#f5f5f8" } })
       .then(setQr).catch(() => setQr(null));
   }, [item.shareUrl]);
-  const img = imageUrl(item.id, galleryKey);
+  const img = imageUrl(item.id, galleryKey, false, 720);
   return (
     <figure data-testid="gallery-item" className="overflow-hidden rounded-xl border border-fmborder bg-fmcard/70">
       {/* eslint-disable-next-line @next/next/no-img-element */}

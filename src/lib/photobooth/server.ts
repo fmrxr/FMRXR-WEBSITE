@@ -5,7 +5,7 @@ import { resolveConfig, type CampaignConfig } from "./config";
 import { createHiggsfieldProvider, type ImageProvider } from "./higgsfield";
 import { pollGeneration, type PhotoboothDb, type Submission } from "./service";
 import type { MoodProfile } from "./mood";
-import { finalFromUrl, type FinalOptions } from "./branding";
+import { finalFromUrl, thumbnail, type FinalOptions } from "./branding";
 import { STYLES, isStyleId } from "./styles";
 import { EXPRESSION_LABEL, EXPRESSIONS, type ExpressionId } from "./expression";
 import type { Locale } from "./config";
@@ -263,15 +263,75 @@ export async function finalOptionsForUsage(usageId: string): Promise<FinalOption
   };
 }
 
-export async function relayPortrait(resultUrl: string, usageId: string, filename: string | null) {
+/** Largeurs de vignette autorisees (?w=) : galeries. Sinon, image pleine taille. */
+export const THUMB_WIDTHS = [480, 720] as const;
+export function thumbWidth(raw: string | null): number | null {
+  const n = Number(raw);
+  return (THUMB_WIDTHS as readonly number[]).includes(n) ? n : null;
+}
+
+// Copie de chaque portrait final chez nous (bucket prive) : le CDN de
+// Higgsfield est lent (5,5 Mo en 50 a 85 s, mesure du 16/10/2026), on ne le
+// telecharge qu'une fois. Lu et ecrit en service_role uniquement.
+const PORTRAITS = "photobooth-portraits";
+const portraitPath = (usageId: string, width: number | null) => `${usageId}/${width ? `thumb-${width}` : "final"}.jpg`;
+
+async function readStored(path: string): Promise<Buffer | null> {
+  const { data, error } = await getSupabaseAdmin().storage.from(PORTRAITS).download(path);
+  if (error || !data) return null;
+  return Buffer.from(await data.arrayBuffer());
+}
+
+async function writeStored(path: string, buf: Buffer) {
+  await getSupabaseAdmin().storage.from(PORTRAITS)
+    .upload(path, buf, { contentType: "image/jpeg", upsert: true, cacheControl: "86400" })
+    .catch(() => undefined);
+}
+
+/** Image finale (ou vignette) : copie stockee si elle existe, sinon calculee puis stockee. */
+async function portraitImage(resultUrl: string, usageId: string, width: number | null): Promise<Buffer | null> {
+  const stored = await readStored(portraitPath(usageId, width));
+  if (stored) return stored;
+  let full = width ? await readStored(portraitPath(usageId, null)) : null;
+  if (!full) {
+    const o = await finalOptionsForUsage(usageId);
+    full = o ? await finalFromUrl(resultUrl, o) : null;
+    if (!full) return null;
+    await writeStored(portraitPath(usageId, null), full);
+  }
+  if (!width) return full;
+  const thumb = await thumbnail(full, usageId, width);
+  await writeStored(portraitPath(usageId, width), thumb);
+  return thumb;
+}
+
+/**
+ * Prepare la copie et les vignettes des qu'un portrait est reussi, en tache
+ * de fond : la galerie est prete quand l'equipe l'ouvre.
+ */
+export function warmPortrait(resultUrl: string, usageId: string) {
+  void (async () => {
+    for (const w of [null, ...THUMB_WIDTHS]) await portraitImage(resultUrl, usageId, w);
+  })().catch(() => undefined);
+}
+
+/** Supprime les copies d'un portrait (suppression depuis une galerie). */
+export async function deleteStoredPortrait(usageId: string) {
+  await getSupabaseAdmin().storage.from(PORTRAITS)
+    .remove([null, ...THUMB_WIDTHS].map((w) => portraitPath(usageId, w)))
+    .catch(() => undefined);
+}
+
+export async function relayPortrait(resultUrl: string, usageId: string, filename: string | null, width: number | null = null) {
   if (!resultUrl.startsWith("https://")) return new Response("Expired", { status: 410 });
   try {
-    const o = await finalOptionsForUsage(usageId);
-    const out = o ? await finalFromUrl(resultUrl, o) : null;
+    // Vignette pour les galeries (le telechargement garde la pleine taille).
+    const out = await portraitImage(resultUrl, usageId, width && !filename ? width : null);
     if (!out) return new Response("Expired", { status: 410 });
     const headers = new Headers({
       "Content-Type": "image/jpeg",
-      "Cache-Control": "private, max-age=3600",
+      // Un portrait ne change plus : le navigateur peut garder la vignette.
+      "Cache-Control": width ? "private, max-age=86400" : "private, max-age=3600",
       "X-Content-Type-Options": "nosniff",
     });
     if (filename) headers.set("Content-Disposition", `attachment; filename="${filename}.jpg"`);

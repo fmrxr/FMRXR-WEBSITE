@@ -45,7 +45,7 @@ export default async function Gallery({ params }: { params: Promise<{ id: string
                 </div>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={`/api/photobooth/image/${r.id}`} alt="" loading="lazy" className="aspect-[3/4] w-full bg-muted object-cover" />
+                <img src={`/api/photobooth/image/${r.id}?w=480`} alt="" loading="lazy" decoding="async" className="aspect-[3/4] w-full bg-muted object-cover" />
               )}
               <figcaption className="flex items-center justify-between gap-2 p-2 text-xs">
                 <span>

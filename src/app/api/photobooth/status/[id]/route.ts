@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseDb, getProvider, shareUrl } from "@/lib/photobooth/server";
+import { createSupabaseDb, getProvider, shareUrl, warmPortrait } from "@/lib/photobooth/server";
 import { pollGeneration } from "@/lib/photobooth/service";
 
 // GET /api/photobooth/status/<usageId>?session=<id> — la borne interroge ici,
@@ -23,6 +23,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   // L'URL Higgsfield n'est pas renvoyee : le telechargement passe par /download.
   if (r.status === "succeeded") {
     const u = await db.getUsage(id);
+    // Copie et vignettes preparees en tache de fond (galerie, QR, impression).
+    if (u?.result_url) warmPortrait(u.result_url, id);
     return NextResponse.json({
       status: "succeeded",
       image: `/api/photobooth/download/${id}?session=${encodeURIComponent(session)}`,

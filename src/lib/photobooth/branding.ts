@@ -114,9 +114,50 @@ export async function finalFromUrl(resultUrl: string, o: FinalOptions): Promise<
   const key = `${resultUrl}|${o.clientLogoUrl}|${o.layout}|${o.text.title}|${o.text.masthead}`;
   const hit = CACHE.get(key);
   if (hit) return hit;
+  // Meme portrait demande plusieurs fois en meme temps (galerie, QR, ecran) :
+  // un seul calcul, les autres l'attendent.
+  const running = INFLIGHT.get(key);
+  if (running) return running;
+  const job = withSlot(() => compose(resultUrl, o, key)).finally(() => INFLIGHT.delete(key));
+  INFLIGHT.set(key, job);
+  return job;
+}
+
+// Au plus 3 compositions a la fois : une galerie de 12 portraits ne fait pas
+// ramer le serveur, et les premieres images arrivent vite.
+const INFLIGHT = new Map<string, Promise<Buffer | null>>();
+const MAX_JOBS = 3;
+let jobs = 0;
+const waiting: (() => void)[] = [];
+async function withSlot<T>(fn: () => Promise<T>): Promise<T> {
+  if (jobs >= MAX_JOBS) await new Promise<void>((r) => waiting.push(r));
+  jobs++;
+  try {
+    return await fn();
+  } finally {
+    jobs--;
+    waiting.shift()?.();
+  }
+}
+
+/** Vignette JPEG legere de l'image finale, pour les galeries. */
+const THUMBS = new Map<string, Buffer>();
+export async function thumbnail(full: Buffer, key: string, width: number): Promise<Buffer> {
+  const k = `${key}|${width}`;
+  const hit = THUMBS.get(k);
+  if (hit) return hit;
+  const out = await sharp(full).resize({ width, withoutEnlargement: true }).jpeg({ quality: 78, mozjpeg: true }).toBuffer();
+  THUMBS.set(k, out);
+  if (THUMBS.size > 300) THUMBS.delete(THUMBS.keys().next().value!);
+  return out;
+}
+
+async function compose(resultUrl: string, o: FinalOptions, key: string): Promise<Buffer | null> {
   let src: Buffer;
   try {
-    const r = await fetch(resultUrl, { signal: AbortSignal.timeout(30_000) });
+    // Le CDN de Higgsfield met 50 a 85 s pour un PNG de 5,5 Mo (mesure du
+    // 16/10/2026) : a 30 s, la moitie des portraits ne s'affichaient jamais.
+    const r = await fetch(resultUrl, { signal: AbortSignal.timeout(120_000) });
     if (!r.ok || !(r.headers.get("content-type") ?? "").startsWith("image/")) return null;
     src = Buffer.from(await r.arrayBuffer());
   } catch {
