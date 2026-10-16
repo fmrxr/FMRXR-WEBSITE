@@ -25,11 +25,14 @@ export const metadata: Metadata = {
     url: "/photobooth",
     title: "AI Photo Booth for Brand Activations · FMRXR//",
     description: "Your guests leave with a portrait signed by your brand, in under a minute. Works with the booth you already have.",
+    // Apercu des liens (WhatsApp, LinkedIn) : scripts/photobooth/og.mjs.
+    images: [{ url: "/photobooth/og.jpg", width: 1200, height: 630, alt: "FMRXR AI Photo Booth: tarot, magazine cover and collectible card portraits" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "AI Photo Booth for Brand Activations · FMRXR//",
     description: "Your guests leave with a portrait signed by your brand, in under a minute.",
+    images: ["/photobooth/og.jpg"],
   },
 };
 
