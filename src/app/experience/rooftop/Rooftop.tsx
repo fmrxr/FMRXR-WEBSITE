@@ -15,10 +15,23 @@ import { attachInput, type FloorPoint } from "@/components/stomp/input";
 
 type Phase = "attract" | "lobby" | "freeze" | "play" | "reveal" | "results";
 
-// solo : une seule plaque au centre, la partie part des qu'on marche dessus (tout le sol, pas d'attente).
-export type RooftopSettings = { size: number; seconds: number; logo: string; ws: string | null; px: number | null; ox: number | null; oy: number | null; debug: boolean; solo: boolean };
+// Modes : SOLO (une plaque, depart immediat, tout le sol), 2v2 (deux equipes,
+// bas contre haut), 4 JOUEURS (un quart chacun, jouable a 2 ou 3).
+// « menu » : l'accueil propose les trois, on choisit en marchant sur sa plaque.
+export type Mode = "solo" | "teams" | "versus";
+export type RooftopSettings = { size: number; seconds: number; logo: string; ws: string | null; px: number | null; ox: number | null; oy: number | null; debug: boolean; mode: Mode | "menu" };
 
-const PAD_RADIUS = 0.42, TEAM_PAD_RADIUS = 0.3;
+const MODE_LABEL: Record<Mode, string> = { solo: "SOLO", teams: "2v2", versus: "4 JOUEURS" };
+const MODE_HINT: Record<Mode, string> = { solo: "1 joueur", teams: "2 équipes de 2", versus: "2 à 4 joueurs" };
+const MODE_COLOR: Record<Mode, string> = { solo: "#ff2d95", teams: "#19e6d6", versus: "#ff8a3d" };
+const WAIT_FIRST_S = 20; // sans joueur sur une plaque, retour a l'accueil
+
+/** Plaques de l'accueil : une par mode, en ligne au milieu du sol. */
+const menuPads = (size: number) => (["solo", "teams", "versus"] as Mode[]).map((m, i) => ({ m, x: (i - 1) * size * 0.31, z: 0 }));
+/** Plaques d'inscription du mode choisi. */
+const padsFor = (mode: Mode, size: number) => (mode === "solo" ? [{ x: 0, z: 0 }] : padPositions(size));
+
+const PAD_RADIUS = 0.42;
 const LOBBY_S = 6, LOBBY_MAX_S = 12, FREEZE_S = 1.2, COUNT_S = 3, REVEAL_S = 2.4, RESULTS_S = 14;
 const TEAM_NAMES = ["Rose", "Turquoise"];
 const PLATE = "rgba(9, 5, 18, 0.88)";
@@ -49,7 +62,9 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
   const phaseRef = useRef<Phase>("attract");
   const [phase, setPhase] = useState<Phase>("attract");
   const [joined, setJoined] = useState<number[]>([]);
-  const [teams, setTeams] = useState(false);
+  const [chosen, setChosen] = useState<Mode | null>(s.mode === "menu" ? null : s.mode);
+  const [waiting, setWaiting] = useState(false); // mode choisi, personne encore sur une plaque
+  const teams = chosen === "teams";
   const [lobbyLeft, setLobbyLeft] = useState(0);
   const [count, setCount] = useState(0);
   const [time, setTime] = useState(s.seconds);
@@ -77,14 +92,14 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
     const audio = new StompAudio();
     engine.resize(canvas.clientWidth || 600);
 
-    const pads = s.solo ? [{ x: 0, z: 0 }] : padPositions(s.size);
+    const fixed: Mode | null = s.mode === "menu" ? null : s.mode;
+    let mode: Mode | null = fixed;
+    let waitingFirst = false;
     // Ville d'attente : la meme mecanique, sans logos ni score, pour que l'ecran vive.
     let preview = new RooftopGame({ size: s.size, roundSeconds: 1e6, shiftStart: 3, shiftEnd: 3 });
     let game: RooftopGame | null = null;
     let line: Lineup = lineup(s.size, [], false);
     let picked: number[] = [];
-    let teamMode = false;
-    let teamToggledAt = -9;
     let phaseAt = performance.now() / 1000;
     let lobbyEnds = 0;
     let lastCount = -1;
@@ -99,8 +114,8 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
       window.setTimeout(() => setPopups((list) => list.filter((p) => p.id !== id)), 900);
     };
     const resetLobby = () => {
-      picked = []; teamMode = false;
-      setJoined([]); setTeams(false);
+      picked = []; mode = fixed; waitingFirst = false;
+      setJoined([]); setChosen(fixed); setWaiting(false);
       engine.setOwnerColors(SIDE_HEX);
       engine.setZones([], [], 0);
       preview = new RooftopGame({ size: s.size, roundSeconds: 1e6, shiftStart: 3, shiftEnd: 3 });
@@ -129,23 +144,32 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
         const ph = phaseRef.current;
         const now = performance.now() / 1000;
         if (ph === "attract" || ph === "lobby") {
-          pads.forEach((p, i) => {
-            if (picked.includes(i) || !pts.some((q) => Math.hypot(q.x - p.x, q.z - p.z) <= PAD_RADIUS + 0.1)) return;
+          const near = (p: { x: number; z: number }) => pts.some((q) => Math.hypot(q.x - p.x, q.z - p.z) <= PAD_RADIUS + 0.1);
+          // 1. Accueil : choisir un mode.
+          if (mode === null) {
+            const hit = menuPads(s.size).find(near);
+            if (!hit) return;
+            mode = hit.m;
+            setChosen(mode);
+            engine.collect(hit.x, hit.z, true, 0);
+            audio.tick();
+            if (mode === "solo") { picked = [0]; setJoined(picked); lobbyEnds = now; }
+            else { waitingFirst = true; setWaiting(true); lobbyEnds = now + WAIT_FIRST_S; }
+            go("lobby");
+            return;
+          }
+          // 2. Inscription sur les plaques du mode.
+          padsFor(mode, s.size).forEach((p, i) => {
+            if (picked.includes(i) || !near(p)) return;
             picked = [...picked, i];
             setJoined(picked);
-            engine.collect(p.x, p.z, false, teamMode ? (i <= 1 ? 0 : 1) : i);
+            engine.collect(p.x, p.z, false, mode === "teams" ? (i <= 1 ? 0 : 1) : i);
             audio.hit(picked.length * 3);
-            // Solo : pas d'attente, la partie part tout de suite.
-            if (phaseRef.current === "attract") { go("lobby"); lobbyEnds = performance.now() / 1000 + (s.solo ? 0 : LOBBY_S); }
-            else lobbyEnds = Math.min(phaseAt + LOBBY_MAX_S, Math.max(lobbyEnds, now + 3));
+            if (mode === "solo") lobbyEnds = now; // solo : depart immediat
+            else if (waitingFirst) { waitingFirst = false; setWaiting(false); lobbyEnds = now + LOBBY_S; }
+            else lobbyEnds = Math.min(now + LOBBY_MAX_S, Math.max(lobbyEnds, now + 3)); // un nouveau venu laisse le temps au suivant
+            if (phaseRef.current === "attract") go("lobby");
           });
-          if (!s.solo && pts.some((q) => Math.hypot(q.x, q.z) <= TEAM_PAD_RADIUS + 0.1) && now - teamToggledAt > 0.8) {
-            teamToggledAt = now;
-            teamMode = !teamMode;
-            setTeams(teamMode);
-            engine.collect(0, 0, true, 0);
-            audio.tick();
-          }
           return;
         }
         if (ph === "play" && game) onEvents(game, game.step(pts));
@@ -179,8 +203,12 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
         engine.syncLogos([], now);
         if (ph === "lobby") {
           setLobbyLeft(Math.max(0, Math.ceil(lobbyEnds - now)));
-          if (now >= lobbyEnds) {
-            line = lineup(s.size, picked, teamMode);
+          if (now >= lobbyEnds && picked.length === 0) {
+            // Personne n'est monte : retour a l'accueil.
+            resetLobby();
+            go("attract");
+          } else if (now >= lobbyEnds) {
+            line = lineup(s.size, picked, mode === "teams");
             const ids = line.sides.map((_, i) => sideIdentity(line, i));
             engine.setOwnerColors(ids.map((x) => x.color));
             engine.setZones(line.sides.map((x) => x.zone), ids.map((x) => x.color), 1);
@@ -254,13 +282,13 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
     };
     raf = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(raf); detach(); audio.stopPulse(); engine.dispose(); engineRef.current = null; };
-  }, [s.size, s.seconds, s.logo, s.ws, s.debug, s.solo]);
+  }, [s.size, s.seconds, s.logo, s.ws, s.debug, s.mode]);
 
   useEffect(() => { engineRef.current?.resize(box.size); }, [box.size]);
 
   const pct = (v: number) => `${(v / s.size + 0.5) * 100}%`;
   const u = box.size;
-  const pads = s.solo ? [{ x: 0, z: 0 }] : padPositions(s.size);
+  const pads = chosen ? padsFor(chosen, s.size) : [];
   const plate = (border: string): React.CSSProperties => ({ background: PLATE, border: `${Math.max(1, u * 0.002)}px solid ${border}`, borderRadius: u * 0.012, padding: `${u * 0.006}px ${u * 0.016}px` });
 
   return (
@@ -281,7 +309,10 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
               <div className="flex flex-col items-center" style={plate("rgba(25,230,214,.55)")}>
                 <p className="fm-display roof-neon" style={{ fontSize: u * 0.065 }}>ROOFTOP</p>
                 <p className="fm-display" style={{ fontSize: u * 0.021, color: INK }}>
-                  {s.solo ? "Marche sur le cercle pour jouer" : phase === "lobby" ? `Départ dans ${lobbyLeft} · les autres, montez !` : "Cours sur les toits · ramasse les logos · évite le vide"}
+                  {chosen === null ? "Choisis ton mode : marche sur sa plaque"
+                    : chosen === "solo" ? "Marche sur le cercle pour jouer"
+                    : waiting ? (chosen === "teams" ? "Rose en bas, turquoise en haut · montez sur vos plaques" : "Chacun sur sa couleur")
+                    : `Départ dans ${lobbyLeft} · les autres, montez !`}
                 </p>
               </div>
             </Mirror>
@@ -299,19 +330,30 @@ export function Rooftop({ s }: { s: RooftopSettings }) {
                     }} />
                   <div className="pointer-events-none absolute flex flex-col items-center"
                     style={{ left: pct(p.x), top: pct(p.z + (p.z >= 0 ? 0.6 : -0.6)), transform: `translate(-50%,-50%) rotate(${p.z >= 0 ? 0 : 180}deg)`, ...plate(SIDE_HEX[k]) }}>
-                    <span className="fm-display" style={{ fontSize: u * 0.028, color: SIDE_TEXT[k], textShadow: outline(SIDE_HEX[k]) }}>{s.solo ? "JOUER" : on ? "PRÊT" : `J${i + 1}`}</span>
+                    <span className="fm-display" style={{ fontSize: u * 0.028, color: SIDE_TEXT[k], textShadow: outline(SIDE_HEX[k]) }}>{chosen === "solo" ? "JOUER" : on ? "PRÊT" : `J${i + 1}`}</span>
                     {teams && <span className="fm-grotesk" style={{ fontSize: u * 0.016, color: INK }}>Équipe {TEAM_NAMES[k]}</span>}
                   </div>
                 </div>
               );
             })}
-            {!s.solo && <>
-            <div className="pointer-events-none absolute left-1/2 top-1/2 grid place-items-center rounded-full"
-              style={{ width: `${(TEAM_PAD_RADIUS * 2 / s.size) * 100}%`, height: `${(TEAM_PAD_RADIUS * 2 / s.size) * 100}%`, transform: "translate(-50%,-50%)", border: `${u * 0.006}px solid ${teams ? "#ffd166" : "#b9a6e8"}`, background: "rgba(9,5,18,.7)" }} />
-            <div className="pointer-events-none absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, ${u * 0.07}px)`, ...plate(teams ? "#ffd166" : "rgba(201,188,230,.5)") }}>
-              <span className="fm-display" style={{ fontSize: u * 0.021, color: teams ? "#ffd166" : INK }}>{teams ? "ÉQUIPES 2v2 · ON" : "ÉQUIPES 2v2"}</span>
-            </div>
-            </>}
+            {/* Accueil : une plaque par mode, etiquette lisible des deux cotes du sol. */}
+            {chosen === null && menuPads(s.size).map((p) => (
+              <div key={p.m}>
+                <div className="pointer-events-none absolute rounded-full"
+                  style={{
+                    left: pct(p.x), top: pct(p.z), width: `${(PAD_RADIUS * 2 / s.size) * 100}%`, height: `${(PAD_RADIUS * 2 / s.size) * 100}%`,
+                    transform: "translate(-50%,-50%)", border: `${u * 0.008}px solid ${MODE_COLOR[p.m]}`, background: "rgba(9,5,18,.6)",
+                    boxShadow: `0 0 ${u * 0.03}px ${MODE_COLOR[p.m]}, inset 0 0 ${u * 0.02}px ${MODE_COLOR[p.m]}`,
+                  }} />
+                {[1, -1].map((side) => (
+                  <div key={side} className="pointer-events-none absolute flex flex-col items-center"
+                    style={{ left: pct(p.x), top: pct(p.z + side * 0.62), transform: `translate(-50%,-50%) rotate(${side > 0 ? 0 : 180}deg)`, ...plate(MODE_COLOR[p.m]) }}>
+                    <span className="fm-display whitespace-nowrap" style={{ fontSize: u * 0.03, color: INK, textShadow: outline(MODE_COLOR[p.m]) }}>{MODE_LABEL[p.m]}</span>
+                    <span className="fm-grotesk whitespace-nowrap" style={{ fontSize: u * 0.016, color: MUTED }}>{MODE_HINT[p.m]}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </>
         )}
 

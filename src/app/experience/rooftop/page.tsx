@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 //   ws=ws://127.0.0.1:7777   relais des capteurs du sol (sinon souris / tactile)
 //   px=1024&ox=0&oy=0        zone de pixels du sol LED dans l'image envoyee
 //   debug=1     etat, images par seconde, source des appuis
-//   mode=solo   un seul joueur : une plaque au centre, depart immediat, tout le sol
+//   mode=solo | 2v2 | 4   bloque un mode (sinon l'accueil propose les trois)
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const q = await searchParams;
   const num = (v: string | undefined, min: number, max: number, def: number | null) => {
@@ -30,7 +30,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
     ox: num(q.ox, 0, 8192, null),
     oy: num(q.oy, 0, 8192, null),
     debug: q.debug === "1",
-    solo: q.mode === "solo" || q.players === "1",
+    // Sans parametre : l'accueil propose SOLO, 2v2 et 4 JOUEURS. Sinon le mode est bloque.
+    mode: q.mode === "solo" || q.players === "1" ? "solo" : q.mode === "2v2" ? "teams" : q.mode === "4" || q.players === "4" ? "versus" : "menu",
   };
   return <Rooftop s={s} />;
 }
