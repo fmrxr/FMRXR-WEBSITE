@@ -13,6 +13,7 @@ import { TeamGallery } from "./TeamGallery";
 import { CameraPicker, readCamera, readMirror, subscribeMirror } from "./CameraPicker";
 import { useRemoteCamera } from "./useRemoteCamera";
 import { RemotePair } from "./RemotePair";
+import { locateFaces, type FaceBox } from "./faceBox";
 import { EXPRESSION_LABEL } from "@/lib/photobooth/expression";
 import { STYLES, type StyleId } from "@/lib/photobooth/styles";
 
@@ -90,6 +91,8 @@ export function Booth({
   const [captureAspect, setCaptureAspect] = useState<CampaignConfig["aspectRatio"]>(config.aspectRatio);
   const [answers, setAnswers] = useState<string[]>([]);
   // Camera choisie sur cette borne (CameraPicker), memorisee dans le navigateur.
+  // Visages sur la photo prise, pour recadrer la carte et le Polaroid.
+  const faceRef = useRef<FaceBox | null>(null);
   const [cameraId, setCameraId] = useState<string | null>(() => (typeof window === "undefined" ? null : readCamera(slug)));
   // Camera iPhone a distance (QR, meme Wi-Fi) : prioritaire quand elle est connectee.
   const remote = useRemoteCamera(slug);
@@ -673,6 +676,9 @@ export function Booth({
       window.setTimeout(() => setFlash(false), 450);
       setPhoto({ blob, url: URL.createObjectURL(blob) });
       idemRef.current = uuid(); // une photo confirmee = une cle = au plus une image facturee
+      // Mesure des visages pendant la confirmation (pas d'attente pour l'invite).
+      faceRef.current = null;
+      void locateFaces(c).then((b) => { faceRef.current = b; });
       setStep("confirm");
     };
     c.toBlob((b) => done(b, false), "image/jpeg", 0.92);
@@ -740,6 +746,7 @@ export function Booth({
     fd.set("shot", shot ?? "solo");
     fd.set("style", style);
     fd.set("locale", locale);
+    if (faceRef.current) fd.set("face", JSON.stringify(faceRef.current));
     if (expression.reading && shot !== "group") fd.set("expr", expression.reading);
     fd.set("image", photo.blob, "portrait.jpg");
     try {

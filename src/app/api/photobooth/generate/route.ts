@@ -1,3 +1,4 @@
+import { parseFaceBox, type FaceBox } from "@/lib/photobooth/face";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sniffImage } from "@/lib/photobooth/image";
@@ -77,6 +78,14 @@ export async function POST(req: Request) {
   const style: StyleId = isStyleId(styleRaw) && loaded.config.styles.includes(styleRaw) ? styleRaw : loaded.config.styles[0];
   const localeRaw = form.get("locale");
   const locale = typeof localeRaw === "string" && ["fr", "en", "ar"].includes(localeRaw) ? localeRaw : loaded.config.defaultLocale;
+  // Rectangle des visages mesure sur la borne (recadrage des mises en page).
+  let face: FaceBox | null = null;
+  try {
+    const raw = form.get("face");
+    face = typeof raw === "string" && raw.length < 300 ? parseFaceBox(JSON.parse(raw)) : null;
+  } catch {
+    face = null;
+  }
 
   const provider = getProvider();
   if (!provider) return err("PROVIDER_NOT_CONFIGURED", 503);
@@ -86,7 +95,7 @@ export async function POST(req: Request) {
   await reconcileStale(loaded.campaign.id, provider, db);
 
   const r = await startGeneration(
-    { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression, shot, aspect, style, locale },
+    { campaignId: loaded.campaign.id, config: loaded.config, answers, sessionId: session, idempotencyKey: idem, image: { bytes, type }, expression, shot, aspect, style, locale, face },
     { db, provider },
   );
   if (!r.ok) {

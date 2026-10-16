@@ -48,6 +48,8 @@ export type MoodProfile = {
   style: StyleId;
   /** Langue du visiteur : textes des mises en page. */
   locale?: string;
+  /** Visages sur la photo (0-1), mesures sur la borne : recadrage des mises en page. */
+  face?: { x: number; y: number; w: number; h: number };
 };
 
 function pick(config: CampaignConfig, answers: Answers) {

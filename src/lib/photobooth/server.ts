@@ -10,6 +10,7 @@ import { STYLES, isStyleId } from "./styles";
 import { EXPRESSION_LABEL, EXPRESSIONS, type ExpressionId } from "./expression";
 import type { Locale } from "./config";
 import { isHidden } from "./gallery-access";
+import { parseFaceBox } from "./face";
 
 // Cote serveur uniquement : client service_role, cle Higgsfield.
 
@@ -239,7 +240,7 @@ export async function finalOptionsForUsage(usageId: string): Promise<FinalOption
   const cfg = resolveConfig(campaign?.config);
   const mood = (data.mood ?? {}) as {
     title?: Record<string, string>; description?: Record<string, string>;
-    style?: string; locale?: string; expressionReading?: string;
+    style?: string; locale?: string; expressionReading?: string; face?: unknown;
   };
   const loc: "fr" | "en" = mood.locale === "en" || mood.locale === "ar" ? "en" : "fr";
   const style = isStyleId(mood.style) ? STYLES[mood.style] : STYLES.mood;
@@ -253,6 +254,7 @@ export async function finalOptionsForUsage(usageId: string): Promise<FinalOption
   return {
     clientLogoUrl: cfg.ok ? cfg.config.clientLogoUrl : "",
     layout: style.layout,
+    face: parseFaceBox(mood.face),
     text: {
       title: mood.title?.[loc] ?? "",
       subtitle: mood.description?.[loc] ?? "",

@@ -3,6 +3,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { FMRXR_LOGO_DARK_SVG } from "./brand-logo";
 import type { Layout } from "./styles";
+import type { FaceBox } from "./face";
 
 // Mises en page composees par nous apres generation (le texte n'est jamais
 // demande a l'IA). Polices Geist embarquees (OFL) : le rendu ne depend pas
@@ -87,12 +88,33 @@ const gradient = (w: number, h: number, from: number, to: number, dir: "down" | 
 );
 
 // ---------- Polaroid ----------
-async function polaroid(src: Buffer, t: LayoutText, client: Buffer | null) {
+/**
+ * Recadre l'image au format de la fenetre. Visages connus : ils sont places
+ * dans le tiers haut de la fenetre (le cadrage d'origine est garde a la
+ * generation, le visage n'est donc plus forcement au centre). Sinon, zone la
+ * plus saillante (sharp « attention »).
+ */
+async function fitWindow(src: Buffer, w: number, h: number, face: FaceBox | null): Promise<Buffer> {
+  if (!face) return sharp(src).rotate().resize(w, h, { fit: "cover", position: sharp.strategy.attention }).toBuffer();
+  const { data, info } = await sharp(src).rotate().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height;
+  const target = w / h;
+  let cw = W, ch = Math.round(W / target);
+  if (ch > H) { ch = H; cw = Math.round(H * target); }
+  const cx = (face.x + face.w / 2) * W;
+  const cy = (face.y + face.h / 2) * H;
+  const clamp = (v: number, max: number) => Math.round(Math.min(Math.max(0, v), Math.max(0, max)));
+  const left = clamp(cx - cw / 2, W - cw);
+  const top = clamp(cy - ch * 0.38, H - ch);
+  return sharp(data).extract({ left, top, width: cw, height: ch }).resize(w, h).toBuffer();
+}
+
+async function polaroid(src: Buffer, t: LayoutText, client: Buffer | null, face: FaceBox | null) {
   const W = 1600;
   const side = 90;
   const photo = W - side * 2;
   const H = side + photo + 430;
-  const img = await sharp(src).rotate().resize(photo, photo, { fit: "cover", position: sharp.strategy.attention }).toBuffer();
+  const img = await fitWindow(src, photo, photo, face);
   const title = await text(t.title, "medium", 70, "#1c1b22", photo - 40, "left");
   const date = await text(t.date, "mono", 30, "#6b6a75", 600);
   const logo = await fmrxrLogo(46);
@@ -188,7 +210,7 @@ function serialOf(t: LayoutText): string {
   return String((h >>> 0) % 100000000).padStart(8, "0");
 }
 
-async function card(src: Buffer, t: LayoutText, client: Buffer | null) {
+async function card(src: Buffer, t: LayoutText, client: Buffer | null, face: FaceBox | null) {
   const W = 1600, H = 2400;
   // boitier, etiquette, carte
   const S = { x: 170, y: 170, w: 1260, h: 2060, r: 52 };
@@ -198,7 +220,7 @@ async function card(src: Buffer, t: LayoutText, client: Buffer | null) {
 
   // fenetre d'illustration
   const A = { x: 80, y: 178, w: 940, h: 700 };
-  const art = await sharp(src).rotate().resize(A.w, A.h, { fit: "cover", position: sharp.strategy.attention }).toBuffer();
+  const art = await fitWindow(src, A.w, A.h, face);
 
   const serial = serialOf(t);
   // code-barres decoratif tire du numero de serie (pas un vrai code lisible)
@@ -313,12 +335,12 @@ async function card(src: Buffer, t: LayoutText, client: Buffer | null) {
   return sharp(base).composite(layers).jpeg({ quality: 93, mozjpeg: true }).toBuffer();
 }
 
-export async function renderLayout(layout: Exclude<Layout, "none">, src: Buffer, t: LayoutText, client: Buffer | null): Promise<Buffer> {
+export async function renderLayout(layout: Exclude<Layout, "none">, src: Buffer, t: LayoutText, client: Buffer | null, face: FaceBox | null = null): Promise<Buffer> {
   switch (layout) {
-    case "polaroid": return polaroid(src, t, client);
+    case "polaroid": return polaroid(src, t, client, face);
     case "magazine": return magazine(src, t, client);
     case "poster": return poster(src, t, client);
-    case "card": return card(src, t, client);
+    case "card": return card(src, t, client, face);
   }
 }
 

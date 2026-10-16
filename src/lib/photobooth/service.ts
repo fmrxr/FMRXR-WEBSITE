@@ -3,6 +3,7 @@ import type { ImageProvider } from "./higgsfield";
 import { buildMoodProfile, buildPortraitPrompt, fitPrompt, validateMoodProfile, type Answers, type MoodProfile, type Shot } from "./mood";
 import type { ExpressionId } from "./expression";
 import type { StyleId } from "./styles";
+import type { FaceBox } from "./face";
 
 // Orchestration d'une generation. Les dependances (base, fournisseur) sont
 // injectees pour que les tests puissent prouver la regle centrale :
@@ -85,6 +86,8 @@ export type StartInput = {
   shot?: Shot;
   style?: StyleId;
   locale?: string;
+  /** Visages sur la photo (mesure de la borne), pour recadrer les mises en page. */
+  face?: FaceBox | null;
   /** Format decide par le serveur (chooseAspect), sinon celui de la campagne. */
   aspect?: CampaignConfig["aspectRatio"];
 };
@@ -99,6 +102,7 @@ export async function startGeneration(input: StartInput, deps: { db: PhotoboothD
     // Graine = cle de la photo : une relance retombe sur la meme mise en scene.
     mood = buildMoodProfile(input.answers, input.config, input.idempotencyKey, input.expression ?? null, input.shot ?? "solo", input.style ?? "mood");
     if (input.locale) mood.locale = input.locale;
+    if (input.face) mood.face = input.face;
   } catch {
     return { ok: false, error: "INVALID_ANSWERS" };
   }

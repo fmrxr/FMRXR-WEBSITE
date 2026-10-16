@@ -1,4 +1,5 @@
 import "server-only";
+import type { FaceBox } from "./face";
 import sharp from "sharp";
 import { FMRXR_LOGO_DARK_SVG } from "./brand-logo";
 import { renderLayout, type LayoutText } from "./layouts";
@@ -103,7 +104,7 @@ export async function brandPortrait(source: Buffer, clientLogoUrl: string): Prom
   return img.composite(layers).jpeg({ quality: 92, mozjpeg: true }).toBuffer();
 }
 
-export type FinalOptions = { clientLogoUrl: string; layout: Layout; text: LayoutText };
+export type FinalOptions = { clientLogoUrl: string; layout: Layout; text: LayoutText; face?: FaceBox | null };
 
 /**
  * Image finale : mise en page du style (couverture, affiche, carte, Polaroid)
@@ -111,7 +112,7 @@ export type FinalOptions = { clientLogoUrl: string; layout: Layout; text: Layout
  * est relu par l'ecran, le QR, l'impression et la galerie.
  */
 export async function finalFromUrl(resultUrl: string, o: FinalOptions): Promise<Buffer | null> {
-  const key = `${resultUrl}|${o.clientLogoUrl}|${o.layout}|${o.text.title}|${o.text.masthead}`;
+  const key = `${resultUrl}|${o.clientLogoUrl}|${o.layout}|${o.text.title}|${o.text.masthead}|${o.face ? JSON.stringify(o.face) : ""}`;
   const hit = CACHE.get(key);
   if (hit) return hit;
   // Meme portrait demande plusieurs fois en meme temps (galerie, QR, ecran) :
@@ -165,7 +166,7 @@ async function compose(resultUrl: string, o: FinalOptions, key: string): Promise
   }
   const out = o.layout === "none"
     ? await brandPortrait(src, o.clientLogoUrl)
-    : await renderLayout(o.layout, src, o.text, o.clientLogoUrl ? await clientLogo(o.clientLogoUrl) : null);
+    : await renderLayout(o.layout, src, o.text, o.clientLogoUrl ? await clientLogo(o.clientLogoUrl) : null, o.face ?? null);
   CACHE.set(key, out);
   if (CACHE.size > MAX_CACHE) CACHE.delete(CACHE.keys().next().value!);
   return out;
