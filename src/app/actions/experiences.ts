@@ -3,11 +3,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { assertRole } from "@/lib/auth";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { EXPERIENCES, PHOTOBOOTH_SLUG } from "@/lib/experiences";
+import { CONFIGURABLE_SLUGS } from "@/lib/experiences";
 
 // Visibilité des expériences sur /experiences (site_settings.experiences_visible).
 
-const KNOWN = new Set([PHOTOBOOTH_SLUG, ...EXPERIENCES.map((e) => e.slug)]);
+const KNOWN = new Set(CONFIGURABLE_SLUGS);
 const visibleSchema = z.array(z.string().refine((s) => KNOWN.has(s), "Expérience inconnue")).max(KNOWN.size);
 
 /** null : réglage jamais posé (tout s'affiche). error : colonne absente, migration 0019 à appliquer. */

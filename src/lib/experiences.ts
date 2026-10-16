@@ -106,6 +106,12 @@ export const PHOTOBOOTH_SLUG = "photobooth";
 // Bloc Live Wall : meme principe, cache tant qu'on ne l'active pas dans le CMS.
 export const LIVE_WALL_SLUG = "live-wall";
 
+// Tout ce que le CMS peut afficher ou cacher : les blocs produit, puis le
+// catalogue. L'enregistrement n'accepte que ces slugs ; un bloc ajoute a la
+// page admin sans l'etre ici etait refuse (« Expérience inconnue », 16/10/2026).
+export const PRODUCT_SLUGS = [PHOTOBOOTH_SLUG, LIVE_WALL_SLUG] as const;
+export const CONFIGURABLE_SLUGS: readonly string[] = [...PRODUCT_SLUGS, ...EXPERIENCES.map((e) => e.slug)];
+
 /**
  * Expériences affichées, selon site_settings.experiences_visible (CMS).
  * null = jamais réglé : tout s'affiche. Sinon seules les slugs listées, ce qui
