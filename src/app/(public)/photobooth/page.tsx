@@ -8,18 +8,49 @@ import { STYLE_IDS, STYLES } from "@/lib/photobooth/styles";
 // Nombre de styles calcule : la page suit la liste (styles.ts).
 const STYLE_COUNT = STYLE_IDS.length;
 
+// SEO : les termes que cherchent les organisateurs (AI photo booth, brand
+// activation, magazine cover / movie poster / trading card photo booth).
 export const metadata: Metadata = {
-  title: "AI Photobooth · Branded portraits for events",
+  title: "AI Photo Booth for Brand Activations & Events",
   description:
-    `FMRXR's AI Photobooth: software that runs on any existing photobooth or an iPhone, gesture-driven, a high-end portrait in under a minute. ${STYLE_COUNT} styles from editorial to tarot cards, your logo on every image, a team gallery, print and QR sharing, image quotas enforced per package.`,
+    `Turn any photobooth, or an iPhone, into an AI portrait studio for brand events. Gesture-controlled, your logo on every image, ${STYLE_COUNT} styles from magazine covers to movie posters and trading cards. Print, QR sharing, fixed packages.`,
+  keywords: [
+    "AI photo booth", "AI photobooth", "branded photo booth", "brand activation", "event photo booth",
+    "magazine cover photo booth", "movie poster photo booth", "trading card photo booth", "instant photo booth",
+    "AI portrait", "gesture photo booth", "photobooth Tunisia", "photobooth Paris", "FMRXR",
+  ],
   alternates: { canonical: "/photobooth" },
   openGraph: {
     type: "website",
     url: "/photobooth",
-    title: "AI Photobooth · FMRXR//",
-    description: "Branded AI portraits for events: gestures, styles, print, QR, package control.",
+    title: "AI Photo Booth for Brand Activations · FMRXR//",
+    description: "Your guests leave with a portrait signed by your brand, in under a minute. Works with the booth you already have.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AI Photo Booth for Brand Activations · FMRXR//",
+    description: "Your guests leave with a portrait signed by your brand, in under a minute.",
   },
 };
+
+// Questions des acheteurs (FAQ visible + donnees structurees FAQPage).
+// Uniquement ce que le logiciel fait aujourd'hui.
+const FAQ: [string, string][] = [
+  ["Does it work with the photobooth we already have?",
+    "Yes. Any booth with a screen, a camera and a modern browser (Chrome, Edge or Safari) runs it from a link: kiosk, mirror booth, totem, tablet stand. An iPhone on the same Wi-Fi can also serve as the camera, no app to install."],
+  ["How long does a portrait take?",
+    "Under a minute from the photo to the finished portrait, shown on screen, downloadable by QR code and printable on site."],
+  ["Is our brand on every image?",
+    "Yes. Your official logo appears on the screen, the download, the shared page and the print, and the AI receives it as a reference so it never invents a fake brand mark. Styles, titles and texts are set for your campaign."],
+  ["Do guests still look like themselves?",
+    "In editorial styles, only the light, the set and the colour grade change: the face, the pose and the framing stay the guest's own. Transformation styles reinterpret the guest while keeping a recognisable likeness."],
+  ["What happens to guests' photos?",
+    "Gestures and expression are read on the device and never sent. Only the photo the guest confirms is sent to generate the portrait. Portraits stay available to the organiser for 7 days, and any portrait can be removed from the gallery in one tap."],
+  ["How is it priced?",
+    "Per event package: a number of portraits, a daily limit and a budget agreed in advance and enforced automatically. No surprise costs. Tell us your date and audience for a quote."],
+  ["Which languages do guests see?",
+    "French, English and Arabic, switchable on the booth."],
+];
 
 const STEPS: [string, string, BoothIconKind][] = [
   ["Learn by doing", "A ten-second tutorial on the live camera: raise a hand, hold it until the frame fills. Hand tracking runs on the device: nothing is sent.", "hand"],
@@ -60,17 +91,17 @@ export default function Photobooth() {
     <>
       <PageHero
         index="New · FMRXR Experience"
-        title="AI Photobooth"
-        intro="Your guests, portrayed by your brand. AI portrait software that turns any existing photobooth into a high-end portrait studio, driven by three gestures, built for brand activations, launches and festivals."
+        title="AI Photo Booth"
+        intro="Your guests leave with a portrait signed by your brand, in under a minute. FMRXR's AI photo booth turns the booth you already have, or an iPhone, into a portrait studio driven by gestures. Built for brand activations, product launches and festivals, and run under live conditions."
       />
 
       <section className="mx-auto flex max-w-[1200px] flex-wrap gap-3 px-5 md:px-8">
         <Link href="/start?ref=photobooth" data-cta="photobooth-page-start" className="rounded-full bg-fmfg px-6 py-3 text-sm font-semibold text-fmbg transition hover:bg-fmaccent">
-          Book it for your event
+          Get a quote for your event
         </Link>
-        <Link href="/experiences" data-cta="photobooth-page-experiences" className="rounded-full border border-fmborder px-6 py-3 text-sm text-fmfg/85 transition hover:border-fmfg/50">
-          Other experiences
-        </Link>
+        <a href="#styles" data-cta="photobooth-page-styles" className="rounded-full border border-fmborder px-6 py-3 text-sm text-fmfg/85 transition hover:border-fmfg/50">
+          See the {STYLE_COUNT} styles
+        </a>
       </section>
 
       {/* Le film de la borne (BRAND/Motion/fmrxr-photobooth-film) : la facilité,
@@ -120,7 +151,7 @@ export default function Photobooth() {
         </ol>
       </section>
 
-      <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-24">
+      <section id="styles" className="mx-auto max-w-[1200px] scroll-mt-24 border-t border-fmborder px-5 py-20 md:px-8 md:py-24">
         <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— Styles</p>
         <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">{STYLE_COUNT} styles, activated per client</h2>
         <p className="fm-grotesk mt-4 max-w-2xl text-[15px] leading-relaxed text-fmfg/80">
@@ -178,13 +209,56 @@ export default function Photobooth() {
         </div>
       </section>
 
+      <section id="faq" className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-24">
+        <p className="text-[11px] uppercase tracking-[0.15em] text-fmmuted">— Questions</p>
+        <h2 className="fm-display mt-3 text-[clamp(1.8rem,4vw,3rem)] text-fmfg">What event teams ask us</h2>
+        <div className="mt-8 divide-y divide-fmborder overflow-hidden rounded-xl border border-fmborder">
+          {FAQ.map(([q, a]) => (
+            <details key={q} className="group bg-fmbg p-6">
+              <summary className="fm-display cursor-pointer list-none text-lg text-fmfg marker:hidden">
+                <span className="flex items-center justify-between gap-4">
+                  {q}
+                  <span aria-hidden className="text-fmaccent transition group-open:rotate-45">+</span>
+                </span>
+              </summary>
+              <p className="fm-grotesk mt-3 max-w-3xl text-[15px] leading-relaxed text-fmmuted">{a}</p>
+            </details>
+          ))}
+        </div>
+        {/* Donnees structurees : FAQ et service, pour les resultats enrichis de Google. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "Service",
+                name: "FMRXR AI Photo Booth",
+                serviceType: "AI photo booth for brand activations and events",
+                description: "AI portrait software for events: works with any photobooth or an iPhone, gesture-controlled, branded portraits in under a minute, print and QR sharing.",
+                url: "https://fmrxr.com/photobooth",
+                provider: { "@type": "Organization", name: "FMRXR Studio", url: "https://fmrxr.com" },
+                areaServed: ["Tunisia", "France", "Europe", "Middle East and North Africa"],
+                availableLanguage: ["French", "English", "Arabic"],
+              },
+            ]),
+          }}
+        />
+      </section>
+
       <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-24 text-center md:px-8 md:py-32">
-        <h2 className="fm-display text-[clamp(2rem,5vw,3.6rem)] text-fmfg">Bring it to your next event.</h2>
+        <h2 className="fm-display text-[clamp(2rem,5vw,3.6rem)] text-fmfg">Your brand, in every guest’s camera roll.</h2>
         <p className="fm-grotesk mx-auto mt-4 max-w-xl text-[15px] text-fmfg/80">
-          Tell us the date, the venue, the audience and the booth you use. We set up your styles, your package and your branding.
+          Send us the date, the venue, the audience and the booth you use. We set your styles, your package and your branding,
+          from brief to opening night.
         </p>
         <Link href="/start?ref=photobooth" data-cta="photobooth-page-bottom" className="mt-8 inline-block rounded-full bg-fmfg px-7 py-3.5 text-sm font-semibold text-fmbg transition hover:bg-fmaccent">
-          Start a project
+          Get a quote
         </Link>
       </section>
     </>

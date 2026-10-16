@@ -53,29 +53,47 @@ export const STYLES: Record<StyleId, StyleDef> = {
   },
   polaroid: {
     id: "polaroid", family: "editorial", layout: "polaroid",
-    label: L("Polaroid", "Polaroid", "بولارويد"),
-    blurb: L("Instantané au cadre blanc, couleurs douces et flash.", "Instant photo in a white frame, soft colours and flash.", "صورة فورية بإطار أبيض."),
+    // « Polaroid » est une marque deposee : le style dit « photo instantanee »,
+    // et la description garde « facon Polaroid » (mention descriptive, utile au SEO).
+    label: L("Photo instantanée", "Instant photo", "صورة فورية"),
+    blurb: L(
+      "L'instantané façon Polaroid : cadre blanc, flash doux, signé de votre marque. Fait pour être imprimé, épinglé et posté.",
+      "The Polaroid-style instant print: white frame, soft flash, signed with your brand. Made to be printed, pinned and posted.",
+      "صورة فورية على طريقة بولارويد: إطار أبيض وفلاش ناعم وتوقيع علامتك. لتُطبع وتُعلّق وتُنشر.",
+    ),
     finish: "instant film photograph: on-camera flash look, soft faded instant-film colours, fine grain, slight vignette",
     extra: "Keep the face well inside the centre of the frame.",
   },
   magazine: {
     id: "magazine", family: "editorial", layout: "magazine",
-    label: L("Couverture magazine", "Magazine cover", "غلاف مجلة"),
-    blurb: L("Votre portrait en une, titre et accroches compris.", "Your portrait on the cover, masthead and lines included.", "صورتك على غلاف مجلة."),
+    label: L("Couverture de magazine", "Magazine cover", "غلاف مجلة"),
+    blurb: L(
+      "Chaque invité en couverture du magazine de votre marque : titre, accroches et date posés par nous, jamais inventés par l'IA.",
+      "Every guest on the cover of your brand's magazine: masthead, cover lines and date set by us, never invented by the AI.",
+      "كل ضيف على غلاف مجلة علامتك: العنوان والعبارات والتاريخ من تصميمنا، لا من اختراع الذكاء الاصطناعي.",
+    ),
     treatment: "a fashion magazine cover photograph",
     extra: "Leave calm, uncluttered background space in the top fifth of the image for the magazine title. No text in the image.",
   },
   poster: {
     id: "poster", family: "editorial", layout: "poster",
     label: L("Affiche de film", "Movie poster", "ملصق فيلم"),
-    blurb: L("L'affiche du film dont vous êtes le personnage.", "The poster of the film you star in.", "ملصق فيلم أنت بطله."),
+    blurb: L(
+      "Votre invité en tête d'affiche du film de la soirée : key art de cinéma, titre et générique à vos couleurs.",
+      "Your guest headlines the film of the night: cinema key art, title and credits in your colours.",
+      "ضيفك بطل فيلم السهرة: ملصق سينمائي بعنوان وأسماء بألوان علامتك.",
+    ),
     treatment: "the key art photograph of a feature film poster",
     extra: "Let the lower quarter of the image fall into dark, calm shadow for the film title. No text in the image.",
   },
   card: {
     id: "card", family: "editorial", layout: "card",
     label: L("Carte à collectionner", "Collectible card", "بطاقة للجمع"),
-    blurb: L("Une carte de jeu vintage numérotée 1/1, dans son boîtier de gradation.", "A vintage trading card numbered 1/1, in its graded case.", "بطاقة لعب كلاسيكية مرقّمة 1/1 في علبة تقييمها."),
+    blurb: L(
+      "Une carte 1/1 dans son boîtier gradé, statistiques tirées des réponses de l'invité. Faite pour être collectionnée et partagée.",
+      "A 1/1 trading card in a graded case, its stats drawn from the guest's answers. Built to be collected and shared.",
+      "بطاقة فريدة 1/1 في علبة مُقيَّمة، بإحصاءات من إجابات الضيف. لتُجمع وتُشارك.",
+    ),
     treatment: "a dynamic, high-energy portrait for a premium collectible card",
     extra: "Keep the face and shoulders centred with some space on all sides. No text in the image.",
   },
