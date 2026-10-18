@@ -15,9 +15,9 @@
       href="https://fonts.googleapis.com/css2?family=Goldman:wght@400;700&family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-CS1K8M-F.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/three-L-k6o5mK.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-xdObWL9z.css">
+    <script type="module" crossorigin src="./assets/index-CoSGSpj5.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three--dobm5CU.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-DPUJfY9X.css">
   </head>
   <body>
     <div id="app">
@@ -33,7 +33,14 @@
       </header>
 
       <!-- ── Guided run: the four strokes ─────────────────────────── -->
-      <nav id="tour" aria-label="Guided run">
+      <!-- ── Modes: one experience at a time ─────────────────────────── -->
+      <nav id="modes" aria-label="Experience">
+        <button data-go="engine" aria-pressed="true">ENGINE</button>
+        <button data-go="club" aria-pressed="false">CLUB</button>
+        <button data-go="fly" aria-pressed="false">FLY</button>
+      </nav>
+
+      <nav id="tour" aria-label="Guided run" data-modes="engine">
         <button class="tour-tab" data-chapter="0">SUCK</button>
         <button class="tour-tab" data-chapter="1">SQUEEZE</button>
         <button class="tour-tab" data-chapter="2">BANG</button>
@@ -42,7 +49,7 @@
       </nav>
 
       <!-- ── Cabin announcement ───────────────────────────────────── -->
-      <section id="pa" class="hidden" aria-live="polite">
+      <section id="pa" class="hidden" aria-live="polite" data-modes="engine">
         <div class="pa-head">
           <span class="ding">&#9670;</span>
           <span>CABIN ANNOUNCEMENT</span>
@@ -67,7 +74,7 @@
       </aside>
 
       <!-- ── Engine instruments ───────────────────────────────────── -->
-      <section id="instruments" aria-label="Engine instruments">
+      <section id="instruments" aria-label="Engine instruments" data-modes="engine">
         <div class="inst-head">
           <span id="inst-engine">ENG 1</span>
           <span id="inst-state" class="dim">SHUTDOWN</span>
@@ -112,27 +119,27 @@
 
         <div id="panel-body">
           <div class="korry-bank">
-            <button class="korry" data-action="master" data-state="off">
+            <button class="korry" data-action="master" data-state="off" data-modes="engine fly">
               <span class="k1">ENG</span><span class="k2">MASTER</span>
             </button>
-            <button class="korry" data-action="engine" data-value="L" data-state="on">
+            <button class="korry" data-action="engine" data-value="L" data-state="on" data-modes="engine">
               <span class="k1">ENG</span><span class="k2">1 &middot; LEFT</span>
             </button>
-            <button class="korry" data-action="airflow" data-state="on">
+            <button class="korry" data-action="airflow" data-state="on" data-modes="engine">
               <span class="k1">AIR</span><span class="k2">FLOW</span>
             </button>
             <button class="korry" data-action="audio" data-state="off">
               <span class="k1">CABIN</span><span class="k2">AUDIO</span>
             </button>
-            <button class="korry" data-action="tour" data-state="off">
+            <button class="korry" data-action="tour" data-state="off" data-modes="engine">
               <span class="k1">GUIDED</span><span class="k2">RUN</span>
             </button>
-            <button class="korry warn" data-action="reset" data-state="off">
+            <button class="korry warn" data-action="reset" data-state="off" data-modes="engine">
               <span class="k1">RTN</span><span class="k2">BASE</span>
             </button>
           </div>
 
-          <div class="throttle-block">
+          <div class="throttle-block" data-modes="engine fly">
             <label for="throttle">THRUST LEVER</label>
             <input id="throttle" type="range" min="0" max="100" value="0" step="0.5"
                    aria-valuetext="0 percent" />
@@ -141,7 +148,7 @@
             </div>
           </div>
 
-          <div class="mode-block">
+          <div class="mode-block" data-modes="engine">
             <span class="block-label">INSPECTION</span>
             <div class="seg" role="radiogroup" aria-label="Inspection mode">
               <button class="seg-btn active" data-action="mode" data-value="normal" role="radio" aria-checked="true">NORMAL</button>
@@ -150,7 +157,7 @@
             </div>
           </div>
 
-          <div class="mode-block">
+          <div class="mode-block" data-modes="engine">
             <span class="block-label">VIEW</span>
             <div class="seg" role="radiogroup" aria-label="Camera state">
               <button class="seg-btn" data-action="camera" data-value="CAMERA_AIRPORT" role="radio" aria-checked="false">APRON</button>
@@ -159,16 +166,17 @@
             </div>
           </div>
 
-          <div class="mode-block">
+          <div class="mode-block" data-modes="club fly">
             <span class="block-label">ON BOARD</span>
             <div class="seg" role="radiogroup" aria-label="Camera on board">
-              <button class="seg-btn" data-action="camera" data-value="CAMERA_COCKPIT" role="radio" aria-checked="false">COCKPIT</button>
-              <button class="seg-btn" data-action="camera" data-value="CAMERA_PILOT" role="radio" aria-checked="false">OBSERVER · 6</button>
-              <button class="seg-btn" data-action="camera" data-value="CAMERA_CAPTAIN" role="radio" aria-checked="false">CAPTAIN · 7</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_COCKPIT" role="radio" aria-checked="false" data-modes="club">DJ BOOTH</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_CHASE" role="radio" aria-checked="false" data-modes="fly">CHASE</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_PILOT" role="radio" aria-checked="false" data-modes="fly">OBSERVER · 6</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_CAPTAIN" role="radio" aria-checked="false" data-modes="fly">CAPTAIN · 7</button>
             </div>
           </div>
 
-          <div class="mode-block">
+          <div class="mode-block" data-modes="club">
             <span class="block-label">CLUB</span>
             <div class="seg" role="radiogroup" aria-label="Camera in the club">
               <button class="seg-btn" data-action="camera" data-value="CAMERA_FRONT_ROW" role="radio" aria-checked="false">FRONT · 8</button>
@@ -178,27 +186,41 @@
             </div>
           </div>
 
-          <div class="mode-block">
+          <div class="mode-block" data-modes="fly">
             <span class="block-label">FLIGHT</span>
             <div class="seg">
-              <button class="seg-btn" data-action="fly" role="switch" aria-checked="false">FLY OVER PARIS · P</button>
               <button class="seg-btn" data-action="autopilot" role="switch" aria-checked="false">AUTOPILOT TOUR · V</button>
+              <button class="seg-btn" data-action="fly" role="switch" aria-checked="false">BACK TO STAND · P</button>
             </div>
           </div>
 
-          <div class="mode-block">
+          <div class="mode-block" data-modes="fly">
+            <span class="block-label">DIRECT TO</span>
+            <select id="direct-to" aria-label="Fly to a place">
+              <option value="">Choose a place, or click one in the sky</option>
+            </select>
+          </div>
+
+          <div class="mode-block" data-modes="engine club">
             <span class="block-label">HULL &amp; SCREENS</span>
             <div class="seg">
               <button class="seg-btn active" data-action="hull" role="radio" aria-checked="true">HULL · O</button>
-              <button class="seg-btn active" data-action="shell" role="radio" aria-checked="true">OUTSIDE · K</button>
-              <button class="seg-btn active" data-action="cabinscreen" role="radio" aria-checked="true">CABIN · J</button>
+              <button class="seg-btn" data-action="shell" role="radio" aria-checked="false">OUTSIDE · K</button>
+              <button class="seg-btn" data-action="cabinscreen" role="radio" aria-checked="false">CABIN · J</button>
+            </div>
+          </div>
+
+          <div class="mode-block" data-modes="engine">
+            <span class="block-label">ENGINEERING</span>
+            <div class="seg">
+              <button class="seg-btn" data-action="engmode" role="radio" aria-checked="false">READABILITY MODE</button>
             </div>
           </div>
 
           <div class="mode-block">
-            <span class="block-label">ENGINEERING</span>
+            <span class="block-label">COMFORT</span>
             <div class="seg">
-              <button class="seg-btn" data-action="engmode" role="radio" aria-checked="false">READABILITY MODE</button>
+              <button class="seg-btn" id="fewer-flashes" role="switch" aria-checked="false">FEWER FLASHES</button>
             </div>
           </div>
         </div>
@@ -206,16 +228,39 @@
 
       <!-- ── Hint rail ────────────────────────────────────────────── -->
       <footer id="hint">
-        <span><b>DRAG</b> orbit</span><span><b>SCROLL</b> zoom</span><span><b>CLICK</b> inspect</span>
-        <span><b>E</b> explode</span><span><b>C</b> cutaway</span><span><b>SPACE</b> master</span>
-        <span><b>&uarr;&darr;</b> thrust</span><span><b>O</b> hull</span><span><b>K</b> shell</span><span><b>J</b> cabin screen</span><span><b>L</b> listen</span><span><b>H</b> debug</span>
+        <span data-modes="engine"><b>DRAG</b> orbit</span><span data-modes="engine"><b>SCROLL</b> zoom</span><span data-modes="engine"><b>CLICK</b> inspect</span>
+        <span data-modes="engine"><b>E</b> explode</span><span data-modes="engine"><b>C</b> cutaway</span><span data-modes="engine"><b>SPACE</b> master</span>
+        <span data-modes="engine"><b>&uarr;&darr;</b> thrust</span><span data-modes="engine club"><b>O</b> hull</span><span data-modes="engine club"><b>K</b> shell</span><span data-modes="engine club"><b>J</b> cabin screen</span>
+        <span data-modes="club"><b>DRAG</b> look</span><span data-modes="club"><b>SCROLL</b> zoom</span><span data-modes="club"><b>8 5 9 0</b> front · bar · rear · lav</span><span data-modes="club"><b>L</b> listen</span>
+        <span data-modes="fly"><b>W S</b> pitch</span><span data-modes="fly"><b>A D</b> roll</span><span data-modes="fly"><b>&uarr;&darr;</b> thrust</span><span data-modes="fly"><b>U I</b> flaps</span><span data-modes="fly"><b>Y</b> gear</span><span data-modes="fly"><b>B</b> brakes</span><span data-modes="fly"><b>V</b> autopilot</span><span data-modes="fly"><b>CLICK</b> a place to fly there</span>
       </footer>
+
+      <!-- ── Flight: primary flight display, place card, touch controls ─ -->
+      <canvas id="pfd" width="520" height="300" data-modes="fly" aria-hidden="true"></canvas>
+      <section id="place-card" class="hidden" aria-live="polite">
+        <button id="place-close" aria-label="Close">&times;</button>
+        <div class="place-tag" id="place-tag">MORNINGLORY</div>
+        <h2 id="place-name"></h2>
+        <p id="place-where"></p>
+        <p id="place-event"></p>
+        <a id="place-link" target="_blank" rel="noopener" hidden></a>
+      </section>
+      <div id="touch" data-modes="fly" aria-hidden="true">
+        <div id="touch-stick"><i></i></div>
+        <input id="touch-thrust" type="range" min="0" max="100" value="0" aria-label="Thrust" />
+      </div>
+      <div id="deck-loading" class="hidden"><span>FLIGHT DECK</span><b><i></i></b><em>0 %</em></div>
 
       <!-- ── Debug ────────────────────────────────────────────────── -->
       <pre id="debug" class="hidden" aria-hidden="true"></pre>
 
       <!-- ── Boot veil (not a loading screen: scene is live behind) ─ -->
       <div id="boot"><span>SOFI AIRLINES &#9992; SPICY 1 &middot; SYSTEMS ALIGNING</span></div>
+      <div id="flash-notice" role="note">
+        <span>This experience has flashing lights: strobes and a laser.</span>
+        <button id="flash-notice-less">FEWER FLASHES</button>
+        <button id="flash-notice-ok" aria-label="Dismiss">OK</button>
+      </div>
     </div>
 
   </body>
