@@ -15,9 +15,9 @@
       href="https://fonts.googleapis.com/css2?family=Goldman:wght@400;700&family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-DwGpNI27.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/three-B_fvafAg.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-BLDafV3i.css">
+    <script type="module" crossorigin src="./assets/index-DSmBvK3F.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three-CcmIkSr8.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-C391lm-P.css">
   </head>
   <body>
     <div id="app">
@@ -156,7 +156,34 @@
               <button class="seg-btn" data-action="camera" data-value="CAMERA_AIRPORT" role="radio" aria-checked="false">APRON</button>
               <button class="seg-btn" data-action="camera" data-value="CAMERA_AIRCRAFT" role="radio" aria-checked="false">AIRCRAFT</button>
               <button class="seg-btn active" data-action="camera" data-value="CAMERA_ENGINE" role="radio" aria-checked="true">ENGINE</button>
+            </div>
+          </div>
+
+          <div class="mode-block">
+            <span class="block-label">ON BOARD</span>
+            <div class="seg" role="radiogroup" aria-label="Camera on board">
               <button class="seg-btn" data-action="camera" data-value="CAMERA_COCKPIT" role="radio" aria-checked="false">COCKPIT</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_PILOT" role="radio" aria-checked="false">OBSERVER · 6</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_CAPTAIN" role="radio" aria-checked="false">CAPTAIN · 7</button>
+            </div>
+          </div>
+
+          <div class="mode-block">
+            <span class="block-label">CLUB</span>
+            <div class="seg" role="radiogroup" aria-label="Camera in the club">
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_FRONT_ROW" role="radio" aria-checked="false">FRONT · 8</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_BAR" role="radio" aria-checked="false">BAR · 5</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_REAR" role="radio" aria-checked="false">REAR · 9</button>
+              <button class="seg-btn" data-action="camera" data-value="CAMERA_LAV" role="radio" aria-checked="false">LAV · 0</button>
+            </div>
+          </div>
+
+          <div class="mode-block">
+            <span class="block-label">HULL &amp; SCREENS</span>
+            <div class="seg">
+              <button class="seg-btn active" data-action="hull" role="radio" aria-checked="true">HULL · O</button>
+              <button class="seg-btn active" data-action="shell" role="radio" aria-checked="true">OUTSIDE · K</button>
+              <button class="seg-btn active" data-action="cabinscreen" role="radio" aria-checked="true">CABIN · J</button>
             </div>
           </div>
 
@@ -173,7 +200,7 @@
       <footer id="hint">
         <span><b>DRAG</b> orbit</span><span><b>SCROLL</b> zoom</span><span><b>CLICK</b> inspect</span>
         <span><b>E</b> explode</span><span><b>C</b> cutaway</span><span><b>SPACE</b> master</span>
-        <span><b>&uarr;&darr;</b> thrust</span><span><b>H</b> debug</span>
+        <span><b>&uarr;&darr;</b> thrust</span><span><b>O</b> hull</span><span><b>K</b> shell</span><span><b>J</b> cabin screen</span><span><b>L</b> listen</span><span><b>H</b> debug</span>
       </footer>
 
       <!-- ── Debug ────────────────────────────────────────────────── -->
@@ -182,6 +209,6 @@
       <!-- ── Boot veil (not a loading screen: scene is live behind) ─ -->
       <div id="boot"><span>SOFI AIRLINES &#9992; SPICY 1 &middot; SYSTEMS ALIGNING</span></div>
     </div>
-
+
   </body>
 </html>
