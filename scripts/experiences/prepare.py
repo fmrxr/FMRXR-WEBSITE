@@ -114,9 +114,11 @@ def spicy():
     used = set(re.findall(r"models/([\w.-]+\.glb)", code))
     if not used:
         sys.exit("aucun modèle référencé trouvé dans le build SPICY AIRPORT")
+    # (les dossiers restent : models/skins, les livrées, lues par leur index.json)
     for f in os.listdir(os.path.join(d, "models")):
-        if f not in used:
-            os.remove(os.path.join(d, "models", f))
+        p = os.path.join(d, "models", f)
+        if os.path.isfile(p) and f not in used:
+            os.remove(p)
 
 
 def terre():
