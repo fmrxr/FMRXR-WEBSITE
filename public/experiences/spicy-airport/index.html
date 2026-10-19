@@ -12,14 +12,65 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Goldman:wght@400;700&family=Press+Start+2P&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Goldman:wght@400;700&family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-DOt7aSUg.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/three-CB6brZP8.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-7XJLIo0w.css">
+    <style>
+      /* inline, so nothing of the page shows before the stylesheet is in */
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0d0c14; }
+      /* the loading screen, in FMRXR//'s own identity (fmrxr.com, the
+         "generated room" motion style): flat #0D0C14, ink, the green only in the
+         logo's slashes and the live dot */
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        display: grid;
+        place-items: center;
+        background: #0d0c14;
+        pointer-events: none;
+        transition: opacity 800ms ease;
+        font-family: 'Geist Mono', ui-monospace, monospace;
+        color: #f5f5f8;
+      }
+      #boot, #boot * { box-sizing: border-box; }
+      #boot canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+      #boot .boot-top {
+        position: absolute; left: 24px; right: 24px; top: 18px;
+        display: flex; justify-content: space-between; padding-bottom: 10px;
+        border-bottom: 1px solid #1e1b2c;
+        font-size: 10px; letter-spacing: 0.22em; color: #7b7a8e;
+      }
+      #boot .boot-top i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #7bef7b; margin-right: 8px; vertical-align: 1px; animation: boot-blink 1.4s steps(2, start) infinite; }
+      #boot .boot-card {
+        position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px;
+        padding: 28px 36px; width: min(420px, calc(100vw - 32px));
+      }
+      #boot .boot-card img { width: min(328px, 72vw); height: auto; display: block; }
+      #boot .boot-meta { font-size: 13px; letter-spacing: 0.62em; margin-right: -0.62em; color: #f5f5f8; }
+      #boot .boot-bar { width: 100%; height: 1px; background: #1e1b2c; margin-top: 18px; }
+      #boot .boot-bar i { display: block; height: 100%; width: 0; background: #f5f5f8; transition: width 300ms ease; }
+      #boot .boot-status { width: 100%; display: flex; justify-content: space-between; font-size: 9px; letter-spacing: 0.22em; color: #7b7a8e; white-space: nowrap; gap: 12px; }
+      #boot .boot-status b { color: #f5f5f8; font-weight: 500; font-variant-numeric: tabular-nums; }
+      #boot.gone { opacity: 0; }
+      @keyframes boot-blink { 50% { opacity: 0.25; } }
+    </style>
+    <script type="module" crossorigin src="./assets/index-CXJ4R_Af.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three-kr2-CbNy.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-B2yTZNuG.css">
   </head>
   <body>
+    <!-- ── Loading: FMRXR//, Creative Technology, Metaverse ───────── -->
+    <div id="boot" role="status" aria-label="Loading">
+      <canvas aria-hidden="true"></canvas>
+      <div class="boot-top"><span>FMRXR//</span><span>SPICY AIRPORT</span><span><i></i>LIVE</span></div>
+      <div class="boot-card">
+        <img src="brand/fmrxr-logo-tagline-dark.svg" alt="FMRXR// Creative Technology" width="328" height="112" />
+        <div class="boot-meta">METAVERSE</div>
+        <div class="boot-bar"><i></i></div>
+        <div class="boot-status"><span>GENERATING</span><span><b class="boot-pct">000</b> %</span></div>
+      </div>
+    </div>
     <div id="app">
       <canvas id="viewport"></canvas>
       <div id="labels" aria-hidden="true"></div>
@@ -29,7 +80,7 @@
         <div class="lockup">
           <span class="carrier">SOFI AIRLINES</span><span class="tail">&#9992;</span>
         </div>
-        <div class="sub">SPICY AIRPORT &middot; FMRXR CONTROL TOWER</div>
+        <div class="sub">SPICY AIRPORT &middot; FMRXR BRAIN</div>
       </header>
 
       <!-- ── Guided run: the four strokes ─────────────────────────── -->
@@ -38,7 +89,41 @@
         <button data-go="engine" aria-pressed="true">ENGINE</button>
         <button data-go="club" aria-pressed="false">CLUB</button>
         <button data-go="fly" aria-pressed="false">FLY</button>
+        <button data-go="brain" aria-pressed="false">BRAIN</button>
+        <button data-go="drone" aria-pressed="false">DRONE</button>
+        <button data-go="feeds" aria-pressed="false" title="FMRXR BRAIN: cameras, map, controls">&#9673; FEEDS</button>
       </nav>
+
+      <!-- ── The FMRXR 360 drone: its views, its mode, its numbers ──────── -->
+      <section id="drone-hud" data-modes="drone" aria-label="FMRXR 360 drone">
+        <div class="drone-title">FMRXR 360 DRONE</div>
+        <div class="seg" role="radiogroup" aria-label="View">
+          <button class="seg-btn" data-drone-view="fpv">1 · FPV</button>
+          <button class="seg-btn" data-drone-view="360">2 · 360</button>
+          <button class="seg-btn" data-drone-view="chase">3 · CHASE</button>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="Flight mode">
+          <button class="seg-btn" data-drone-mode="easy">EASY</button>
+          <button class="seg-btn" data-drone-mode="angle">ANGLE</button>
+          <button class="seg-btn" data-drone-mode="acro">ACRO</button>
+          <button class="seg-btn" data-drone-reset>&#9003; PAD</button>
+        </div>
+        <div class="drone-read"><span id="drone-speed">0</span> KM/H · <span id="drone-alt">0</span> M</div>
+        <div class="drone-thr"><i id="drone-thr"></i></div>
+        <p class="drone-help" data-help="360">360 VIEW: CLICK AND MOVE THE MOUSE TO LOOK ROUND</p>
+      </section>
+
+      <!-- ── FMRXR BRAIN in the interface: feeds, map, controls ───────── -->
+      <section id="brain-panel" class="hidden" aria-label="FMRXR BRAIN">
+        <header><b>FMRXR BRAIN</b><span>SURVEILLANCE · MAP · SHOW CONTROL</span><button id="brain-close" aria-label="Close">&times;</button></header>
+        <div class="brain-body">
+          <div class="brain-feeds"></div>
+          <div class="brain-side">
+            <div class="brain-map"></div>
+            <div class="brain-keys"></div>
+          </div>
+        </div>
+      </section>
 
       <nav id="tour" aria-label="Guided run" data-modes="engine">
         <button class="tour-tab" data-chapter="0">SUCK</button>
@@ -201,6 +286,13 @@
             </select>
           </div>
 
+          <div class="mode-block" data-modes="fly">
+            <span class="block-label">CITY</span>
+            <div class="seg">
+              <button class="seg-btn" id="buildings-toggle" role="switch" aria-checked="true">BUILDINGS · ON</button>
+            </div>
+          </div>
+
           <div class="mode-block" data-modes="engine club">
             <span class="block-label">HULL &amp; SCREENS</span>
             <div class="seg">
@@ -237,6 +329,8 @@
         <span data-modes="engine"><b>E</b> explode</span><span data-modes="engine"><b>C</b> cutaway</span><span data-modes="engine"><b>SPACE</b> master</span>
         <span data-modes="engine"><b>&uarr;&darr;</b> thrust</span><span data-modes="engine club"><b>O</b> hull</span><span data-modes="engine club"><b>K</b> shell</span><span data-modes="engine club"><b>J</b> cabin screen</span>
         <span data-modes="club"><b>DRAG</b> look</span><span data-modes="club"><b>SCROLL</b> zoom</span><span data-modes="club"><b>8 5 9 0</b> front · bar · rear · lav</span><span data-modes="club"><b>L</b> listen</span>
+        <span data-modes="brain"><b>CLICK + MOVE</b> the mouse to look round</span><span data-modes="brain"><b>CLICK</b> a key on the desk</span>
+        <span data-modes="drone"><b>Z/W S</b> throttle</span><span data-modes="drone"><b>Q/A D</b> sideways</span><span data-modes="drone"><b>&uarr;&darr;</b> forward · back</span><span data-modes="drone"><b>&larr;&rarr;</b> turn</span><span data-modes="drone"><b>SPACE</b> boost</span><span data-modes="drone"><b>1 2 3</b> FPV · 360 · chase</span><span data-modes="drone"><b>M</b> easy · angle · acro</span><span data-modes="drone"><b>&#9003;</b> back to the pad</span><span data-modes="drone"><b>GAMEPAD</b> mode 2</span>
         <span data-modes="fly"><b>W S</b> pitch</span><span data-modes="fly"><b>A D</b> roll</span><span data-modes="fly"><b>&uarr;&darr;</b> thrust</span><span data-modes="fly"><b>U I</b> flaps</span><span data-modes="fly"><b>Y</b> gear</span><span data-modes="fly"><b>B</b> brakes</span><span data-modes="fly"><b>V</b> autopilot</span><span data-modes="fly"><b>CLICK</b> a place to fly there</span>
       </footer>
 
@@ -259,8 +353,6 @@
       <!-- ── Debug ────────────────────────────────────────────────── -->
       <pre id="debug" class="hidden" aria-hidden="true"></pre>
 
-      <!-- ── Boot veil (not a loading screen: scene is live behind) ─ -->
-      <div id="boot"><span>SOFI AIRLINES &#9992; SPICY 1 &middot; SYSTEMS ALIGNING</span></div>
       <div id="flash-notice" role="note">
         <span>This experience has flashing lights: strobes and a laser.</span>
         <button id="flash-notice-less">FEWER FLASHES</button>
