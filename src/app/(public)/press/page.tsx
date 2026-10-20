@@ -77,7 +77,7 @@ const COVERAGE: { outlet: string; title: string; project: string; url: string }[
 
 const FACTS = [
   ["Studio", "FMRXR Studio, creative technology, founded 2017"],
-  ["Artistic identity", "Effet Mère, new media art, in practice since 2009"],
+  ["Artistic identity", "Effet Mère, new media art, in practice since 2018"],
   ["Founder", "Haïfa Al Jamila Becheikh, creative director and new media artist"],
   ["Based", "Tunis, Tunisia"],
   ["Fields", "New media art, generative systems, immersive installation, projection mapping, XR, live A/V"],

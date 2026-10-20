@@ -126,7 +126,7 @@ export default async function About() {
               experience design and the systems that run them.
             </p>
             <p>
-              {s.artist_alias} is the artistic one, in practice since 2009, working on generative systems,
+              {s.artist_alias} is the artistic one, in practice since 2018, working on generative systems,
               immersive installation and audiovisual performance. The hypothesis underneath both is the same.
               The real is not represented, it is generated, and the artist configures conditions of appearance
               rather than producing fixed objects.

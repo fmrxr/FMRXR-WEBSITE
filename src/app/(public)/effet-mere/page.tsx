@@ -28,7 +28,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "A name that is a system, not a label",
     body: [
-      "Effet Mère is the artistic identity of Haïfa Becheikh, adopted in 2009 after several years under a different digital name. It covers VJing, live audiovisual performance, generative systems and contemporary art.",
+      "Effet Mère is the artistic identity of Haïfa Becheikh, adopted in 2018 after several years under a different digital name. It covers VJing, live audiovisual performance, generative systems and contemporary art.",
       "The name does not work as a pseudonym. It works as a condensed ontological proposition, a hypothesis about how the real produces itself and becomes visible. Effet Mère is not a who, it is a how.",
     ],
   },
@@ -82,7 +82,7 @@ export default function EffetMere() {
       <PageHero
         index="Effet Mère"
         title="Reality is not represented. It is generated."
-        intro="New media artist and creative director. Generative systems, immersive installation and audiovisual performance, in practice since 2009."
+        intro="New media artist and creative director. Generative systems, immersive installation and audiovisual performance, in practice since 2018."
       />
 
       <section className="mx-auto max-w-2xl px-5 pb-8 md:px-8">
@@ -126,7 +126,7 @@ export default function EffetMere() {
         url: "https://fmrxr.com/effet-mere",
         jobTitle: "New media artist and creative director",
         description:
-          "New media artist working with generative systems, immersive installation and audiovisual performance. Artistic identity in practice since 2009.",
+          "New media artist working with generative systems, immersive installation and audiovisual performance. Artistic identity in practice since 2018.",
         knowsAbout: [
           "New media art", "Generative art", "Immersive installation",
           "Projection mapping", "Audiovisual performance", "Computational aesthetics",
