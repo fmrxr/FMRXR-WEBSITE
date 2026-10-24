@@ -1,0 +1,5 @@
+{"v": 2, "seq": 1, "type": "flight.stage", "ts": 1792685472000, "song_beat": 432.0, "data": {"stage": "airborne", "elapsed_s": 630.0, "minutes": 10.5, "planned_s": 4200, "progress_0_1": 0.15, "engines_started": true}}
+{"v": 2, "seq": 2, "type": "flight.event", "ts": 1792685474000, "song_beat": 432.0, "data": {"beat": "turbulence", "song": "ENERGY", "flight": {"stage": "airborne"}, "level": "light", "brace": false, "source": "announcement"}}
+{"v": 2, "seq": 3, "type": "flight.event", "ts": 1792685506000, "song_beat": 432.0, "data": {"beat": "turbulence", "song": "ENERGY", "flight": {"stage": "airborne"}, "level": "heavy", "brace": false, "source": "announcement"}}
+{"v": 2, "seq": 4, "type": "flight.event", "ts": 1792685530000, "song_beat": 432.0, "data": {"beat": "turbulence", "song": "ENERGY", "flight": {"stage": "airborne"}, "level": "heavy", "brace": true, "source": "scene"}}
+{"v": 2, "seq": 5, "type": "clock.bar", "ts": 1792685620000, "song_beat": 432.0, "data": {"bar": 1}}

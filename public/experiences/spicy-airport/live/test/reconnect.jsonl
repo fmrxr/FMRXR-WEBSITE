@@ -1,0 +1,2 @@
+{"v": 2, "seq": 1, "type": "hello", "ts": 1792685472000, "song_beat": 512.0, "data": {"song": {"song_name": "SERIOUS", "mood": "serious", "color": "#1a2f96", "song_number": 11, "set_route": null}, "state": {"is_playing": true, "bpm": 135.0}, "flight": {"stage": "airborne", "minutes": 40.0, "progress_0_1": 0.57, "engines_started": true}, "show": {"city": "Paris", "language": "fr", "planned_duration_min": 70}}}
+{"v": 2, "seq": 2, "type": "clock.bar", "ts": 1792685592000, "song_beat": 513.0, "data": {"bar": 1}}

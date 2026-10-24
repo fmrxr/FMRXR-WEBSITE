@@ -55,9 +55,9 @@
       #boot.gone { opacity: 0; }
       @keyframes boot-blink { 50% { opacity: 0.25; } }
     </style>
-    <script type="module" crossorigin src="./assets/index--hcY6Vu7.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/three-kr2-CbNy.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-B2yTZNuG.css">
+    <script type="module" crossorigin src="./assets/index-B7MmATN8.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three-DzgtMwyu.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-G57_lyD4.css">
   </head>
   <body>
     <!-- ── Loading: FMRXR//, Creative Technology, Metaverse ───────── -->
@@ -80,7 +80,7 @@
         <div class="lockup">
           <span class="carrier">SOFI AIRLINES</span><span class="tail">&#9992;</span>
         </div>
-        <div class="sub">SPICY AIRPORT &middot; FMRXR BRAIN</div>
+        <div class="sub">SPICY AIRPORT &middot; FMRXR TOWER</div>
       </header>
 
       <!-- ── Guided run: the four strokes ─────────────────────────── -->
@@ -88,10 +88,11 @@
       <nav id="modes" aria-label="Experience">
         <button data-go="engine" aria-pressed="true">ENGINE</button>
         <button data-go="club" aria-pressed="false">CLUB</button>
+        <button data-go="booth" aria-pressed="false">DJ BOOTH</button>
         <button data-go="fly" aria-pressed="false">FLY</button>
-        <button data-go="brain" aria-pressed="false">BRAIN</button>
+        <button data-go="brain" aria-pressed="false">TOWER</button>
         <button data-go="drone" aria-pressed="false">DRONE</button>
-        <button data-go="feeds" aria-pressed="false" title="FMRXR BRAIN: cameras, map, controls">&#9673; FEEDS</button>
+        <button data-go="feeds" aria-pressed="false" title="FMRXR TOWER: cameras, map, controls">&#9673; FEEDS</button>
       </nav>
 
       <!-- ── The FMRXR 360 drone: its views, its mode, its numbers ──────── -->
@@ -113,9 +114,9 @@
         <p class="drone-help" data-help="360">360 VIEW: CLICK AND MOVE THE MOUSE TO LOOK ROUND</p>
       </section>
 
-      <!-- ── FMRXR BRAIN in the interface: feeds, map, controls ───────── -->
-      <section id="brain-panel" class="hidden" aria-label="FMRXR BRAIN">
-        <header><b>FMRXR BRAIN</b><span>SURVEILLANCE · MAP · SHOW CONTROL</span><button id="brain-close" aria-label="Close">&times;</button></header>
+      <!-- ── FMRXR TOWER in the interface: feeds, map, controls ───────── -->
+      <section id="brain-panel" class="hidden" aria-label="FMRXR TOWER">
+        <header><b>FMRXR TOWER</b><span>ATC · SURVEILLANCE · MAP · SHOW CONTROL</span><button id="brain-close" aria-label="Close">&times;</button></header>
         <div class="brain-body">
           <div class="brain-feeds"></div>
           <div class="brain-side">
@@ -310,6 +311,14 @@
           </div>
 
           <div class="mode-block">
+            <span class="block-label">LOOK</span>
+            <div class="seg">
+              <button class="seg-btn" id="night-toggle" role="switch" aria-checked="false">NIGHT FLIGHT · B</button>
+              <button class="seg-btn" id="ps1-toggle" role="switch" aria-checked="false">PS1 · U</button>
+            </div>
+          </div>
+
+          <div class="mode-block">
             <span class="block-label">COMFORT</span>
             <div class="seg">
               <button class="seg-btn" id="fewer-flashes" role="switch" aria-checked="false">FEWER FLASHES</button>
@@ -359,6 +368,6 @@
         <button id="flash-notice-ok" aria-label="Dismiss">OK</button>
       </div>
     </div>
-
+
   </body>
 </html>

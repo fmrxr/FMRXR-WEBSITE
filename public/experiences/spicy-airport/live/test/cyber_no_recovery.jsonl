@@ -1,0 +1,3 @@
+{"v": 2, "seq": 1, "type": "flight.stage", "ts": 1792685472000, "song_beat": 0.0, "data": {"stage": "airborne", "elapsed_s": 630.0, "minutes": 10.5, "planned_s": 4200, "progress_0_1": 0.15, "engines_started": true}}
+{"v": 2, "seq": 2, "type": "flight.event", "ts": 1792685474000, "song_beat": 432.0, "data": {"beat": "loss_of_control", "song": "CYBER", "source": "song", "song_number": 9, "flight": {"stage": "airborne"}}}
+{"v": 2, "seq": 3, "type": "clock.bar", "ts": 1792686072000, "song_beat": 1.0, "data": {"bar": 1}}
