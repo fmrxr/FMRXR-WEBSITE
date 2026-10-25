@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// POST /api/spicy/join  { role: "tower" | "booth" | "stage", code }
+// POST /api/spicy/join  { role: "tower" | "booth" | "stage" | "feed", code }
 //
 // La porte du live SOFI AIRLINES (SPICY AIRPORT, servi en statique sous
 // /experiences/spicy-airport/). Avant, les codes vivaient dans la page : qui
@@ -18,13 +18,14 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 //   SPICY_CODE_TOWER    code de la tour (FMR)
 //   SPICY_CODE_BOOTH    code du DJ booth (Spicy Sofi)
 //   SPICY_CODE_STAGE    code de la machine de projection
+//   SPICY_CODE_FEED     code des pages TouchDesigner (Web Render) qui miroitent le show en lecture seule
 // Changer SPICY_SHOW_SECRET change le canal et la cle : tous les postes
 // doivent alors resaisir leur code.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ROLES = { tower: "SPICY_CODE_TOWER", booth: "SPICY_CODE_BOOTH", stage: "SPICY_CODE_STAGE" } as const;
+const ROLES = { tower: "SPICY_CODE_TOWER", booth: "SPICY_CODE_BOOTH", stage: "SPICY_CODE_STAGE", feed: "SPICY_CODE_FEED" } as const;
 type Role = keyof typeof ROLES;
 
 // Limite les essais de code : 10 par minute et par adresse (memoire du process).
