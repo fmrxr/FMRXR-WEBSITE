@@ -127,7 +127,7 @@ Promise.all([
   document.querySelectorAll('[data-icon]').forEach((el) => { const u = legendIcon(el.dataset.icon); if (u) el.src = u; });
 });
 
-// ---------- sound (original SPACE X WARS music + hit sound, synth blips for the rest) ----------
+// ---------- sound (music + hit sound + 9 sfx mp3 buffers, synth blips kept as fallback) ----------
 const Snd = {
   on: true,   // every visit starts with sound ON (the toggle only lasts for the current visit)
   unlocked: false, ctx: null, hitBuf: null, current: null,
@@ -143,6 +143,7 @@ const Snd = {
       fetch('assets/hit.mp3').then((r) => r.arrayBuffer())
         .then((b) => new Promise((ok, ko) => this.ctx.decodeAudioData(b, ok, ko)))
         .then((buf) => { this.hitBuf = buf; }).catch(() => {});
+      this.loadSfx();
     } catch (e) {}
   },
   music(which) {
@@ -172,15 +173,37 @@ const Snd = {
       o.connect(g).connect(this.ctx.destination); o.start(st); o.stop(st + dur + 0.02);
     });
   },
-  key() { this.tone([880, 1320], 0.07, 'square', 0.05); },
-  armor() { this.tone([300, 600], 0.05, 'square', 0.05); },
-  breach() { this.tone([220, 146], 0.14, 'sawtooth', 0.07); },
-  corrupt() { this.tone([180, 120, 90], 0.1, 'sawtooth', 0.08); },
-  combo() { this.tone([660, 880, 1175], 0.07, 'triangle', 0.08); },
-  wave() { this.tone([392, 523, 392, 523], 0.09, 'square', 0.05); },
-  granted() { this.tone([523, 659, 784, 1047], 0.11, 'triangle', 0.09); },
-  denied() { this.tone([392, 311, 233], 0.2, 'sawtooth', 0.07); },
-  boot() { this.tone([440, 660], 0.06, 'square', 0.05); },
+  // sound effects: small mp3 files (assets/sfx/, from Sons_jeu/mp3) decoded once into WebAudio buffers after the first gesture.
+  // Every play() starts its own BufferSource, so rapid key sounds overlap. gain = original in-game level of each blip
+  // (the mp3 files are normalised to -1 dBFS), so they sit under the music exactly as the synth blips did.
+  // Until a buffer is decoded (or if the file fails to load) the old synth blip plays instead.
+  sfxBuf: {},
+  SFX: { key: 0.067, armor: 0.070, breach: 0.091, corrupt: 0.093, combo: 0.091, wave: 0.063, granted: 0.103, denied: 0.095, boot: 0.066 },
+  loadSfx() {
+    Object.keys(this.SFX).forEach((n) => {
+      fetch(`assets/sfx/sfx_${n}.mp3`).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then((b) => new Promise((ok, ko) => this.ctx.decodeAudioData(b, ok, ko)))
+        .then((buf) => { this.sfxBuf[n] = buf; }).catch(() => {});
+    });
+  },
+  play(n, synth) {
+    if (!this.on || !this.ctx) return;
+    const buf = this.sfxBuf[n];
+    if (!buf) { synth(); return; }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const s = this.ctx.createBufferSource(); s.buffer = buf;
+    const g = this.ctx.createGain(); g.gain.value = this.SFX[n];
+    s.connect(g).connect(this.ctx.destination); s.start();
+  },
+  key() { this.play('key', () => this.tone([880, 1320], 0.07, 'square', 0.05)); },
+  armor() { this.play('armor', () => this.tone([300, 600], 0.05, 'square', 0.05)); },
+  breach() { this.play('breach', () => this.tone([220, 146], 0.14, 'sawtooth', 0.07)); },
+  corrupt() { this.play('corrupt', () => this.tone([180, 120, 90], 0.1, 'sawtooth', 0.08)); },
+  combo() { this.play('combo', () => this.tone([660, 880, 1175], 0.07, 'triangle', 0.08)); },
+  wave() { this.play('wave', () => this.tone([392, 523, 392, 523], 0.09, 'square', 0.05)); },
+  granted() { this.play('granted', () => this.tone([523, 659, 784, 1047], 0.11, 'triangle', 0.09)); },
+  denied() { this.play('denied', () => this.tone([392, 311, 233], 0.2, 'sawtooth', 0.07)); },
+  boot() { this.play('boot', () => this.tone([440, 660], 0.06, 'square', 0.05)); },
   toggle() {
     this.on = !this.on;
     if (!this.on) this.track.pause();
