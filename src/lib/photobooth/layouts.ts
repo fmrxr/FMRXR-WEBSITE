@@ -1,6 +1,6 @@
 import "server-only";
 import path from "node:path";
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 import { FMRXR_LOGO_DARK_SVG } from "./brand-logo";
 import type { Layout } from "./styles";
 import type { FaceBox } from "./face";
@@ -119,7 +119,7 @@ async function polaroid(src: Buffer, t: LayoutText, client: Buffer | null, face:
   const date = await text(t.date, "mono", 30, "#6b6a75", 600);
   const logo = await fmrxrLogo(46);
   const cl = await clientPlate(client, 130);
-  const layers: sharp.OverlayOptions[] = [
+  const layers: OverlayOptions[] = [
     { input: img, top: side, left: side },
     { input: title.input, top: side + photo + 70, left: side + 10 },
     { input: date.input, top: H - 90, left: side + 10 },
@@ -152,7 +152,7 @@ async function magazine(src: Buffer, t: LayoutText, client: Buffer | null) {
   const top = Math.round(H * 0.035);
   const footer = Math.max(logo.height, cl?.height ?? 0);
   const ct = H - m - footer - 44 - lines.height - 24 - coverTitle.height;
-  const layers: sharp.OverlayOptions[] = [
+  const layers: OverlayOptions[] = [
     { input: gradient(W, Math.round(H * 0.3), 0.75, 0, "down"), top: 0, left: 0 },
     { input: gradient(W, Math.round(H * 0.38), 0, 0.8, "down"), top: H - Math.round(H * 0.38), left: 0 },
     { input: mast.input, top, left: m },
@@ -180,7 +180,7 @@ async function poster(src: Buffer, t: LayoutText, client: Buffer | null) {
   const creditsTop = logoTop - 30 - credits.height;
   const titleTop = creditsTop - 34 - title.height;
   const tagTop = titleTop - 24 - tagline.height;
-  const layers: sharp.OverlayOptions[] = [
+  const layers: OverlayOptions[] = [
     { input: gradient(W, Math.round(H * 0.5), 0, 0.92, "down"), top: H - Math.round(H * 0.5), left: 0 },
     { input: tagline.input, top: tagTop, left: Math.round((W - tagline.width) / 2) },
     { input: title.input, top: titleTop, left: Math.round((W - title.width) / 2) },
@@ -267,7 +267,7 @@ async function card(src: Buffer, t: LayoutText, client: Buffer | null, face: Fac
     </svg>`,
   );
 
-  const layers: sharp.OverlayOptions[] = [{ input: art, top: C.y + A.y, left: C.x + A.x }];
+  const layers: OverlayOptions[] = [{ input: art, top: C.y + A.y, left: C.x + A.x }];
 
   // barre de nom : titre de l'ambiance, et la marque // dans le cercle a droite
   const name = await fitText(t.title, "black", 66, ink, 760, "left");
@@ -369,7 +369,7 @@ export async function renderLinkCard(o: { title: string; subtitle: string; palet
     `<defs><linearGradient id="v" x1="0" x2="1"><stop offset="0" stop-color="#0d0c14" stop-opacity="0.92"/><stop offset="0.55" stop-color="#0d0c14" stop-opacity="0.35"/><stop offset="1" stop-color="#0d0c14" stop-opacity="0"/></linearGradient></defs>` +
     `</svg>`,
   );
-  const layers: sharp.OverlayOptions[] = [];
+  const layers: OverlayOptions[] = [];
   const logo = await fmrxrLogo(30);
   layers.push({ input: logo.input, top: M, left: M });
   const title = await fitText(o.title.toUpperCase(), "black", 104, "#f5f5f8", 680, "left");

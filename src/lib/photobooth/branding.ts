@@ -1,7 +1,7 @@
 import "server-only";
 import path from "node:path";
 import type { FaceBox } from "./face";
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 import { FMRXR_LOGO_DARK_SVG } from "./brand-logo";
 import { renderLayout, type LayoutText } from "./layouts";
 import type { Layout } from "./styles";
@@ -69,7 +69,7 @@ export async function brandPortrait(source: Buffer, clientLogoUrl: string): Prom
     .toBuffer();
   const fmrxrMeta = await sharp(fmrxr).metadata();
 
-  const layers: sharp.OverlayOptions[] = [
+  const layers: OverlayOptions[] = [
     { input: band, top: H - bandH, left: 0 },
     { input: fmrxr, top: H - margin - fmrxrH, left: W - margin - (fmrxrMeta.width ?? 0) },
   ];

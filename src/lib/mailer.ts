@@ -1,11 +1,11 @@
 import "server-only";
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 
 // SMTP Gmail du studio (SMTP_USER, SMTP_PASS : mot de passe d'application
 // Google), partage par les notifications de demandes et l'envoi des portraits.
 // null sans identifiants : l'appelant n'envoie rien, sans echouer.
 
-export function smtp(): { transport: nodemailer.Transporter; user: string } | null {
+export function smtp(): { transport: Transporter; user: string } | null {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   if (!user || !pass) return null;
