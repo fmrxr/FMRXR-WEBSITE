@@ -47,6 +47,32 @@ const SHOTS = {
       }
     },
   },
+  // Le jardin démarre à l'arrêt, dans le noir : il faut le réveiller avant de
+  // capturer, sinon l'affiche est une image noire. L'API de l'œuvre est sur
+  // `window.jardin`. On masque aussi la console de réglages, qui s'ouvre au
+  // premier chargement et n'a rien à faire sur une affiche.
+  "jardin-des-lucioles": {
+    url: "/experiences/jardin-des-lucioles/index.html", warm: 4000,
+    act: async (p) => {
+      await p.evaluate(async () => {
+        await window.jardin.command({ type: "presence", value: true });
+        await window.jardin.command({ type: "state", state: "INTERACTIVE" });
+      });
+      // Le réveil du jardin prend quelques secondes : sans cette attente, on
+      // filme des fleurs encore fermées.
+      await sleep(7000);
+      await p.evaluate(() => {
+        document.getElementById("panel")?.classList.remove("open");
+        document.body.classList.remove("panel-open");
+      });
+      const t0 = Date.now();
+      while (Date.now() - t0 < 10000) {
+        const a = ((Date.now() - t0) / 3400) * Math.PI * 2;
+        await p.mouse.move(640 + Math.cos(a) * 330, 430 + Math.sin(a * 1.6) * 110);
+        await sleep(28);
+      }
+    },
+  },
   "spicy-airport": { url: "/experiences/spicy-airport/index.html", warm: 7000, act: (p) => circle(p, 640, 360, 160, 9000) },
   "le-son-de-la-terre": { url: "/experiences/le-son-de-la-terre/index.html", warm: 5000, act: () => sleep(9000) },
   // Ouverture sautée et tout allumé : la « main » regarde autour d'elle dans la pièce.

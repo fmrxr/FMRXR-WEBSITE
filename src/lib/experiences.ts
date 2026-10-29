@@ -49,6 +49,16 @@ const lab = (slug: string, shader: string, title: string, pitch: string): Experi
 
 export const EXPERIENCES: Experience[] = [
   {
+    slug: "jardin-des-lucioles", title: "LE JARDIN DES LUCIOLES", row: "body", year: 2026,
+    pitch: "Move your hands and a swarm of fireflies follows. The night garden opens where their light falls, and sweep fast enough and the far rows bloom too.",
+    credits: ["FMRXR Studio", "Hand tracking by FMRXR technologies, on your device"],
+    entry: "/experiences/jardin-des-lucioles/index.html", ...media("jardin-des-lucioles"),
+    // La caméra est un BONUS : sans autorisation, l'œuvre retombe sur le
+    // pointeur et reste entièrement jouable. On ne la déclare donc pas dans
+    // `requires`, qui sert à prévenir d'un besoin bloquant.
+    requires: [], desktopOnly: true, project: "jardin-des-lucioles",
+  },
+  {
     slug: "radiance", title: "RADIANCE", row: "body", year: 2026, featured: true,
     pitch: "Your hand becomes a light source. Radiance cascades trace how it spills across the room, live.",
     credits: ["FMRXR Studio", "Hand tracking by FMRXR technologies, on your device"],
