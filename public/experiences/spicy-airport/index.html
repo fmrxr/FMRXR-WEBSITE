@@ -55,9 +55,9 @@
       #boot.gone { opacity: 0; }
       @keyframes boot-blink { 50% { opacity: 0.25; } }
     </style>
-    <script type="module" crossorigin src="./assets/index-D9nyrppe.js"></script>
+    <script type="module" crossorigin src="./assets/index-B2J1tIcb.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/three-DzgtMwyu.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-D3FM3cv6.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-CAtg5Dk1.css">
   </head>
   <body>
     <!-- ── Loading: FMRXR//, Creative Technology, Metaverse ───────── -->
@@ -101,13 +101,20 @@
           <button class="seg-btn" data-drone-view="fpv">1 · FPV</button>
           <button class="seg-btn" data-drone-view="360">2 · 360</button>
           <button class="seg-btn" data-drone-view="chase">3 · CHASE</button>
+          <button class="seg-btn" data-drone-view="fisheye">4 · FISHEYE</button>
         </div>
         <div class="seg" role="radiogroup" aria-label="Flight mode">
           <button class="seg-btn" data-drone-mode="easy">EASY</button>
           <button class="seg-btn" data-drone-mode="angle">ANGLE</button>
           <button class="seg-btn" data-drone-mode="acro">ACRO</button>
+          <button class="seg-btn" data-drone-mode="escort">E · ESCORT</button>
           <button class="seg-btn" data-drone-reset>&#9003; PAD</button>
         </div>
+        <div class="seg drone-escort" role="group" aria-label="Escort">
+          <button class="seg-btn" data-drone-slot>N · SLOT <span id="drone-slot">WING R</span></button>
+          <button class="seg-btn" data-drone-cut>B · AUTO DIRECTOR</button>
+        </div>
+        <label class="drone-fish">FISHEYE <input id="drone-fish" type="range" min="0" max="140" value="110" /></label>
         <div class="drone-read"><span id="drone-speed">0</span> KM/H · <span id="drone-alt">0</span> M</div>
         <div class="drone-thr"><i id="drone-thr"></i></div>
         <p class="drone-help" data-help="360">360 VIEW: CLICK AND MOVE THE MOUSE TO LOOK ROUND</p>
@@ -367,6 +374,6 @@
         <button id="flash-notice-ok" aria-label="Dismiss">OK</button>
       </div>
     </div>
-
+
   </body>
 </html>
