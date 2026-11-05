@@ -460,6 +460,50 @@ export interface OsWorkflow {
 
 // --- Le document racine ---
 
+/** Banque d'univers graphiques : univers > styles > concepts avec aperçu. Aucune référence citée. */
+export interface OsGraphicConcept {
+  id: string;
+  name: string;
+  concept: string;
+  pitch: string;
+  esthetique: string;
+  clin_oeil?: string;
+  fabrication: string;
+  preview: string;
+  file?: string;
+  project?: string;
+  selected?: boolean;
+}
+
+export interface OsGraphicStyle {
+  id: string;
+  name: string;
+  formule: string;
+  principe: string;
+  gestes: string[];
+  palette: string[];
+  typo: string;
+  usage?: string;
+  cover?: string;
+  concepts: OsGraphicConcept[];
+}
+
+export interface OsGraphicUniverse {
+  id: string;
+  type: "graphic_universe";
+  name: string;
+  year: number;
+  created?: string;
+  principe: string;
+  idees?: string[];
+  origin?: string;
+  project?: string;
+  cover?: string;
+  internal_notes?: string;
+  pipeline?: string;
+  styles: OsGraphicStyle[];
+}
+
 export interface OsGraph {
   identities: OsIdentity[];
   businesses?: OsBusiness[];
@@ -481,6 +525,7 @@ export interface OsGraph {
   cf_batches?: OsCfBatch[];
   stack?: OsStack;
   library?: OsLibraryItem[];
+  graphic_universes?: OsGraphicUniverse[];
   connectors?: string[];
   trash?: unknown[];
   log: OsLogEntry[];

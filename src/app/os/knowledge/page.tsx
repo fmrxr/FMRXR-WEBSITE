@@ -6,6 +6,7 @@ import { LIBRARY_CATEGORIES, libraryByCategory, libraryCategoryCounts, libraryTr
 import { LibraryItemCard } from "@/components/os/stack/LibraryItemCard";
 import { TriageInbox } from "@/components/os/stack/TriageInbox";
 import { AddLibraryItemForm } from "@/components/os/stack/AddLibraryItemForm";
+import { UniverseBank } from "@/components/os/stack/UniverseBank";
 import { Section } from "@/components/os/Section";
 import { genId } from "@/lib/os/id";
 import type { OsLibraryItem } from "@/lib/os/types";
@@ -73,6 +74,8 @@ export default function KnowledgePage() {
 
   return (
     <div className="fm-rise flex flex-col gap-6">
+      <UniverseBank universes={graph.graphic_universes || []} />
+
       {adding ? (
         <AddLibraryItemForm projects={graph.projects} onAdd={addItem} onCancel={() => setAdding(false)} />
       ) : (
