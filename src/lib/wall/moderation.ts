@@ -36,6 +36,15 @@ export function flagText(text: string, extra: string[] = []): string | null {
 /** Nettoie un texte libre : espaces, caracteres de controle, longueur. */
 export function cleanText(s: unknown, max: number): string {
   if (typeof s !== "string") return "";
-  return s.replace(/[\u0000-\u0008\u000b-\u001f\u007f​-‏‪-‮]/g, "")
+  return s
+    // Caracteres de controle et marques de direction invisibles.
+    .replace(/[\u0000-\u0008\u000b-\u001f\u007f​-‏‪-‮]/g, "")
+    // U+FFFD, le losange noir a point d'interrogation. Il ne se tape pas :
+    // il apparait quand des octets ont ete lus dans le mauvais encodage,
+    // avant meme d'arriver ici. Un navigateur envoie toujours de l'UTF-8,
+    // mais un envoi fabrique a la main peut en porter, et le mur l'
+    // afficherait tel quel sur l'ecran geant, au milieu de la soiree du
+    // client. On le retire plutot que de refuser le message entier.
+    .replace(/�/g, "")
     .replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim().slice(0, max);
 }
