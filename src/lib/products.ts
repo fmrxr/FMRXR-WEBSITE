@@ -51,12 +51,12 @@ export const PRODUCTS: Product[] = [
   },
   {
     slug: "live-wall",
-    name: ["Live", "Wall"],
-    tagline: "Your guests write to your brand, live on the big screen.",
-    intro: "A QR code in the room and every phone becomes a pen. Sweet words, drawings, signatures, photos and your brand stickers land on the giant screen as cards people can like, comment and move around, by touch or with FMRXR technologies hand tracking. Moderated live by your team.",
+    name: ["The ", "Wall"],
+    tagline: "Your event’s own social network, live on the big screen.",
+    intro: "Not posts pulled from Instagram by hashtag: a social network that opens with your event and closes with it. A QR code in the room and every phone becomes a pen. Sweet words, drawings, signatures, photos and your brand stickers land on the giant screen as cards people can like, comment and move around, by touch or with FMRXR technologies hand tracking. Moderated live by your team.",
     poster: "/wall/live-wall-poster.webp",
     demo: { kind: "wall" },
-    facts: [["From every phone", "Words, drawings, signatures, photos"], ["4 card formats", "Memory notes or social-feed styles"], ["Your brand stickers", "On messages and as reactions"], ["Moderated live", "Up to 5 named moderators"]],
+    facts: [["Your event’s social network", "No app, no account, no hashtag"], ["Post, like, comment", "Words, drawings, signatures, photos"], ["Your brand everywhere", "Cards, papers, stickers, logo"], ["Moderated live", "Up to 5 named moderators"]],
     steps: [
       ["Scan", "Guests scan the QR code shown on the wall and on the tables. No app, no account."],
       ["Write, draw, sign", "A sweet word, a drawing, a signature or a photo, decorated with your brand stickers."],
@@ -74,6 +74,7 @@ export const PRODUCTS: Product[] = [
     ],
     specs: [["Giant screen", "Any screen or LED wall, a browser in full screen"], ["Guests", "Their own phone, by QR code"], ["Touch", "Optional touch screen"], ["Sensing", "Optional FMRXR technologies hand tracking"]],
     faq: [
+      ["How is it different from a social wall?", "Most social walls display posts pulled from Instagram or X by hashtag: guests need an account and a public post, and what shows comes from outside the room. The Wall is a social network of its own, open only for your event. Guests post from their browser without an account, then like, comment and move the cards on the giant screen. Everything stays inside your event and comes back to your team as exports."],
       ["Do guests need an app?", "No. They scan a QR code and write from their browser."],
       ["Can we stop inappropriate messages?", "Yes. Flagged messages wait for your team, photos are validated by hand by default, and any card or comment can be hidden in one tap, from a phone or from the screen."],
       ["Can we use our own stickers and colours?", "Yes. Your logo, your sticker set, your colours and your card format are set per event."],
@@ -84,7 +85,7 @@ export const PRODUCTS: Product[] = [
       kicker: "After the show",
       title: "Export for social media",
       body: "When the night closes, nothing is sent to an editing room. The wall reads back its own evening: it keeps the cards people liked, replays the drawings stroke by stroke, saves the most-liked message for the end, and sets the pace on how much was written. Your team renders it in the browser, in your colours, with the print sheet, the mailing kit and the archive.",
-      label: "Live Wall recap reel",
+      label: "The Wall recap reel",
       aspect: "aspect-[9/16]",
       // Trois écritures du même contenu. Le mur en choisit une par
       // événement ; ici le visiteur les compare.
@@ -100,11 +101,11 @@ export const PRODUCTS: Product[] = [
         ["Full archive", "Every card as a transparent PNG, plus every message, like and comment as a spreadsheet and JSON."],
       ],
     },
-    closing: "Every guest leaves a word on your brand.",
+    closing: "A social network that only exists for your night.",
     seo: {
-      title: "Live Wall for Events: messages, drawings and photos on the big screen",
-      description: "Guests scan a QR code and send sweet words, drawings, signatures and photos to a live, interactive wall with your brand stickers. Moderated live, FR · EN · AR.",
-      keywords: ["live wall", "social wall", "event message wall", "interactive wall", "guestbook wall", "brand activation", "FMRXR"],
+      title: "The Wall: your event’s own social network, live on the big screen",
+      description: "A live social wall that is a social network of its own: guests scan a QR code, post words, drawings, signatures and photos, then like, comment and move cards on the big screen. No app, no hashtag. Moderated live, FR · EN · AR.",
+      keywords: ["the wall", "live social wall", "event social network", "live wall", "social wall", "event message wall", "interactive wall", "guestbook wall", "brand activation", "FMRXR"],
     },
   },
   {

@@ -6,7 +6,7 @@ import { loadWall } from "@/lib/wall/server";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Live Wall · exports",
+  title: "The Wall · exports",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };

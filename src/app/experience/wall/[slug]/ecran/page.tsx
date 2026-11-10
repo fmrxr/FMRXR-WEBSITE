@@ -10,7 +10,7 @@ import { Screen } from "./Screen";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Live Wall · écran",
+  title: "The Wall · écran",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };

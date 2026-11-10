@@ -52,14 +52,15 @@ export function LiveWallLanding({ product: p }: { product: Product }) {
     <>
       {/* 1. La promesse, puis le film */}
       <section className="mx-auto max-w-[1200px] px-5 pb-10 pt-28 md:px-8 md:pt-36">
-        <p className={KICK}>Live Wall · for your event</p>
+        <p className={KICK}>The Wall · a live social wall for your event</p>
         <h1 className="fm-display mt-4 max-w-4xl text-[clamp(2.6rem,7vw,5.6rem)] leading-[0.95] text-fmfg">
-          Every guest leaves a word on your <span className="text-fmaccent">brand</span>.
+          Your event’s own social <span className="text-fmaccent">network</span>, live on the big screen.
         </h1>
         <p className={`${BODY} mt-6 max-w-2xl`}>
-          A QR code in the room turns every phone into a pen. Words, drawings and signatures land on your big screen
-          as cards in your colours, your team decides what goes up, and when the show ends the wall edits its own
-          recap for social media.
+          Not posts pulled from Instagram by hashtag. A social network that opens with your event and closes with it:
+          a QR code turns every phone into a pen, guests post words, drawings and signatures, then like, comment and
+          move the cards on your big screen, in your colours. Your team decides what goes up, and when the show ends
+          the wall edits its own recap for social media.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href={`/start?ref=${p.slug}`} data-cta={`${p.slug}-start-hero`}
@@ -72,7 +73,7 @@ export function LiveWallLanding({ product: p }: { product: Product }) {
         </div>
       </section>
       <section id="film" className="mx-auto max-w-[1200px] px-5 md:px-8">
-        <ScrollFilm src={`${MEDIA}/live-wall-film-16x9.mp4`} poster={`${MEDIA}/live-wall-film-16x9.jpg`} label="Live Wall, the demo film" className="" />
+        <ScrollFilm src={`${MEDIA}/live-wall-film-16x9.mp4`} poster={`${MEDIA}/live-wall-film-16x9.jpg`} label="The Wall, the demo film" className="" />
         <p className="mt-3 text-[12px] text-fmmuted">Every screen in this film is the real app, filmed during a demo night.</p>
       </section>
 
@@ -90,10 +91,10 @@ export function LiveWallLanding({ product: p }: { product: Product }) {
       {/* 2. Pourquoi ca marche */}
       <section className={`${SECTION} mt-20`}>
         <p className={KICK}>Why it works</p>
-        <h2 className={H2}>Your guests stop watching. They write.</h2>
+        <h2 className={H2}>Your guests stop watching. They post.</h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {[
-            ["Guests become authors", "A screen people only look at is decoration. A wall they write on is theirs: every card is a moment someone chose to share, in front of the whole room."],
+            ["A social network for one night", "No hashtag, no outside feed, no account. The wall opens with your event and closes with it: every post, like and comment happens in the room, in front of everyone, and stays yours."],
             ["Your brand in every hand", "Your logo, your colours, your card format, your papers and your stickers, on every phone and on the giant screen, all night long."],
             ["The night keeps working", "The morning after, your team has a recap reel, a print sheet, a mailing kit and every card as an image. Content made by your guests, ready to post."],
           ].map(([k, v]) => (

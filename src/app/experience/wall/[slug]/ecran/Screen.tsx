@@ -199,7 +199,7 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
           <div className="h-[15vh] w-[15vh]" dangerouslySetInnerHTML={{ __html: qrSvg }} />
           <div className="max-w-[12vw]">
             <p className="text-[2vh] font-bold leading-tight">{t.scan}</p>
-            <p className="mt-[0.6vh] fm-display text-[1.5vh] text-[#111]/60" dir="ltr">FMRXR<span style={{ color: "#3aa63a" }}>{"//"}</span> Live Wall</p>
+            <p className="mt-[0.6vh] fm-display text-[1.5vh] text-[#111]/60" dir="ltr">FMRXR<span style={{ color: "#3aa63a" }}>{"//"}</span> The Wall</p>
           </div>
         </div>
 

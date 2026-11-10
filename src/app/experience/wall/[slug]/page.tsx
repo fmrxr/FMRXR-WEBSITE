@@ -7,7 +7,7 @@ import { Guest } from "./Guest";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Live Wall",
+  title: "The Wall",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };
