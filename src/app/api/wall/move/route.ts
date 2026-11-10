@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { parsePos, zNow } from "@/lib/wall/shapes";
 import { clientIp, isSession, json, loadWall, rateLimited } from "@/lib/wall/server";
 
-// POST /api/wall/move { slug, k|s|m, session, postId, x, y, r }
+// POST /api/wall/move { slug, k|s|m, session, postId, x, y, r, s }
 // Deplace une carte. L'ecran (s) et l'equipe (m) deplacent toutes les cartes ;
 // un invite (k) seulement les siennes, et seulement si l'option est active.
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const { campaign, config, access } = loaded.wall;
   if (access === "screen" && !config.screenInteractive && config.sensor === "none") return json({ ok: false, error: "OPTION_DISABLED" }, 403);
   if (access === "guest" && !config.guestMove) return json({ ok: false, error: "OPTION_DISABLED" }, 403);
-  const pos = parsePos(b.x, b.y, b.r);
+  const pos = parsePos(b.x, b.y, b.r, b.s);
   if (!pos) return json({ ok: false, error: "BAD_REQUEST" }, 400);
 
   const sb = getSupabaseAdmin();

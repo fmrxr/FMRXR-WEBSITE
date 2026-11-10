@@ -51,10 +51,20 @@ export function parseStickers(raw: unknown, allowed: Set<string>, max: number): 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
 /** Position validee, gardee dans le mur (la carte reste visible). */
-export function parsePos(x: unknown, y: unknown, r: unknown): Omit<Pos, "z"> | null {
+// Une carte peut doubler ou se reduire de moitie, pas davantage : en
+// dessous elle n'est plus lisible depuis la salle, au dessus elle couvre
+// celles des autres.
+export const S_MIN = 0.5, S_MAX = 2.2;
+
+export function parsePos(x: unknown, y: unknown, r: unknown, s?: unknown): Omit<Pos, "z"> | null {
   const [nx, ny, nr] = [num(x), num(y), num(r) ?? 0];
   if (nx === null || ny === null) return null;
-  return { x: round3(clamp(nx, 0.04, 0.96)), y: round3(clamp(ny, 0.06, 0.94)), r: Math.round(clamp(nr, -20, 20)) };
+  const ns = num(s);
+  return {
+    x: round3(clamp(nx, 0.04, 0.96)), y: round3(clamp(ny, 0.06, 0.94)),
+    r: Math.round(clamp(nr, -20, 20)),
+    s: ns === null ? 1 : round3(clamp(ns, S_MIN, S_MAX)),
+  };
 }
 
 /**

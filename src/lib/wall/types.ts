@@ -7,8 +7,13 @@ export type Stroke = { c: string; w: number; p: number[] };
 /** Sticker pose sur une carte : position en 0..1 de la carte, taille en part de largeur, rotation en degres. */
 export type PlacedSticker = { id: string; x: number; y: number; s: number; r: number };
 
-/** Position sur le mur : x, y en 0..1 (centre de la carte), rotation, ordre d'empilement. */
-export type Pos = { x: number; y: number; r: number; z: number };
+/**
+ * Place d'une carte sur le mur : x, y en 0..1 (son centre), rotation,
+ * ordre d'empilement, et sa taille. `s` vaut 1 par defaut ; chaque carte
+ * se pince pour grandir ou retrecir, donc deux cartes voisines n'ont pas
+ * forcement la meme taille. C'est le mur d'une soiree, pas une grille.
+ */
+export type Pos = { x: number; y: number; r: number; z: number; s?: number };
 
 export type WallComment = { id: string; author: string; body: string; sticker: string | null; at: string };
 

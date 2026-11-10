@@ -243,11 +243,15 @@ function WallTab({ posts, config, t, asset, fresh, mine, loaded, onMove, onLike,
   onMove: Parameters<typeof Board>[0]["onMove"]; onLike: (p: WallPost) => void; onOpen: (p: WallPost) => void;
 }) {
   const pending = mine.filter((m) => m.status !== "approved");
+  // Le mini-mur du telephone se pince aussi, cartes comprises : c'est la
+  // seule facon d'y lire une carte, l'ecran est trop petit pour tout
+  // montrer en entier.
+  const [frac, setFrac] = useState(0.15);
   return (
     <div className="flex flex-col gap-5 py-4">
       <div className="px-4">
         <div className="relative aspect-video overflow-hidden rounded-xl border border-fmborder bg-cover bg-center" style={{ backgroundColor: config.background, backgroundImage: config.backgroundImage ? `url(${config.backgroundImage})` : undefined }}>
-          <Board posts={posts} config={config} t={t} asset={asset} fresh={fresh} compact cardFrac={0.15}
+          <Board posts={posts} config={config} t={t} asset={asset} fresh={fresh} compact cardFrac={frac} onCardFrac={setFrac}
             canMove={(p) => config.guestMove && p.mine} onMove={onMove} onOpen={onOpen} />
           {loaded && posts.length === 0 && <p className="absolute inset-0 grid place-items-center text-sm text-fmmuted">{t.empty}</p>}
         </div>

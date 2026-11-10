@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EyeOff, Hand as HandIcon, Maximize, Pin, PinOff, ShieldCheck, X } from "lucide-react";
+import { EyeOff, Hand as HandIcon, Maximize, Minus, Pin, PinOff, Plus, ShieldCheck, X } from "lucide-react";
 import type { PublicConfig } from "@/lib/wall/config";
 import type { Pos } from "@/lib/wall/types";
-import { Board } from "@/components/wall/Board";
+import { Board, clampFrac } from "@/components/wall/Board";
 import { Card } from "@/components/wall/Card";
 import { Moderation } from "@/components/wall/Moderation";
 import { useHandSensor } from "@/components/wall/HandSensor";
@@ -34,6 +34,32 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
   const [focus, setFocus] = useState<string | null>(null);
   const focused = posts.find((p) => p.id === focus) ?? null;
   const touch = config.screenInteractive || mod;
+  // Taille d'ensemble des cartes : automatique selon le remplissage du
+  // mur, sauf si l'equipe l'a reglee. Le choix reste sur ce poste, pas sur
+  // la campagne : un ecran geant et un televiseur de hall ne se regardent
+  // pas de la meme distance.
+  const [frac, setFrac] = useState<number | null>(null);
+  const postsRef = useRef(0);
+  postsRef.current = posts.length;
+  useEffect(() => {
+    try {
+      const v = Number(localStorage.getItem(`wall-frac-${slug}`));
+      if (v) setFrac(v);
+    } catch { /* stockage refuse : on garde l'automatique */ }
+  }, [slug]);
+  // On part toujours de la valeur courante, pas de celle capturee a
+  // l'affichage : sans cela deux clics rapides n'en comptent qu'un, les
+  // deux lisant la meme ancienne taille.
+  const zoom = (by: number) => setFrac((cur) => {
+    const c = clampFrac((cur ?? cardFrac(postsRef.current)) * by);
+    try { localStorage.setItem(`wall-frac-${slug}`, String(c)); } catch { /* sans memoire, tant pis */ }
+    return c;
+  });
+  const pinchZoom = (v: number) => setFrac(() => {
+    const c = clampFrac(v);
+    try { localStorage.setItem(`wall-frac-${slug}`, String(c)); } catch { /* sans memoire, tant pis */ }
+    return c;
+  });
   const [drawer, setDrawer] = useState(false);
   const [pending, setPending] = useState(0);
 
@@ -137,6 +163,14 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
               {status === "ready" ? t.screen.sensorReady : status === "failed" ? t.screen.sensorFailed : t.screen.sensorLoading}
             </span>
           )}
+          <button onClick={() => zoom(1 / 1.15)}
+            className="rounded-full border border-fmborder p-2 text-fmmuted hover:text-fmfg" aria-label={t.smaller}>
+            <Minus className="h-4 w-4" />
+          </button>
+          <button onClick={() => zoom(1.15)}
+            className="rounded-full border border-fmborder p-2 text-fmmuted hover:text-fmfg" aria-label={t.bigger}>
+            <Plus className="h-4 w-4" />
+          </button>
           <button onClick={() => document.documentElement.requestFullscreen?.().catch(() => undefined)} className="rounded-full border border-fmborder p-2 text-fmmuted hover:text-fmfg" aria-label={t.screen.fullscreen}>
             <Maximize className="h-4 w-4" />
           </button>
@@ -145,7 +179,7 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
 
       <div ref={boardRef} className="relative min-h-0">
         <Board
-          posts={posts} config={config} t={t} asset={asset} fresh={fresh} cardFrac={cardFrac(posts.length)}
+          posts={posts} config={config} t={t} asset={asset} fresh={fresh} cardFrac={frac ?? cardFrac(posts.length)} onCardFrac={pinchZoom}
           canMove={() => touch} onMove={move}
           onOpen={touch ? (p) => setFocus(p.id) : undefined}
           onLike={touch && config.likes ? (p) => void like(p.id, true) : undefined}

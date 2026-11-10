@@ -83,7 +83,7 @@ export function useWall(slug: string, keys: WallKeys, session: string | null) {
     if (!commit) return;
     void fetch("/api/wall/move", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, ...keys, session, postId: id, x: pos.x, y: pos.y, r: pos.r }),
+      body: JSON.stringify({ slug, ...keys, session, postId: id, x: pos.x, y: pos.y, r: pos.r, s: pos.s }),
     }).then((r) => r.ok, () => false).then((ok) => {
       if (ok) return;
       local.current.delete(id);
