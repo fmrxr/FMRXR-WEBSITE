@@ -35,7 +35,21 @@ if (!SUPA || !KEY) {
 const args = process.argv.slice(2);
 if (!args.length) {
   console.error("usage : node scripts/media-upload.mjs <fichier> [nom] [<fichier> [nom]...]");
+  console.error("        node scripts/media-upload.mjs --rm <nom> [...]   retire du bucket");
   process.exit(1);
+}
+
+// --rm retire des fichiers du bucket, pour ne pas y laisser trainer les
+// versions remplacees.
+if (args[0] === "--rm") {
+  for (const name of args.slice(1)) {
+    const res = await fetch(`${SUPA}/storage/v1/object/${BUCKET}/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${KEY}` },
+    });
+    console.log(`${res.ok ? "RETIRE" : "ECHEC " + res.status} ${name}`);
+  }
+  process.exit(0);
 }
 
 // Chaque argument est un fichier ; s'il est suivi d'un nom sans séparateur

@@ -24,15 +24,16 @@ export type Product = {
   specs?: [string, string][];
   faq?: [string, string][];
   // Un film de section, avec ce qu'il montre. Vertical pour un reel.
+  // `cuts` porte les montages proposes : un seul, ou plusieurs au choix
+  // du visiteur.
   film?: {
     kicker: string;
     title: string;
     body: string;
-    src: string;
-    poster: string;
     label: string;
     aspect?: string;
     items: [string, string][];
+    cuts: { id: string; label: string; line: string; src: string; poster: string }[];
   };
   closing?: string;
   seo?: { title: string; description: string; keywords: string[] };
@@ -83,10 +84,15 @@ export const PRODUCTS: Product[] = [
       kicker: "After the night",
       title: "The wall writes its own recap",
       body: "When the night closes, nothing is sent to an editing room. The wall reads back its own evening: it keeps the cards people liked, replays the drawings stroke by stroke, saves the most-liked message for the end, and sets the pace on how much was written. Your team downloads the result, in your colours, with the print sheet, the mailing kit and the archive.",
-      src: `${MEDIA}/live-wall-reel-9x16.mp4`,
-      poster: `${MEDIA}/live-wall-reel-9x16.jpg`,
-      label: "Live Wall recap reel: guest cards land one by one on a branded wall, drawings replay stroke by stroke",
+      label: "Live Wall recap reel",
       aspect: "aspect-[9/16]",
+      // Trois écritures du même contenu. Le mur en choisit une par
+      // événement ; ici le visiteur les compare.
+      cuts: [
+        { id: "fill", label: "Fills up", line: "A wide, still shot. The wall builds itself card after card, faster and faster, and each message comes through the middle big enough to read.", src: `${MEDIA}/live-wall-reel-fill-9x16.mp4`, poster: `${MEDIA}/live-wall-reel-fill-9x16.jpg` },
+        { id: "words", label: "The words", line: "Cuts from card to card, close up. Five messages held long enough to be read on a phone, drawings replayed stroke by stroke.", src: `${MEDIA}/live-wall-reel-words-9x16.mp4`, poster: `${MEDIA}/live-wall-reel-words-9x16.jpg` },
+        { id: "sweep", label: "One sweep", line: "A single unbroken move across the finished wall. Cards light up just before the camera reaches them.", src: `${MEDIA}/live-wall-reel-sweep-9x16.mp4`, poster: `${MEDIA}/live-wall-reel-sweep-9x16.jpg` },
+      ],
       items: [
         ["Reel for social", "Vertical 9:16, 35 s, with square and wide cuts from the same edit."],
         ["Print sheet", "Every validated card, laid out in your colours, ready to print large or in A3."],

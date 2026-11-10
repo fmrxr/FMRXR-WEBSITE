@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { GameDemo } from "./GameDemo";
 import { LiveWallDemo } from "./LiveWallDemo";
-import { ScrollFilm } from "./ScrollFilm";
+import { ReelSwitcher } from "./ReelSwitcher";
 
 // Page « Decouvrir » d'un produit, generee depuis sa fiche (src/lib/products.ts) :
 // hero avec demo jouable, deroule, atouts, materiel, FAQ (+ donnees structurees),
@@ -99,12 +99,10 @@ export function ProductPage({ product: p }: { product: Product }) {
                 ))}
               </dl>
             </div>
-            <ScrollFilm
-              src={p.film.src}
-              poster={p.film.poster}
+            <ReelSwitcher
+              cuts={p.film.cuts}
               label={p.film.label}
               aspect={p.film.aspect}
-              sound={false}
               className="mx-auto w-full max-w-[300px]"
             />
           </div>
