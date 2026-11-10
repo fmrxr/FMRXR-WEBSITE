@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { cleanText, flagText } from "@/lib/wall/moderation";
+import { assess, cleanText } from "@/lib/wall/moderation";
 import { parseStickers, parseStrokes } from "@/lib/wall/shapes";
 import { availability, campaignBusy, clientIp, freePos, isSession, json, loadWall, MEDIA_BUCKET, rateLimited } from "@/lib/wall/server";
 import { KINDS, type Kind } from "@/lib/wall/config";
@@ -81,9 +81,14 @@ export async function POST(req: Request) {
     }
   }
 
-  const flag = flagText(`${author}\n${body}`, config.blockedWords);
+  // Le filtre (lib/wall/moderation.ts) : un mot interdit certain bloque le
+  // message (il part dans « Masqués », l'equipe peut le repecher), un doute
+  // le met en attente. En moderation automatique le reste monte tout seul ;
+  // en moderation manuelle, tout attend l'equipe, comme avant.
+  const verdict = assess(`${author}\n${body}`, config.blockedWords);
+  const flag = verdict.reason;
   const manual = config.moderation === "manual" || (kind === "photo" && config.photoModeration === "manual");
-  const status = flag || manual ? "pending" : "approved";
+  const status = verdict.level === "block" ? "hidden" : verdict.level === "doubt" || manual ? "pending" : "approved";
 
   const id = crypto.randomUUID();
   if (photo) {
@@ -96,13 +101,16 @@ export async function POST(req: Request) {
   const { error } = await sb.from("wall_posts").insert({
     id, campaign_id: campaign.id, session_id: session, kind, author, body, color,
     strokes, stickers, photo_path: photoPath, status, flag, pos,
-    moderated_at: status === "approved" ? new Date().toISOString() : null,
+    moderated_at: status === "pending" ? null : new Date().toISOString(),
+    ...(status === "hidden" ? { moderated_by: "filtre automatique" } : {}),
   });
   if (error) {
     if (photoPath) await sb.storage.from(MEDIA_BUCKET).remove([photoPath]);
     return json({ ok: false, error: "SAVE_FAILED" }, 500);
   }
-  return json({ ok: true, id, status });
+  // Un message bloque est annonce a l'invite comme « en attente » : on ne lui
+  // apprend pas ce que le filtre laisse passer.
+  return json({ ok: true, id, status: status === "hidden" ? "pending" : status });
 }
 
 function safeJson(s: string): unknown {

@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { cleanText, flagText } from "@/lib/wall/moderation";
+import { assess, cleanText } from "@/lib/wall/moderation";
 import { availability, campaignBusy, clientIp, isSession, json, loadWall, rateLimited } from "@/lib/wall/server";
 
 // POST /api/wall/comment { slug, k, session, postId, author, body, sticker }
@@ -32,13 +32,18 @@ export async function POST(req: Request) {
     .eq("campaign_id", campaign.id).eq("status", "approved").maybeSingle();
   if (!post) return json({ ok: false, error: "NOT_FOUND" }, 404);
 
-  const flag = flagText(`${author}\n${body}`, config.blockedWords);
-  const status = flag || config.moderation === "manual" ? "pending" : "approved";
+  // Meme filtre que les messages : bloque, en attente, ou publie.
+  // En moderation manuelle, tout attend l'equipe, comme avant.
+  const verdict = assess(`${author}\n${body}`, config.blockedWords);
+  const flag = verdict.reason;
+  const status = verdict.level === "block" ? "hidden" : verdict.level === "doubt" || config.moderation === "manual" ? "pending" : "approved";
   const { error } = await sb.from("wall_comments").insert({
     post_id: post.id, campaign_id: campaign.id, session_id: b.session, author, body, sticker, status, flag,
+    ...(status === "hidden" ? { moderated_by: "filtre automatique", moderated_at: new Date().toISOString() } : {}),
   });
   if (error) return json({ ok: false, error: "SAVE_FAILED" }, 500);
   // Le mur relit le message : la date de revision change.
   await sb.from("wall_posts").update({ updated_at: new Date().toISOString() }).eq("id", post.id);
-  return json({ ok: true, status });
+  // un commentaire bloque est annonce comme « en attente »
+  return json({ ok: true, status: status === "hidden" ? "pending" : status });
 }

@@ -251,7 +251,7 @@ export function LiveWallLanding({ product: p }: { product: Product }) {
             </a>
             <a href={deck} download data-cta={`${p.slug}-whitelabel-deck`}
               className="rounded-full border border-fmborder px-6 py-3 text-center text-sm text-fmfg transition hover:border-fmfg/50">
-              Presentation and guides (PDF, FR, 2.6 MB)
+              Presentation and guides (PDF, FR, 2.8 MB)
             </a>
           </div>
         </div>

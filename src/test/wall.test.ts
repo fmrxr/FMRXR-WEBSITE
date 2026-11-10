@@ -35,12 +35,12 @@ describe("live wall : moderation", () => {
     expect(flagText("شكرا على هذه الليلة")).toBeNull();
   });
   it("signale insultes, liens, numeros et comptes", () => {
-    expect(flagText("quel connard")).toBe("mot");
-    expect(flagText("F*ck no, fuck")).toBe("mot");
+    expect(flagText("quel connard")).toBe("bloque"); // sans ambiguite : bloque
+    expect(flagText("F*ck no, fuck")).toBe("bloque");
     expect(flagText("va sur www.example.com")).toBe("lien");
     expect(flagText("appelle 22 333 444")).toBe("numero");
     expect(flagText("suivez @moncompte")).toBe("compte");
-    expect(flagText("rien", ["rien"])).toBe("mot");
+    expect(flagText("rien", ["rien"])).toBe("bloque"); // mot de la campagne : bloque
   });
   it("nettoie les caracteres invisibles et coupe a la longueur", () => {
     expect(cleanText("a‮b​  c", 10)).toBe("ab c");
@@ -66,7 +66,7 @@ describe("live wall : formes", () => {
     expect(r).toEqual([{ id: "a", x: 1, y: 0.5, s: 0.3, r: 10 }]);
   });
   it("garde les cartes deplacees dans le mur", () => {
-    expect(parsePos(-1, 2, 90)).toEqual({ x: 0.04, y: 0.94, r: 20 });
+    expect(parsePos(-1, 2, 90)).toEqual({ x: 0.04, y: 0.94, r: 20, s: 1 }); // taille par defaut
     expect(parsePos("a", 0.5, 0)).toBeNull();
   });
   it("repartit les nouvelles cartes sans les empiler", () => {

@@ -41,7 +41,7 @@ const fr = {
     flagged: "Signalé", hiddenBy: "Masqué par", moderatedBy: "Modéré par", by: "par",
     newOnes: "nouveau", newMany: "nouveaux", show: "Afficher", live: "en direct",
     stale: "hors ligne", ago: "il y a", sec: "s", onPost: "sur ce message", noComment: "aucun commentaire à juger",
-    flags: { mot: "mot signalé", lien: "lien", numero: "numéro", compte: "@compte" } as Record<string, string>,
+    flags: { mot: "mot douteux", bloque: "bloqué par le filtre", lien: "lien", numero: "numéro", compte: "@compte" } as Record<string, string>,
   },
   errors: {
     COOLDOWN: "Doucement : réessayez dans quelques secondes.",
@@ -94,7 +94,7 @@ const en: Strings = {
     flagged: "Flagged", hiddenBy: "Hidden by", moderatedBy: "Moderated by", by: "by",
     newOnes: "new", newMany: "new", show: "Show", live: "live",
     stale: "offline", ago: "", sec: "s ago", onPost: "on this message", noComment: "no comment to judge",
-    flags: { mot: "flagged word", lien: "link", numero: "phone number", compte: "@account" },
+    flags: { mot: "doubtful word", bloque: "blocked by the filter", lien: "link", numero: "phone number", compte: "@account" },
   },
   errors: {
     COOLDOWN: "Easy: try again in a few seconds.",
@@ -145,7 +145,7 @@ const ar: Strings = {
     flagged: "مُبلَّغ عنه", hiddenBy: "أخفاه", moderatedBy: "راجعه", by: "بواسطة",
     newOnes: "جديد", newMany: "جديدة", show: "عرض", live: "مباشر",
     stale: "غير متصل", ago: "منذ", sec: "ث", onPost: "على هذه الرسالة", noComment: "لا تعليق للمراجعة",
-    flags: { mot: "كلمة مبلَّغ عنها", lien: "رابط", numero: "رقم هاتف", compte: "@حساب" },
+    flags: { mot: "كلمة مشكوك فيها", bloque: "حجبها المرشّح", lien: "رابط", numero: "رقم هاتف", compte: "@حساب" },
   },
   errors: {
     COOLDOWN: "على مهلك: أعد المحاولة بعد ثوانٍ.",
