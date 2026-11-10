@@ -233,6 +233,19 @@ export function WallForm({ initial }: { initial?: WallCampaignRow }) {
                 <input key={i} type="color" value={p} onChange={(e) => set("palette", c.palette.map((x, j) => (j === i ? e.target.value : x)))} />
               ))}
             </div>
+            {/* Le client pose son image de fond depuis sa page de controle ;
+                ici on peut la voir, la coller ou la retirer. La couleur
+                reste dessous, elle s'affiche pendant le chargement. */}
+            <div className="flex flex-col gap-1.5">
+              <Label>Image de fond du mur (4K), URL</Label>
+              <div className="flex items-center gap-3">
+                <Input value={c.backgroundImage} onChange={(e) => set("backgroundImage", e.target.value)} placeholder="https://… (vide = couleur seule)" />
+                {c.backgroundImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.backgroundImage} alt="" className="h-10 w-16 shrink-0 rounded border object-cover" />
+                )}
+              </div>
+            </div>
           </section>
           {!check.success && <p className="text-sm text-destructive">{check.error.issues[0].path.join(".")} : {check.error.issues[0].message}</p>}
         </>
