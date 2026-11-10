@@ -79,6 +79,16 @@ export const wallConfigSchema = z.object({
   // chargement, et sur les surfaces ou l'image ne va pas.
   backgroundImage: z.string().max(500).default(""),
   palette: z.array(hex).min(1).max(8), // couleurs des cartes « memoire »
+  // Les papiers du client : une image par couleur de la palette, dans le
+  // meme ordre. L'invite choisit toujours son papier comme avant, et la
+  // couleur reste dessous, visible pendant que l'image se charge et sur
+  // les ecrans qui ne la chargeraient pas. `ink` dit la couleur du texte
+  // a poser dessus, mesuree a l'envoi : un papier sombre demande un texte
+  // clair, sinon le message devient illisible.
+  papers: z.array(z.object({
+    url: z.string().max(500),
+    ink: z.enum(["dark", "light"]),
+  }).nullable()).max(8),
 });
 export type WallConfig = z.infer<typeof wallConfigSchema>;
 
@@ -124,6 +134,7 @@ export const DEFAULT_CONFIG: WallConfig = {
   background: "#0d0c14",
   backgroundImage: "",
   palette: ["#fff4b8", "#ffd6e0", "#cdeccf", "#d5e4ff", "#ffe2c4", "#e7dcff"],
+  papers: [],
 };
 
 export function resolveConfig(override: unknown):

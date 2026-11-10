@@ -13,6 +13,7 @@ type Brand = {
   prompt: { fr: string; en: string; ar: string };
   brandName: string; clientLogoUrl: string; skin: Skin;
   accent: string; background: string; backgroundImage: string; palette: string[];
+  papers: ({ url: string; ink: "dark" | "light" } | null)[];
   stickersEnabled: boolean; stickers: Sticker[]; maxStickersPerPost: number;
   defaultLocale: "fr" | "en" | "ar";
 };
@@ -30,6 +31,7 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
   const stickerInput = useRef<HTMLInputElement>(null);
+  const paperInput = useRef<HTMLInputElement>(null);
   const bgInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -72,6 +74,53 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
       return null;
     }
     return r.url as string;
+  };
+
+  /**
+   * La couleur du texte à poser sur un papier, mesurée sur l'image même :
+   * on lit la luminance moyenne d'une version réduite. Demander au client
+   * de la choisir lui-même, c'est lui demander de deviner à la place de
+   * ses invités, et une carte illisible ne se voit qu'une fois le mur en
+   * salle.
+   */
+  const inkOf = async (url: string): Promise<"dark" | "light"> => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = url;
+    await new Promise((r) => { img.onload = img.onerror = r; });
+    if (!img.naturalWidth) return "dark";
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 24;
+    const g = cv.getContext("2d");
+    if (!g) return "dark";
+    g.drawImage(img, 0, 0, 24, 24);
+    try {
+      const d = g.getImageData(0, 0, 24, 24).data;
+      let sum = 0;
+      for (let i = 0; i < d.length; i += 4) sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+      return sum / (d.length / 4) < 128 ? "light" : "dark";
+    } catch { return "dark"; }
+  };
+
+  const setPaper = (i: number, v: { url: string; ink: "dark" | "light" } | null) => {
+    const next = [...(b?.papers ?? [])];
+    while (next.length < (b?.palette.length ?? 0)) next.push(null);
+    next[i] = v;
+    set("papers", next);
+  };
+
+  const pickPaper = (i: number) => {
+    const el = paperInput.current;
+    if (!el) return;
+    el.onchange = async () => {
+      const f = el.files?.[0]; el.value = "";
+      if (!f) return;
+      setBusy("paper" + i);
+      const url = await upload(f, "sticker");
+      setBusy(null);
+      if (url) setPaper(i, { url, ink: await inkOf(url) });
+    };
+    el.click();
   };
 
   if (!b) return <p className="p-6 text-fmmuted">Chargement…</p>;
@@ -122,25 +171,52 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
             </button>
           ))}
         </div>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          {b.palette.map((c, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <input type="color" value={c} aria-label={`Papier ${i + 1}`}
-                onChange={(e) => set("palette", b.palette.map((x, j) => (j === i ? e.target.value : x)))}
-                className="h-11 w-11 cursor-pointer rounded-lg border border-fmborder bg-transparent" />
-              {b.palette.length > 1 && (
-                <button onClick={() => set("palette", b.palette.filter((_, j) => j !== i))}
-                  className="text-[10px] text-fmmuted hover:text-fmfg">retirer</button>
-              )}
-            </div>
-          ))}
+        <p className="mt-5 text-[13px] leading-relaxed text-fmmuted">
+          Chaque papier est une couleur, et peut porter votre image. La couleur reste
+          dessous : elle s’affiche pendant que l’image se charge.
+        </p>
+        <div className="mt-3 flex flex-wrap items-start gap-3">
+          {b.palette.map((c, i) => {
+            const sheet = b.papers?.[i] ?? null;
+            return (
+              <div key={i} className="flex w-[88px] flex-col items-center gap-1.5">
+                <div className="relative h-[88px] w-[88px] overflow-hidden rounded-lg border border-fmborder bg-cover bg-center"
+                  style={{ backgroundColor: c, backgroundImage: sheet ? `url(${sheet.url})` : undefined }}>
+                  <span className="absolute inset-x-1 top-1 text-[9px] font-semibold"
+                    style={{ color: sheet?.ink === "light" ? "#f6f6f8" : "#1b1a22" }}>Aa</span>
+                </div>
+                <input type="color" value={c} aria-label={`Couleur ${i + 1}`}
+                  onChange={(e) => set("palette", b.palette.map((x, j) => (j === i ? e.target.value : x)))}
+                  className="h-9 w-full cursor-pointer rounded-md border border-fmborder bg-transparent" />
+                <div className="flex w-full gap-1">
+                  <button onClick={() => pickPaper(i)}
+                    className="min-h-9 flex-1 rounded-md border border-fmborder text-[10px] text-fmmuted hover:text-fmfg">
+                    {busy === "paper" + i ? "…" : sheet ? "changer" : "image"}
+                  </button>
+                  {sheet && (
+                    <button aria-label="Retirer l’image" onClick={() => setPaper(i, null)}
+                      className="min-h-9 w-9 rounded-md border border-fmborder text-fmmuted hover:text-fmfg">
+                      <Trash2 className="mx-auto h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {b.palette.length > 1 && (
+                  <button onClick={() => {
+                    set("palette", b.palette.filter((_, j) => j !== i));
+                    set("papers", (b.papers ?? []).filter((_, j) => j !== i));
+                  }} className="text-[10px] text-fmmuted hover:text-fmfg">retirer le papier</button>
+                )}
+              </div>
+            );
+          })}
           {b.palette.length < 8 && (
-            <button onClick={() => set("palette", [...b.palette, "#ffffff"])}
+            <button onClick={() => { set("palette", [...b.palette, "#ffffff"]); set("papers", [...(b.papers ?? []), null]); }}
               className="flex min-h-11 items-center gap-1 rounded-full border border-fmborder px-4 text-sm">
               <Plus className="h-4 w-4" /> Papier
             </button>
           )}
         </div>
+        <input ref={paperInput} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" />
       </Section>
 
       <Section title="Le logo" hint="Posé sur le mur et sur l’écran du téléphone. PNG, JPG ou WebP, 1,5 Mo au plus.">

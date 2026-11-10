@@ -149,9 +149,16 @@ export function Card(props: CardProps) {
   }
 
   if (skin === "memory") {
+    // Le papier du client, s'il en a posé un pour cette couleur. La
+    // couleur reste dessous : elle s'affiche pendant le chargement de
+    // l'image, et sur un écran qui ne la chargerait pas.
+    const slot = config.palette.indexOf(post.color);
+    const sheet = post.kind === "text" && slot >= 0 ? config.papers?.[slot] ?? null : null;
     const paper = post.kind === "text" ? post.color : "#ffffff";
+    const ink = sheet?.ink === "light" ? "#f6f6f8" : "#1b1a22";
     return (
-      <div className="relative w-[16em] rounded-[0.25em] p-[0.7em] text-[#1b1a22] shadow-[0_0.8em_1.6em_-0.6em_rgba(0,0,0,0.6)]" style={{ background: paper }}>
+      <div className="relative w-[16em] rounded-[0.25em] bg-cover bg-center p-[0.7em] shadow-[0_0.8em_1.6em_-0.6em_rgba(0,0,0,0.6)]"
+        style={{ backgroundColor: paper, backgroundImage: sheet ? `url(${sheet.url})` : undefined, color: ink }}>
         <span className="absolute -top-[0.55em] left-1/2 h-[1.1em] w-[4.5em] -translate-x-1/2 rotate-[-3deg] bg-white/55 shadow-sm backdrop-blur-[1px]" />
         {post.kind === "text" ? (
           // Zone des stickers = toute la largeur de la carte (marge comprise),
@@ -166,7 +173,7 @@ export function Card(props: CardProps) {
             {post.body && <p className="mt-[0.5em] text-[0.85em] leading-snug [overflow-wrap:anywhere]">{post.body}</p>}
           </>
         )}
-        <div className="mt-[0.6em] flex items-center justify-between text-[0.65em] text-[#1b1a22]/60">
+        <div className="mt-[0.6em] flex items-center justify-between text-[0.65em] opacity-60" style={{ color: ink }}>
           <span className="font-semibold">{post.kind !== "signature" && post.author ? `— ${post.author}` : ""}</span>
           <span className="flex items-center gap-[0.8em]">
             {likeBtn(<Heart className={`h-[1.3em] w-[1.3em] ${post.liked ? "fill-[#e64f6a] text-[#e64f6a]" : ""}`} />, post.likes ? String(post.likes) : "")}
