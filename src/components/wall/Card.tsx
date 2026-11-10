@@ -164,7 +164,10 @@ export function Card(props: CardProps) {
           // Zone des stickers = toute la largeur de la carte (marge comprise),
           // identique a l'apercu du telephone (Guest.tsx).
           <div className="relative -m-[0.7em] p-[0.7em]">
-            <p className="min-h-[5em] text-[1.3em] font-semibold leading-snug [overflow-wrap:anywhere]">{post.body}</p>
+            {/* Le mot est centré dans la carte, en hauteur comme en largeur :
+                une carte est un objet posé, pas un paragraphe. Court ou long,
+                il tient le milieu. */}
+            <p className="grid min-h-[5em] place-items-center text-center text-[1.3em] font-semibold leading-snug [overflow-wrap:anywhere]">{post.body}</p>
             <StickerLayer list={post.stickers} byId={byId} />
           </div>
         ) : (

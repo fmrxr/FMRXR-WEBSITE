@@ -95,13 +95,18 @@ function card(g, c, images) {
   let y = pad;
 
   if (c.post.kind === "text") {
+    // Centré dans la carte, comme dans le produit : le peintre et l'aperçu
+    // doivent poser le mot au même endroit, sinon l'export trahit ce que
+    // le client a validé à l'écran.
     g.font = `600 ${px(1.3)}px Inter, system-ui, sans-serif`;
-    g.textBaseline = "top";
-    g.textAlign = c.post.rtl ? "right" : "left";
+    g.textBaseline = "middle";
+    g.textAlign = "center";
     const lh = px(1.3) * 1.25;
     const lines = wrap(g, c.post.body, w - pad * 2);
-    lines.forEach((l, i) => g.fillText(l, c.post.rtl ? w - pad : pad, y + i * lh));
-    y += Math.max(px(5 * 1.3), lines.length * lh);
+    const boxH = Math.max(px(5 * 1.3), lines.length * lh);
+    const mid = y + boxH / 2;
+    lines.forEach((l, i) => g.fillText(l, w / 2, mid + (i - (lines.length - 1) / 2) * lh));
+    y += boxH;
   } else if (c.post.kind === "drawing") {
     const size = w - pad * 2;
     g.fillStyle = "#fff";
