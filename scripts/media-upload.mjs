@@ -14,7 +14,7 @@ import { basename, extname } from "node:path";
 const BUCKET = "media";
 const TYPES = {
   ".mp4": "video/mp4", ".webm": "video/webm", ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp",
+  ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".pdf": "application/pdf",
 };
 
 const env = Object.fromEntries(

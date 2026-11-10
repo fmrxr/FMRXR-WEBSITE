@@ -47,6 +47,7 @@ function Bullets({ items }: { items: string[] }) {
 
 export function LiveWallLanding({ product: p }: { product: Product }) {
   const whiteLabel = `${MEDIA}/live-wall-film-whitelabel-16x9.mp4?download=live-wall-demo-film.mp4`;
+  const deck = `${MEDIA}/live-wall-presentation-marque-blanche.pdf?download=live-wall-presentation.pdf`;
   return (
     <>
       {/* 1. La promesse, puis le film */}
@@ -238,14 +239,21 @@ export function LiveWallLanding({ product: p }: { product: Product }) {
             <p className={KICK}>For agencies and event planners</p>
             <p className="fm-display mt-3 text-[clamp(1.5rem,3vw,2.2rem)] text-fmfg">Selling the night to your own client?</p>
             <p className={`${BODY} mt-3 max-w-2xl`}>
-              Download the same demo film without our brand: a neutral logo, neutral stickers, no credit. Send it to your
-              client as it is.
+              Download the same demo film without our brand, and a 14-page presentation (in French) with every feature
+              and the guides for moderators, for your client’s team and for guests. Neutral logo, no credit: send them
+              to your client as they are.
             </p>
           </div>
-          <a href={whiteLabel} download data-cta={`${p.slug}-whitelabel-download`}
-            className="rounded-full bg-fmfg px-6 py-3 text-center text-sm font-semibold text-fmbg transition hover:bg-fmaccent">
-            Download the white-label film (MP4, 13 MB)
-          </a>
+          <div className="flex flex-col gap-3">
+            <a href={whiteLabel} download data-cta={`${p.slug}-whitelabel-download`}
+              className="rounded-full bg-fmfg px-6 py-3 text-center text-sm font-semibold text-fmbg transition hover:bg-fmaccent">
+              White-label film (MP4, 13 MB)
+            </a>
+            <a href={deck} download data-cta={`${p.slug}-whitelabel-deck`}
+              className="rounded-full border border-fmborder px-6 py-3 text-center text-sm text-fmfg transition hover:border-fmfg/50">
+              Presentation and guides (PDF, FR, 2.6 MB)
+            </a>
+          </div>
         </div>
       </section>
 
