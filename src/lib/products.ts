@@ -7,6 +7,8 @@
 // figure ici pour le bloc et le CMS. Textes : uniquement ce que le produit fait
 // aujourd'hui. Aucune reference a une licence de jeu video tierce.
 
+import { MEDIA } from "./service-films";
+
 export type ProductSlug = "photobooth" | "live-wall" | "stomp" | "rooftop";
 
 export type Product = {
@@ -21,6 +23,17 @@ export type Product = {
   features?: [string, string][];
   specs?: [string, string][];
   faq?: [string, string][];
+  // Un film de section, avec ce qu'il montre. Vertical pour un reel.
+  film?: {
+    kicker: string;
+    title: string;
+    body: string;
+    src: string;
+    poster: string;
+    label: string;
+    aspect?: string;
+    items: [string, string][];
+  };
   closing?: string;
   seo?: { title: string; description: string; keywords: string[] };
 };
@@ -56,6 +69,7 @@ export const PRODUCTS: Product[] = [
       ["Hand-tracking option", "FMRXR technologies in front of the giant screen: close your fist to grab a card, open your hand to drop it. Two hands at once."],
       ["FR · EN · AR", "Every guest picks their language; the wall reads right to left in Arabic."],
       ["Sized for crowds", "The wall only sends what changed, and caps sends per guest and per minute."],
+      ["Exports after the night", "A vertical reel, a print sheet, a mailing kit and the full archive, assembled by the wall itself and downloaded from the platform."],
     ],
     specs: [["Giant screen", "Any screen or LED wall, a browser in full screen"], ["Guests", "Their own phone, by QR code"], ["Touch", "Optional touch screen"], ["Sensing", "Optional FMRXR technologies hand tracking"]],
     faq: [
@@ -63,7 +77,23 @@ export const PRODUCTS: Product[] = [
       ["Can we stop inappropriate messages?", "Yes. Flagged messages wait for your team, photos are validated by hand by default, and any card or comment can be hidden in one tap, from a phone or from the screen."],
       ["Can we use our own stickers and colours?", "Yes. Your logo, your sticker set, your colours and your card format are set per event."],
       ["How is it priced?", "Per event. Tell us your date, audience and screen for a quote."],
+      ["What do we get after the event?", "A vertical reel for social, a print sheet of every card, a mailing kit and the full archive. The wall assembles them on its own; your team downloads them from the platform."],
     ],
+    film: {
+      kicker: "After the night",
+      title: "The wall writes its own recap",
+      body: "When the night closes, nothing is sent to an editing room. The wall reads back its own evening: it keeps the cards people liked, replays the drawings stroke by stroke, saves the most-liked message for the end, and sets the pace on how much was written. Your team downloads the result, in your colours, with the print sheet, the mailing kit and the archive.",
+      src: `${MEDIA}/live-wall-reel-9x16.mp4`,
+      poster: `${MEDIA}/live-wall-reel-9x16.jpg`,
+      label: "Live Wall recap reel: guest cards land one by one on a branded wall, drawings replay stroke by stroke",
+      aspect: "aspect-[9/16]",
+      items: [
+        ["Reel for social", "Vertical 9:16, 35 s, with square and wide cuts from the same edit."],
+        ["Print sheet", "Every validated card, laid out in your colours, ready to print large or in A3."],
+        ["Mailing kit", "Header image, cut-out cards and an HTML block to paste into your own tool."],
+        ["Full archive", "Each card as a high-resolution image, plus a table of messages, likes and comments."],
+      ],
+    },
     closing: "Every guest leaves a word on your brand.",
     seo: {
       title: "Live Wall for Events: messages, drawings and photos on the big screen",

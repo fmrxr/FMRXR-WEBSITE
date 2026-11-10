@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { GameDemo } from "./GameDemo";
 import { LiveWallDemo } from "./LiveWallDemo";
+import { ScrollFilm } from "./ScrollFilm";
 
 // Page « Decouvrir » d'un produit, generee depuis sa fiche (src/lib/products.ts) :
 // hero avec demo jouable, deroule, atouts, materiel, FAQ (+ donnees structurees),
@@ -76,6 +77,36 @@ export function ProductPage({ product: p }: { product: Product }) {
                 <p className="fm-grotesk mt-2 text-[15px] leading-relaxed text-fmfg/75">{v}</p>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {p.film && (
+        <section className={SECTION}>
+          <p className={KICK}>{p.film.kicker}</p>
+          <h2 className={H2}>{p.film.title}</h2>
+          {/* Le film tient dans sa colonne : un reel vertical a cote du
+              texte, pas en pleine largeur, sinon il mange la page. */}
+          <div className="mt-10 grid gap-10 md:grid-cols-[minmax(0,1fr)_300px] md:items-start">
+            <div>
+              <p className="fm-grotesk max-w-xl text-[16px] leading-relaxed text-fmfg/80">{p.film.body}</p>
+              <dl className="mt-8 grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder sm:grid-cols-2">
+                {p.film.items.map(([k, v]) => (
+                  <div key={k} className="bg-fmbg p-5">
+                    <dt className="fm-display text-[15px] text-fmfg">{k}</dt>
+                    <dd className="fm-grotesk mt-1 text-[13px] leading-relaxed text-fmmuted">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <ScrollFilm
+              src={p.film.src}
+              poster={p.film.poster}
+              label={p.film.label}
+              aspect={p.film.aspect}
+              sound={false}
+              className="mx-auto w-full max-w-[300px]"
+            />
           </div>
         </section>
       )}

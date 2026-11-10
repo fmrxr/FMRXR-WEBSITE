@@ -14,6 +14,7 @@ export function ScrollFilm({
   label,
   sound = true,
   className = "mt-10",
+  aspect = "aspect-video",
 }: {
   src: string;
   poster: string;
@@ -21,6 +22,9 @@ export function ScrollFilm({
   // false for a silent loop: no sound button to offer
   sound?: boolean;
   className?: string;
+  // Tailwind aspect class. A vertical film (a reel) needs aspect-[9/16],
+  // otherwise object-cover crops it to a letterbox.
+  aspect?: string;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const started = useRef(false);
@@ -58,7 +62,7 @@ export function ScrollFilm({
         loop
         playsInline
         preload="metadata"
-        className="aspect-video w-full rounded-xl border border-fmborder bg-fmbg object-cover"
+        className={`${aspect} w-full rounded-xl border border-fmborder bg-fmbg object-cover`}
       />
       {sound && (
       <button
