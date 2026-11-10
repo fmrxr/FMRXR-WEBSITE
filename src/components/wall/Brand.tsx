@@ -12,7 +12,7 @@ type Brand = {
   title: { fr: string; en: string; ar: string };
   prompt: { fr: string; en: string; ar: string };
   brandName: string; clientLogoUrl: string; skin: Skin;
-  accent: string; background: string; palette: string[];
+  accent: string; background: string; backgroundImage: string; palette: string[];
   stickersEnabled: boolean; stickers: Sticker[]; maxStickersPerPost: number;
   defaultLocale: "fr" | "en" | "ar";
 };
@@ -30,6 +30,7 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
   const stickerInput = useRef<HTMLInputElement>(null);
+  const bgInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const r = await fetch(`/api/wall/brand?slug=${slug}&m=${m}`, { cache: "no-store" })
@@ -59,14 +60,14 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
     window.setTimeout(() => setSaved(false), 2500);
   };
 
-  const upload = async (file: File) => {
+  const upload = async (file: File, kind: "sticker" | "logo" | "background") => {
     const fd = new FormData();
-    fd.append("slug", slug); fd.append("m", m); fd.append("file", file);
+    fd.append("slug", slug); fd.append("m", m); fd.append("kind", kind); fd.append("file", file);
     const r = await fetch("/api/wall/brand/upload", { method: "POST", body: fd })
       .then((x) => x.json()).catch(() => null);
     if (!r?.ok) {
       setError(r?.error === "TYPE" ? "Image PNG, JPG ou WebP seulement."
-        : r?.error === "TOO_LARGE" ? "Image trop lourde (1,5 Mo au plus)."
+        : r?.error === "TOO_LARGE" ? `Image trop lourde (${Math.round((r.max ?? 0) / 1_000_000)} Mo au plus).`
         : "Envoi impossible.");
       return null;
     }
@@ -79,10 +80,36 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
     <div className="flex flex-col gap-6">
       {error && <p className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm">{error}</p>}
 
-      <Section title="Le fond" hint="La couleur du mur derrière les cartes, et la couleur d’accent des compteurs et des liserés.">
+      <Section title="Le fond" hint="Une couleur, ou une image en 4K derrière les cartes. La couleur reste visible pendant que l’image se charge, gardez-les proches.">
         <div className="flex flex-wrap gap-5">
-          <Color label="Fond du mur" value={b.background} onChange={(v) => set("background", v)} />
+          <Color label="Couleur du mur" value={b.background} onChange={(v) => set("background", v)} />
           <Color label="Accent" value={b.accent} onChange={(v) => set("accent", v)} />
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          {b.backgroundImage
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={b.backgroundImage} alt="" className="h-20 w-36 rounded-lg border border-fmborder object-cover" />
+            : <span className="grid h-20 w-36 place-items-center rounded-lg border border-dashed border-fmborder text-xs text-fmmuted">couleur seule</span>}
+          <input ref={bgInput} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+            onChange={async (e) => {
+              const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+              setBusy("bg");
+              const url = await upload(f, "background");
+              setBusy(null);
+              if (url) set("backgroundImage", url);
+            }} />
+          <div className="flex flex-col gap-2">
+            <button onClick={() => bgInput.current?.click()}
+              className="flex min-h-11 items-center gap-2 rounded-full border border-fmborder px-4 text-sm">
+              {busy === "bg" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {b.backgroundImage ? "Remplacer l’image" : "Image de fond (4K)"}
+            </button>
+            <span className="text-[11px] text-fmmuted">PNG, JPG ou WebP · 12 Mo au plus · 3840 × 2160 conseillé</span>
+          </div>
+          {b.backgroundImage && (
+            <button onClick={() => set("backgroundImage", "")}
+              className="min-h-11 rounded-full border border-fmborder px-4 text-sm text-fmmuted">Retirer</button>
+          )}
         </div>
       </Section>
 
@@ -126,7 +153,7 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
             onChange={async (e) => {
               const f = e.target.files?.[0]; if (!f) return;
               setBusy("logo");
-              const url = await upload(f);
+              const url = await upload(f, "logo");
               setBusy(null);
               if (url) set("clientLogoUrl", url);
               e.target.value = "";
@@ -168,7 +195,7 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
               setBusy("stickers");
               const add: Sticker[] = [];
               for (const f of files.slice(0, 40 - b.stickers.length)) {
-                const url = await upload(f);
+                const url = await upload(f, "sticker");
                 if (!url) break;
                 const base = f.name.replace(/\.[^.]+$/, "");
                 add.push({
@@ -202,7 +229,7 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
 
       {/* Apercu : la charte se juge sur une carte, pas sur des pastilles. */}
       <Section title="Aperçu" hint="Une carte comme les invités la verront.">
-        <div className="rounded-xl p-6" style={{ background: b.background }}>
+        <div className="rounded-xl bg-cover bg-center p-6" style={{ backgroundColor: b.background, backgroundImage: b.backgroundImage ? `url(${b.backgroundImage})` : undefined }}>
           <div className="relative w-[16em] rounded-[0.25em] p-[0.7em] text-[#1b1a22] shadow-[0_0.8em_1.6em_-0.6em_rgba(0,0,0,0.6)]"
             style={{ background: b.palette[0], fontSize: "14px" }}>
             <span className="absolute -top-[0.55em] left-1/2 h-[1.1em] w-[4.5em] -translate-x-1/2 rotate-[-3deg] bg-white/55" />

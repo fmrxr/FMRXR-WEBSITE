@@ -112,7 +112,7 @@ export function Screen({ slug, s, m, initial, qrSvg }: { slug: string; s?: strin
   const newest = fresh.length ? posts.find((p) => p.id === fresh[fresh.length - 1]) : null;
 
   return (
-    <main dir={config.defaultLocale === "ar" ? "rtl" : "ltr"} className="fm grid h-dvh w-full grid-rows-[auto_1fr] overflow-hidden text-fmfg" style={{ background: config.background }}>
+    <main dir={config.defaultLocale === "ar" ? "rtl" : "ltr"} className="fm grid h-dvh w-full grid-rows-[auto_1fr] overflow-hidden text-fmfg" style={{ backgroundColor: config.background, backgroundImage: config.backgroundImage ? `url(${config.backgroundImage})` : undefined, backgroundSize: "cover", backgroundPosition: "center" }}>
       <header className="relative z-20 flex items-center justify-between gap-6 px-[2.5vw] py-[1.8vh]">
         <div className="flex items-center gap-[1.2vw]">
           {config.clientLogoUrl && (

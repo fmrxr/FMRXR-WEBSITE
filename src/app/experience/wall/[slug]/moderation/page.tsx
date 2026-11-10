@@ -25,7 +25,13 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <p className="mb-5 text-sm text-fmmuted">
           Contrôle du mur · modération {config.moderation === "auto" ? "automatique, les messages signalés attendent ici" : "manuelle, tout attend ici"}
         </p>
-        <Control slug={slug} m={m!} stickers={config.stickers} locale={config.defaultLocale} pending={0} />
+        <Control
+          slug={slug} m={m!} stickers={config.stickers} locale={config.defaultLocale} pending={0}
+          eventName={campaign.name}
+          eventDate={campaign.starts_at
+            ? new Date(campaign.starts_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }).toUpperCase()
+            : ""}
+        />
       </div>
     </main>
   );

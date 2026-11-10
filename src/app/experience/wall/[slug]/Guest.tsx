@@ -33,7 +33,7 @@ export function Guest({ slug, k, initial }: { slug: string; k: string; initial: 
   const openPost = posts.find((p) => p.id === open) ?? null;
 
   return (
-    <main dir={locale === "ar" ? "rtl" : "ltr"} className="fm min-h-dvh pb-24" style={{ background: config.background }}>
+    <main dir={locale === "ar" ? "rtl" : "ltr"} className="fm min-h-dvh bg-cover bg-center bg-fixed pb-24" style={{ backgroundColor: config.background, backgroundImage: config.backgroundImage ? `url(${config.backgroundImage})` : undefined }}>
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-fmborder bg-black/40 px-4 py-3 backdrop-blur">
         {config.clientLogoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -246,7 +246,7 @@ function WallTab({ posts, config, t, asset, fresh, mine, loaded, onMove, onLike,
   return (
     <div className="flex flex-col gap-5 py-4">
       <div className="px-4">
-        <div className="relative aspect-video overflow-hidden rounded-xl border border-fmborder" style={{ background: config.background }}>
+        <div className="relative aspect-video overflow-hidden rounded-xl border border-fmborder bg-cover bg-center" style={{ backgroundColor: config.background, backgroundImage: config.backgroundImage ? `url(${config.backgroundImage})` : undefined }}>
           <Board posts={posts} config={config} t={t} asset={asset} fresh={fresh} compact cardFrac={0.15}
             canMove={(p) => config.guestMove && p.mine} onMove={onMove} onOpen={onOpen} />
           {loaded && posts.length === 0 && <p className="absolute inset-0 grid place-items-center text-sm text-fmmuted">{t.empty}</p>}

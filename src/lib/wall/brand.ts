@@ -38,6 +38,7 @@ export const brandPatchSchema = z.object({
   skin: z.enum(SKINS),
   accent: hex,
   background: hex,
+  backgroundImage: z.string().max(500),
   palette: z.array(hex).min(1).max(8),
   stickersEnabled: z.boolean(),
   stickers: z.array(sticker).max(40),
@@ -52,7 +53,7 @@ export function brandOf(c: WallConfig) {
   return {
     title: c.title, prompt: c.prompt, brandName: c.brandName,
     clientLogoUrl: c.clientLogoUrl, skin: c.skin, accent: c.accent,
-    background: c.background, palette: c.palette,
+    background: c.background, backgroundImage: c.backgroundImage, palette: c.palette,
     stickersEnabled: c.stickersEnabled, stickers: c.stickers,
     maxStickersPerPost: c.maxStickersPerPost, defaultLocale: c.defaultLocale,
   };

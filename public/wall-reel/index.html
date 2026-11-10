@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Wall · concepts de reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0c; --panel:#121216; --line:#24242c; --dim:#8a8a96; --fg:#f2f2f4;
+  --green:#3feb03;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:'Space Grotesk',system-ui,sans-serif;
+  display:grid; grid-template-columns:minmax(0,1fr) 330px; height:100vh; overflow:hidden;
+}
+
+/* ── Scene ─────────────────────────────────────────────── */
+.scene{display:grid;place-items:center;padding:22px;min-width:0;position:relative;background:
+  radial-gradient(900px 600px at 50% 0%, #15151c 0%, #0a0a0c 70%)}
+.stage{transform-origin:center center;box-shadow:0 30px 90px -20px rgba(0,0,0,.9);border-radius:2px;overflow:hidden}
+.hint{position:absolute;bottom:10px;left:22px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#3b3b45}
+
+/* ── Le reel ───────────────────────────────────────────── */
+.reel{position:relative;overflow:hidden;background:var(--brandbg,#0B1134);font-family:Inter,system-ui,sans-serif}
+.reel .bg{position:absolute;inset:0;background:var(--brandbg,#0B1134)}
+/* Nappes de lumiere : une froide qui vient du haut, une chaude a la couleur
+   d'accent qui vient du bas. Leurs centres derivent, pilotes par seek(). */
+.reel .light{position:absolute;inset:0;
+  background:
+    radial-gradient(62% 44% at var(--l1x,50%) var(--l1y,33%), rgba(150,190,255,var(--i1,.18)), transparent 70%),
+    radial-gradient(54% 40% at var(--l2x,50%) var(--l2y,71%), rgba(232,197,107,var(--i2,.1)), transparent 72%)}
+.reel .vignette{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(128% 88% at 50% 47%, transparent 38%, rgba(2,4,16,.62))}
+.reel .grain{position:absolute;inset:-80px;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E")}
+.reel .surface{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.reel .ui{position:absolute;inset:0;pointer-events:none}
+
+/* Carte, au format « memory » du produit */
+.card{position:absolute;border-radius:.25em;padding:.7em;color:#1b1a22;
+  box-shadow:0 .8em 1.6em -.6em rgba(0,0,0,.6);will-change:transform,opacity}
+.card .tape{position:absolute;top:-.55em;left:50%;height:1.1em;width:4.5em;
+  transform:translateX(-50%) rotate(-3deg);background:rgba(255,255,255,.55)}
+.card .body{position:relative;margin:-.7em;padding:.7em}
+.card .txt{min-height:5em;font-size:1.3em;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.card .sticker{position:absolute;pointer-events:none;user-select:none;
+  filter:drop-shadow(0 .15em .25em rgba(0,0,0,.35))}
+.card .media{position:relative;overflow:hidden}
+.card .media canvas{display:block;width:100%}
+.card .media.square{aspect-ratio:1;background:#fff}
+.card .media.square canvas{height:100%}
+.card .media.sign{background:#fbf7ee;padding:.4em .6em .5em}
+.card .signlabel{margin-top:.2em;border-top:1px solid rgba(43,42,51,.3);padding-top:.2em;
+  font-size:.55em;letter-spacing:.2em;text-transform:uppercase;color:rgba(43,42,51,.6)}
+.card .cap{margin-top:.5em;font-size:.85em;line-height:1.25}
+.card .foot{margin-top:.6em;display:flex;align-items:center;justify-content:space-between;
+  font-size:.65em;color:rgba(27,26,34,.62)}
+.card .who{font-weight:600}
+.card .meta{display:flex;align-items:center;gap:.5em}
+.card .heart{color:#e64f6a}
+.card .likes{font-variant-numeric:tabular-nums;min-width:1.2em}
+
+/* Habillage du reel */
+.reel .open,.reel .close{position:absolute;left:0;right:0;padding:0 9%;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:3.2%}
+.reel .open{top:50%;transform:translateY(-50%)}
+.reel .close{top:50%;transform:translateY(-50%)}
+.reel .mark{display:flex;flex-direction:column;align-items:center;gap:.8vh}
+.reel .markbox{display:grid;place-items:center;width:5.4em;height:5.4em;border-radius:50%;
+  border:2px dashed rgba(255,255,255,.45);font-size:12px;letter-spacing:.18em;color:rgba(255,255,255,.65)}
+.reel .markname{font-size:40px;font-weight:900;letter-spacing:.16em;color:#fff}
+.reel .logo{display:block;width:420px;height:auto}
+.reel .logo.small{width:230px}
+.reel .rule{width:64px;height:3px;background:var(--accent);opacity:.95}
+.reel .title{font-size:58px;font-weight:900;letter-spacing:.01em;line-height:1.02;color:#fff}
+.reel .sub{font-size:22px;font-weight:600;letter-spacing:.26em;color:rgba(255,255,255,.82)}
+.reel .closing{font-size:62px;font-weight:900;line-height:1.02;color:#fff}
+.reel .credit{position:absolute;bottom:-14%;font-size:15px;letter-spacing:.3em;color:rgba(255,255,255,.6)}
+.reel .open.clean .title,.reel .open.clean .sub,.reel .open.clean .rule,
+.reel .close.clean .closing,.reel .close.clean .rule{display:none}
+.reel .scrim{position:absolute;left:0;right:0;height:26%;pointer-events:none}
+.reel .scrim.top{top:0;background:linear-gradient(to bottom,rgba(5,9,34,.9),rgba(5,9,34,.55) 55%,transparent)}
+.reel .scrim.bot{bottom:0;background:linear-gradient(to top,rgba(5,9,34,.9),rgba(5,9,34,.55) 55%,transparent)}
+.reel .topbar{position:absolute;left:0;right:0;top:5.5%;display:flex;flex-direction:column;
+  align-items:center;gap:12px;text-shadow:0 2px 20px rgba(0,0,0,.7)}
+.reel .tbname{font-size:46px;font-weight:900;letter-spacing:.18em;color:#fff}
+.reel .tbrule{width:46px;height:3px;background:var(--accent)}
+.reel .tbtitle{font-size:17px;font-weight:700;letter-spacing:.26em;color:rgba(255,255,255,.8);text-align:center}
+.reel .counter{position:absolute;left:0;right:0;bottom:6%;display:flex;flex-direction:column;
+  align-items:center;gap:2px;text-shadow:0 2px 20px rgba(0,0,0,.7)}
+.reel .cnum{font-size:70px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
+.reel .clab{font-size:15px;font-weight:700;letter-spacing:.34em;color:var(--accent)}
+
+/* ── Panneau ───────────────────────────────────────────── */
+.side{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto}
+.side h1{font-size:13px;letter-spacing:.2em;padding:18px 18px 4px}
+.side h1 b{color:var(--green)}
+.side .note{font-size:11px;line-height:1.55;color:var(--dim);padding:0 18px 14px}
+.grp{border-top:1px solid var(--line);padding:14px 18px}
+.grp>h2{font-size:9px;letter-spacing:.22em;color:#5e5e6b;margin-bottom:10px;text-transform:uppercase}
+.tpl{width:100%;text-align:left;background:#17171d;border:1px solid var(--line);color:var(--fg);
+  padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:.15s}
+.tpl:hover{background:#1e1e26}
+.tpl.on{border-color:var(--green);background:#17201a}
+.tpl b{display:block;font-size:12px;letter-spacing:.1em}
+.tpl span{display:block;font-size:10.5px;line-height:1.5;color:var(--dim);margin-top:4px}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{flex:1;min-width:58px;background:#17171d;border:1px solid var(--line);color:var(--dim);
+  font-family:inherit;font-size:11px;letter-spacing:.1em;padding:8px 6px;cursor:pointer}
+.chip.on{border-color:var(--green);color:var(--green)}
+.transport{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.play{width:42px;height:42px;background:var(--green);color:#07070a;border:none;font-size:15px;cursor:pointer}
+.time{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--green)}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:#5e5e6b;margin-bottom:8px}
+.fld input{font-family:inherit;font-size:12px;letter-spacing:0;text-transform:none;
+  background:#17171d;border:1px solid var(--line);color:var(--fg);padding:8px 10px}
+.fld input:focus{outline:none;border-color:var(--green)}
+.kv{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);padding:3px 0;gap:10px}
+.kv b{color:var(--fg);font-weight:500;text-align:right}
+
+/* Mode rendu (?render=1) : l'image seule, a sa taille reelle, rien autour.
+   C'est ce que le script d'enregistrement photographie. */
+body.render{grid-template-columns:1fr;background:#000;overflow:hidden}
+body.render .side,body.render .hint{display:none}
+body.render .scene{padding:0;background:#000}
+body.render .stage{box-shadow:none;border-radius:0}
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <div class="stage"><div id="reel"></div></div>
+  <div class="hint">Aperçu · 35 s · le montage est calculé, jamais monté à la main</div>
+</div>
+
+<aside class="side">
+  <h1>LIVE WALL <b>//</b> CONCEPTS DE REEL</h1>
+  <p class="note">Trois montages automatiques du même contenu. Le mur choisit seul les cartes mises en avant, le rythme et la fin. Marque, titre et date se règlent par paramètres d’URL.</p>
+
+  <div class="grp">
+    <h2>Montage</h2>
+    <div id="tpls"></div>
+  </div>
+
+  <div class="grp">
+    <h2>Lecture</h2>
+    <div class="transport">
+      <button class="play" id="play">▶</button>
+      <span class="time" id="time">0.0 / 35.0 s</span>
+    </div>
+    <input type="range" id="scrub" min="0" max="35" step="0.02" value="0">
+  </div>
+
+  <div class="grp">
+    <h2>Format livré</h2>
+    <div class="row" id="formats"></div>
+  </div>
+
+  <div class="grp">
+    <h2>Versions</h2>
+    <div class="row">
+      <button class="chip on" id="burn">TEXTE INCRUSTÉ</button>
+      <button class="chip on" id="credit">CRÉDIT FMRXR</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <h2>Décidé par la machine</h2>
+    <div class="kv"><span>Cartes au mur</span><b id="kTotal">—</b></div>
+    <div class="kv"><span>Plans serrés</span><b id="kHolds">—</b></div>
+    <div class="kv"><span>Carte de fin</span><b id="kHero">—</b></div>
+    <div class="kv"><span>Images</span><b>35 s · 30 i/s · 1050</b></div>
+  </div>
+
+  <div class="grp">
+    <h2>Textes du reel</h2>
+    <label class="fld">Titre<input id="tTitle"></label>
+    <label class="fld">Sous-titre<input id="tDate"></label>
+    <label class="fld">Lieu<input id="tPlace"></label>
+    <label class="fld">Carton de fin<input id="tClosing"></label>
+    <label class="fld">Logo (URL)<input id="tLogo" placeholder="laisser vide pour aucun"></label>
+  </div>
+
+  <div class="grp">
+    <h2>Export</h2>
+    <button class="chip" id="btnExport" style="flex:none;width:100%">⬇ Exporter la vidéo</button>
+    <p class="note" id="expNote" style="padding:8px 0 0">Le rendu se fait ici, dans votre navigateur. Laissez l’onglet ouvert.</p>
+  </div>
+</aside>
+
+<script type="module">
+import { createReel, FORMATS, TEMPLATES, DURATION, FPS } from "./reel.js";
+import { renderMp4, canExport } from "./export.js";
+
+// Ouvert depuis la page de controle d'un mur : on va chercher la charte
+// du client avant de construire le reel, pour que le logo et les couleurs
+// soient les siens sans qu'il ait rien a ressaisir.
+{
+  const q = new URLSearchParams(location.search);
+  const slug = q.get("slug"), m = q.get("m");
+  if (slug && m) {
+    const r = await fetch(`/api/wall/brand?slug=${slug}&m=${m}`, { cache: "no-store" })
+      .then((x) => x.json()).catch(() => null);
+    if (r?.ok) globalThis.__charte = r.brand;
+  }
+}
+
+const RENDER = new URLSearchParams(location.search).has("render");
+if (RENDER) document.body.classList.add("render");
+
+const host = document.getElementById("reel");
+const reel = createReel(host);
+const stage = document.querySelector(".stage");
+
+// Mise a l'echelle de la scene pour que l'image tienne dans le panneau.
+// En mode rendu, aucune mise a l'echelle : l'image est a sa taille reelle,
+// sinon le reel serait photographie flou.
+function fit() {
+  const f = FORMATS[reel.state.format];
+  const box = document.querySelector(".scene").getBoundingClientRect();
+  const k = RENDER ? 1 : Math.min((box.width - 44) / f.w, (box.height - 60) / f.h);
+  stage.style.width = f.w * k + "px";
+  stage.style.height = f.h * k + "px";
+  host.style.transformOrigin = "0 0";
+  host.style.transform = `scale(${k})`;
+}
+addEventListener("resize", fit);
+
+// Modeles de montage.
+const tplBox = document.getElementById("tpls");
+TEMPLATES.forEach((t, i) => {
+  const b = document.createElement("button");
+  b.className = "tpl" + (i === 0 ? " on" : "");
+  b.innerHTML = `<b>${i + 1}. ${t.name}</b><span>${t.line}</span>`;
+  b.onclick = () => {
+    tplBox.querySelectorAll(".tpl").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+    reel.setTemplate(t.id);
+    restart();
+  };
+  tplBox.append(b);
+});
+
+// Formats de livraison.
+const fBox = document.getElementById("formats");
+Object.entries(FORMATS).forEach(([id, f], i) => {
+  const b = document.createElement("button");
+  b.className = "chip" + (i === 0 ? " on" : "");
+  b.textContent = f.label;
+  b.onclick = () => {
+    fBox.querySelectorAll(".chip").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+    reel.setFormat(id);
+    fit();
+    reel.seek(t);
+  };
+  fBox.append(b);
+});
+
+const toggle = (el, key) => {
+  el.onclick = () => {
+    reel.state[key] = !reel.state[key];
+    el.classList.toggle("on", reel.state[key]);
+    reel.seek(t);
+  };
+};
+toggle(document.getElementById("burn"), "burn");
+toggle(document.getElementById("credit"), "credit");
+
+// Ce que la machine a decide, affiche pour qu'on puisse le verifier.
+document.getElementById("kTotal").textContent = reel.plan.total + " cartes";
+document.getElementById("kHolds").textContent = reel.plan.holds.map((p) => p.author).join(", ");
+document.getElementById("kHero").textContent = reel.plan.hero.author + " · " + reel.plan.hero.likes + " ♥";
+
+// Transport.
+let t = 0, playing = false, last = 0;
+const scrub = document.getElementById("scrub");
+const time = document.getElementById("time");
+const playBtn = document.getElementById("play");
+
+function render() {
+  reel.seek(t);
+  scrub.value = t;
+  time.textContent = t.toFixed(1) + " / " + DURATION.toFixed(1) + " s";
+}
+function loop(now) {
+  if (playing) {
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    t += dt;
+    if (t >= DURATION) t = 0;
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+function restart() { t = 0; render(); }
+playBtn.onclick = () => {
+  playing = !playing;
+  last = performance.now();
+  playBtn.textContent = playing ? "❚❚" : "▶";
+};
+scrub.oninput = () => { t = Number(scrub.value); render(); };
+
+// L'outil est pilotable depuis la console et depuis les tests.
+window.reel = { go: (x) => { t = x; render(); }, obj: reel, play: () => playBtn.click() };
+
+/**
+ * API de rendu. C'est par la que le script d'enregistrement pilote la
+ * page : il pose une image, la photographie, passe a la suivante. Rien
+ * ne tourne tout seul, donc deux rendus du meme reel sont identiques.
+ */
+window.reelRender = {
+  fps: FPS,
+  duration: DURATION,
+  frames: Math.round(DURATION * FPS),
+  formats: Object.keys(FORMATS),
+  templates: TEMPLATES.map((x) => x.id),
+  stop() { playing = false; playBtn.textContent = "▶"; },
+  async setup({ template, format, burn = true, credit = true }) {
+    this.stop();
+    if (template) reel.setTemplate(template);
+    if (format) { reel.setFormat(format); fit(); }
+    reel.state.burn = burn;
+    reel.state.credit = credit;
+    // Polices et images doivent etre la avant la premiere image, sinon
+    // les premieres secondes sortent sans logo ni stickers.
+    await document.fonts.ready;
+    await Promise.all([...document.images].map((im) => im.complete
+      ? Promise.resolve() : new Promise((r) => { im.onload = im.onerror = r; })));
+    t = 0; render();
+    return { w: FORMATS[reel.state.format].w, h: FORMATS[reel.state.format].h, frames: this.frames };
+  },
+  frame(i) { this.stop(); t = i / FPS; render(); return t; },
+};
+
+// Les textes et le logo se changent sur place : le client ajuste son
+// carton sans repasser par la charte ni recharger la page.
+const fields = { tTitle: "title", tDate: "date", tPlace: "place", tClosing: "closing", tLogo: "logo" };
+for (const [id, key] of Object.entries(fields)) {
+  const el = document.getElementById(id);
+  el.value = reel.brandInfo[key] ?? "";
+  el.oninput = () => { reel.setText({ [key]: el.value }); render(); };
+}
+
+const btnExport = document.getElementById("btnExport");
+const expNote = document.getElementById("expNote");
+if (!canExport()) {
+  btnExport.disabled = true;
+  expNote.textContent = "Ce navigateur ne sait pas encoder de vidéo. Ouvrez le monteur dans Chrome ou Edge.";
+} else {
+  btnExport.onclick = async () => {
+    const wasPlaying = playing;
+    if (wasPlaying) playBtn.click();
+    btnExport.disabled = true;
+    try {
+      const t0 = Date.now();
+      const blob = await renderMp4(reel, {
+        onProgress: (n, total) => {
+          btnExport.textContent = `Rendu ${Math.round((n / total) * 100)} %`;
+          expNote.textContent = n > 30
+            ? `environ ${Math.max(1, Math.round(((Date.now() - t0) / n) * (total - n) / 1000))} s restantes`
+            : "préparation…";
+        },
+      });
+      const name = `reel-${reel.state.template}-${reel.state.format}.mp4`;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      expNote.textContent = `${name} · ${(blob.size / 1048576).toFixed(1)} Mo`;
+    } catch (e) {
+      expNote.textContent = "Le rendu a échoué : " + (e?.message ?? e);
+    }
+    btnExport.textContent = "⬇ Exporter la vidéo";
+    btnExport.disabled = false;
+    render();
+  };
+}
+
+fit();
+render();
+requestAnimationFrame(loop);
+if (!RENDER) playBtn.click();
+</script>
+</body>
+</html>

@@ -11,8 +11,9 @@ import { Exports } from "./Exports";
 
 type Tab = "moderation" | "brand" | "exports";
 
-export function Control({ slug, m, stickers, locale, pending }: {
+export function Control({ slug, m, stickers, locale, pending, eventName, eventDate }: {
   slug: string; m: string; stickers: Sticker[]; locale: Locale; pending: number;
+  eventName: string; eventDate: string;
 }) {
   const [tab, setTab] = useState<Tab>("moderation");
   const tabs: [Tab, string][] = [["moderation", "Modération"], ["brand", "Charte"], ["exports", "Exports"]];
@@ -32,7 +33,7 @@ export function Control({ slug, m, stickers, locale, pending }: {
       </nav>
       {tab === "moderation" && <Moderation slug={slug} m={m} stickers={stickers} locale={locale} />}
       {tab === "brand" && <Brand slug={slug} m={m} />}
-      {tab === "exports" && <Exports slug={slug} m={m} />}
+      {tab === "exports" && <Exports slug={slug} m={m} eventName={eventName} eventDate={eventDate} />}
     </>
   );
 }

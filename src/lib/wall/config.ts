@@ -74,6 +74,10 @@ export const wallConfigSchema = z.object({
   // Couleurs
   accent: hex,
   background: hex,
+  // Image de fond du mur, posee par le client. Elle recouvre la couleur
+  // quand elle est la ; la couleur reste et sert de fond pendant son
+  // chargement, et sur les surfaces ou l'image ne va pas.
+  backgroundImage: z.string().max(500).default(""),
   palette: z.array(hex).min(1).max(8), // couleurs des cartes « memoire »
 });
 export type WallConfig = z.infer<typeof wallConfigSchema>;
@@ -118,6 +122,7 @@ export const DEFAULT_CONFIG: WallConfig = {
   maxOnWall: 48,
   accent: "#7bef7b",
   background: "#0d0c14",
+  backgroundImage: "",
   palette: ["#fff4b8", "#ffd6e0", "#cdeccf", "#d5e4ff", "#ffe2c4", "#e7dcff"],
 };
 
