@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Moderation } from "@/components/wall/Moderation";
+import { Control } from "@/components/wall/Control";
 import { loadWall } from "@/lib/wall/server";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +22,10 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     <main className="fm fm-canvas min-h-dvh px-4 py-5">
       <div className="relative z-10 mx-auto max-w-5xl">
         <p className="fm-display text-2xl">{campaign.name}</p>
-        <p className="mb-5 text-sm text-fmmuted">Modération · {config.moderation === "auto" ? "automatique, les messages signalés attendent ici" : "manuelle, tout attend ici"}</p>
-        <Moderation slug={slug} m={m!} stickers={config.stickers} locale={config.defaultLocale} />
+        <p className="mb-5 text-sm text-fmmuted">
+          Contrôle du mur · modération {config.moderation === "auto" ? "automatique, les messages signalés attendent ici" : "manuelle, tout attend ici"}
+        </p>
+        <Control slug={slug} m={m!} stickers={config.stickers} locale={config.defaultLocale} pending={0} />
       </div>
     </main>
   );

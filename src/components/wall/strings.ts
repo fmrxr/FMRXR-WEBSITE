@@ -39,6 +39,8 @@ const fr = {
     pending: "En attente", published: "Publiés", hidden: "Masqués", nothing: "Rien ici.", loading: "Chargement…",
     connected: "Connecté·e", publish: "Publier", hide: "Masquer", anon: "anonyme", comments: "Commentaires",
     flagged: "Signalé", hiddenBy: "Masqué par", moderatedBy: "Modéré par", by: "par",
+    newOnes: "nouveau", newMany: "nouveaux", show: "Afficher", live: "en direct",
+    stale: "hors ligne", ago: "il y a", sec: "s", onPost: "sur ce message", noComment: "aucun commentaire à juger",
     flags: { mot: "mot signalé", lien: "lien", numero: "numéro", compte: "@compte" } as Record<string, string>,
   },
   errors: {
@@ -90,6 +92,8 @@ const en: Strings = {
     pending: "Pending", published: "Published", hidden: "Hidden", nothing: "Nothing here.", loading: "Loading…",
     connected: "Signed in as", publish: "Publish", hide: "Hide", anon: "anonymous", comments: "Comments",
     flagged: "Flagged", hiddenBy: "Hidden by", moderatedBy: "Moderated by", by: "by",
+    newOnes: "new", newMany: "new", show: "Show", live: "live",
+    stale: "offline", ago: "", sec: "s ago", onPost: "on this message", noComment: "no comment to judge",
     flags: { mot: "flagged word", lien: "link", numero: "phone number", compte: "@account" },
   },
   errors: {
@@ -139,6 +143,8 @@ const ar: Strings = {
     pending: "قيد المراجعة", published: "منشورة", hidden: "مخفية", nothing: "لا شيء هنا.", loading: "جارٍ التحميل…",
     connected: "متصل(ة)", publish: "نشر", hide: "إخفاء", anon: "مجهول", comments: "التعليقات",
     flagged: "مُبلَّغ عنه", hiddenBy: "أخفاه", moderatedBy: "راجعه", by: "بواسطة",
+    newOnes: "جديد", newMany: "جديدة", show: "عرض", live: "مباشر",
+    stale: "غير متصل", ago: "منذ", sec: "ث", onPost: "على هذه الرسالة", noComment: "لا تعليق للمراجعة",
     flags: { mot: "كلمة مبلَّغ عنها", lien: "رابط", numero: "رقم هاتف", compte: "@حساب" },
   },
   errors: {
