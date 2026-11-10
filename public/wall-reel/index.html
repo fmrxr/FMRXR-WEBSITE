@@ -100,6 +100,9 @@ body{
 /* ── Panneau ───────────────────────────────────────────── */
 .side{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto}
 .side h1{font-size:13px;letter-spacing:.2em;padding:18px 18px 4px}
+.back{display:block;padding:14px 18px 0;font-size:11px;letter-spacing:.1em;color:var(--dim);
+  text-decoration:none}
+.back:hover{color:var(--green)}
 .side h1 b{color:var(--green)}
 .side .note{font-size:11px;line-height:1.55;color:var(--dim);padding:0 18px 14px}
 .grp{border-top:1px solid var(--line);padding:14px 18px}
@@ -142,8 +145,11 @@ body.render .stage{box-shadow:none;border-radius:0}
 </div>
 
 <aside class="side">
+  <!-- Retour vers la page de controle : visible seulement quand le monteur
+       a ete ouvert depuis un mur, sinon il n'y a nulle part ou revenir. -->
+  <a id="backMod" class="back" hidden>← Retour à la modération</a>
   <h1>LIVE WALL <b>//</b> CONCEPTS DE REEL</h1>
-  <p class="note">Trois montages automatiques du même contenu. Le mur choisit seul les cartes mises en avant, le rythme et la fin. Marque, titre et date se règlent par paramètres d’URL.</p>
+  <p class="note">Trois montages automatiques du même contenu. Le mur choisit seul les cartes mises en avant, le rythme et la fin.</p>
 
   <div class="grp">
     <h2>Montage</h2>
@@ -348,6 +354,17 @@ for (const [id, key] of Object.entries(fields)) {
   const el = document.getElementById(id);
   el.value = reel.brandInfo[key] ?? "";
   el.oninput = () => { reel.setText({ [key]: el.value }); render(); };
+}
+
+// Le lien de retour n'existe que si on sait d'ou on vient.
+{
+  const q = new URLSearchParams(location.search);
+  const slug = q.get("slug"), m = q.get("m");
+  if (slug && m) {
+    const a = document.getElementById("backMod");
+    a.href = `/experience/wall/${encodeURIComponent(slug)}/moderation?m=${encodeURIComponent(m)}`;
+    a.hidden = false;
+  }
 }
 
 const btnExport = document.getElementById("btnExport");
