@@ -26,8 +26,10 @@ export async function POST(req: NextRequest) {
   const loaded = await loadWall(b.slug, { m: b.m });
   if (!loaded.ok || loaded.wall.access !== "mod") return json({ ok: false }, 404);
 
+  // updated_at entre dans la version du flux (/api/wall/feed) : sans lui,
+  // ecrans et telephones ne voyaient rien tant qu'aucune carte ne bougeait.
   const { error } = await getSupabaseAdmin()
-    .from("wall_campaigns").update({ status: b.status }).eq("id", loaded.wall.campaign.id);
+    .from("wall_campaigns").update({ status: b.status, updated_at: new Date().toISOString() }).eq("id", loaded.wall.campaign.id);
   if (error) return json({ ok: false, error: "SAVE_FAILED" }, 500);
 
   return json({ ok: true, status: b.status });

@@ -4,6 +4,7 @@ import type { PublicConfig, Skin, Sticker } from "@/lib/wall/config";
 import type { PlacedSticker, WallComment, WallPost } from "@/lib/wall/types";
 import { RemoteDrawing } from "./Drawing";
 import { ago, type Strings } from "./strings";
+import { inkStyle } from "./ink";
 
 // Une carte du mur, dans l'un des quatre formats. Toutes les tailles sont en
 // em : le mur fixe la taille de police selon sa largeur, donc la meme carte
@@ -167,7 +168,13 @@ export function Card(props: CardProps) {
             {/* Le mot est centré dans la carte, en hauteur comme en largeur :
                 une carte est un objet posé, pas un paragraphe. Court ou long,
                 il tient le milieu. */}
-            <p className="grid min-h-[5em] place-items-center text-center text-[1.3em] font-semibold leading-snug [overflow-wrap:anywhere]">{post.body}</p>
+            {/* Sur un papier du client, l'encre mesurée à l'envoi, un halo de
+                la couleur opposée, et un voile si le papier est trop chargé
+                pour qu'une encre seule se lise partout (voir Brand.tsx). */}
+            <div className="grid min-h-[5em] place-items-center">
+              <p className="rounded-[0.35em] px-[0.4em] py-[0.15em] text-center text-[1.3em] font-semibold leading-snug [overflow-wrap:anywhere]"
+                style={sheet ? inkStyle(sheet) : undefined}>{post.body}</p>
+            </div>
             <StickerLayer list={post.stickers} byId={byId} />
           </div>
         ) : (
@@ -176,7 +183,8 @@ export function Card(props: CardProps) {
             {post.body && <p className="mt-[0.5em] text-[0.85em] leading-snug [overflow-wrap:anywhere]">{post.body}</p>}
           </>
         )}
-        <div className="mt-[0.6em] flex items-center justify-between text-[0.65em] opacity-60" style={{ color: ink }}>
+        <div className={`mt-[0.6em] flex items-center justify-between text-[0.65em] ${sheet ? "opacity-90" : "opacity-60"}`}
+          style={sheet ? { ...inkStyle(sheet), background: undefined, backdropFilter: undefined } : { color: ink }}>
           <span className="font-semibold">{post.kind !== "signature" && post.author ? `— ${post.author}` : ""}</span>
           <span className="flex items-center gap-[0.8em]">
             {likeBtn(<Heart className={`h-[1.3em] w-[1.3em] ${post.liked ? "fill-[#e64f6a] text-[#e64f6a]" : ""}`} />, post.likes ? String(post.likes) : "")}

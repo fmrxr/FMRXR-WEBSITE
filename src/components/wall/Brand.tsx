@@ -2,18 +2,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Loader2, Plus, Trash2 } from "lucide-react";
 import { SKINS, type Skin } from "@/lib/wall/config";
+import { INK, inkStyle } from "./ink";
 
 // La charte du mur, posee par l'equipe du client : fond, cartes, stickers.
 // Ce que cette page n'ouvre pas (moderateurs, mots bloques, limites) est
 // refuse cote serveur, pas seulement cache ici : voir lib/wall/brand.ts.
 
 type Sticker = { id: string; url: string; label: string };
+type Paper = { url: string; ink: "dark" | "light"; veil?: boolean };
 type Brand = {
   title: { fr: string; en: string; ar: string };
   prompt: { fr: string; en: string; ar: string };
   brandName: string; clientLogoUrl: string; skin: Skin;
   accent: string; background: string; backgroundImage: string; palette: string[];
-  papers: ({ url: string; ink: "dark" | "light" } | null)[];
+  papers: (Paper | null)[];
   stickersEnabled: boolean; stickers: Sticker[]; maxStickersPerPost: number;
   defaultLocale: "fr" | "en" | "ar";
 };
@@ -76,38 +78,28 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
     return r.url as string;
   };
 
-  /**
-   * La couleur du texte à poser sur un papier, mesurée sur l'image même :
-   * on lit la luminance moyenne d'une version réduite. Demander au client
-   * de la choisir lui-même, c'est lui demander de deviner à la place de
-   * ses invités, et une carte illisible ne se voit qu'une fois le mur en
-   * salle.
-   */
-  const inkOf = async (url: string): Promise<"dark" | "light"> => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = url;
-    await new Promise((r) => { img.onload = img.onerror = r; });
-    if (!img.naturalWidth) return "dark";
-    const cv = document.createElement("canvas");
-    cv.width = cv.height = 24;
-    const g = cv.getContext("2d");
-    if (!g) return "dark";
-    g.drawImage(img, 0, 0, 24, 24);
-    try {
-      const d = g.getImageData(0, 0, 24, 24).data;
-      let sum = 0;
-      for (let i = 0; i < d.length; i += 4) sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
-      return sum / (d.length / 4) < 128 ? "light" : "dark";
-    } catch { return "dark"; }
-  };
-
-  const setPaper = (i: number, v: { url: string; ink: "dark" | "light" } | null) => {
+  const setPaper = (i: number, v: Paper | null) => {
     const next = [...(b?.papers ?? [])];
     while (next.length < (b?.palette.length ?? 0)) next.push(null);
     next[i] = v;
     set("papers", next);
   };
+
+  // Les papiers enregistrés avant la mesure actuelle sont relus une fois à
+  // l'ouverture : un ancien papier mal jugé se corrige sans être renvoyé.
+  const checked = useRef(false);
+  useEffect(() => {
+    if (!b || checked.current) return;
+    checked.current = true;
+    void (async () => {
+      const fixed = await Promise.all((b.papers ?? []).map(async (p) => {
+        if (!p) return p;
+        const r = await readability(p.url);
+        return r ? { ...p, ...r } : p;
+      }));
+      if (fixed.some((p, i) => p?.ink !== b.papers[i]?.ink || p?.veil !== b.papers[i]?.veil)) set("papers", fixed);
+    })();
+  }, [b]);
 
   const pickPaper = (i: number) => {
     const el = paperInput.current;
@@ -116,9 +108,14 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
       const f = el.files?.[0]; el.value = "";
       if (!f) return;
       setBusy("paper" + i);
+      // Mesuré sur le fichier lui-même, avant l'envoi : aucune dépendance
+      // au stockage distant, et le résultat est là avant l'image.
+      const local = URL.createObjectURL(f);
+      const read = await readability(local);
+      URL.revokeObjectURL(local);
       const url = await upload(f, "sticker");
       setBusy(null);
-      if (url) setPaper(i, { url, ink: await inkOf(url) });
+      if (url) setPaper(i, { url, ink: read?.ink ?? "dark", veil: read ? read.veil : true });
     };
     el.click();
   };
@@ -182,8 +179,12 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
               <div key={i} className="flex w-[88px] flex-col items-center gap-1.5">
                 <div className="relative h-[88px] w-[88px] overflow-hidden rounded-lg border border-fmborder bg-cover bg-center"
                   style={{ backgroundColor: c, backgroundImage: sheet ? `url(${sheet.url})` : undefined }}>
-                  <span className="absolute inset-x-1 top-1 text-[9px] font-semibold"
-                    style={{ color: sheet?.ink === "light" ? "#f6f6f8" : "#1b1a22" }}>Aa</span>
+                  {/* Aperçu fidèle : la même encre, le même halo et le même voile
+                      que sur le mur, au centre comme sur la carte. */}
+                  <span className="absolute inset-0 grid place-items-center">
+                    <span className="rounded px-1.5 py-0.5 text-[15px] font-semibold"
+                      style={inkStyle(sheet)}>Merci</span>
+                  </span>
                 </div>
                 <input type="color" value={c} aria-label={`Couleur ${i + 1}`}
                   onChange={(e) => set("palette", b.palette.map((x, j) => (j === i ? e.target.value : x)))}
@@ -200,6 +201,7 @@ export function Brand({ slug, m }: { slug: string; m: string }) {
                     </button>
                   )}
                 </div>
+                {sheet?.veil && <span className="text-center text-[10px] leading-tight text-fmmuted">papier chargé, voile ajouté</span>}
                 {b.palette.length > 1 && (
                   <button onClick={() => {
                     set("palette", b.palette.filter((_, j) => j !== i));
@@ -361,4 +363,62 @@ function Field({ label, value, onChange, rtl }: { label: string; value: string; 
         className="min-h-11 rounded-lg border border-fmborder bg-fmbg px-3 text-sm text-fmfg" />
     </label>
   );
+}
+
+// Luminance relative WCAG d'un pixel sRGB.
+const lin = (c: number) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+const lumHex = (h: string) => {
+  const n = parseInt(h.slice(1), 16);
+  return 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+};
+// Les deux encres réellement posées sur la carte (ink.ts), pas une valeur recopiée.
+const L_DARK = lumHex(INK.dark), L_LIGHT = lumHex(INK.light);
+
+/**
+ * Lisibilité d'un papier, mesurée sur l'image même, dans la zone où le texte
+ * se pose (le centre de la carte), pas sur toute l'image : un cadre sombre
+ * autour d'un centre clair donnait une encre claire sur fond clair.
+ *
+ * On choisit l'encre qui tient le meilleur contraste WCAG sur les pixels
+ * les plus défavorables de la zone (les 2 % extrêmes), pas sur la moyenne :
+ * un motif noir et blanc a une moyenne grise que les deux encres
+ * « passent », alors que le texte traverse les deux. Au 10e centile, un
+ * papier portant déjà du texte blanc (un visuel de campagne) passait pour
+ * sombre et uni : ses lettres couvraient moins de 10 % de la zone. Si même la meilleure
+ * encre reste sous 4,5:1 sur ces pixels, le papier reçoit un voile.
+ * Demander au client de choisir, c'est lui demander de deviner à la place
+ * de ses invités, et une carte illisible ne se voit qu'en salle.
+ */
+async function readability(url: string): Promise<{ ink: "dark" | "light"; veil: boolean } | null> {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = url;
+  await new Promise((r) => { img.onload = img.onerror = r; });
+  if (!img.naturalWidth) return null;
+  const N = 64;
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = N;
+  const g = cv.getContext("2d");
+  if (!g) return null;
+  // La carte recadre le papier en « cover » sur un format proche du carré.
+  const side = Math.min(img.naturalWidth, img.naturalHeight);
+  g.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, N, N);
+  let d: Uint8ClampedArray;
+  try { d = g.getImageData(0, 0, N, N).data; } catch { return null; }
+  const lum: number[] = [];
+  // Zone du texte : 76 % de la largeur, 56 % de la hauteur, au centre.
+  for (let y = Math.round(N * 0.22); y < Math.round(N * 0.78); y++) {
+    for (let x = Math.round(N * 0.12); x < Math.round(N * 0.88); x++) {
+      const i = (y * N + x) * 4;
+      lum.push(0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]));
+    }
+  }
+  lum.sort((a, b) => a - b);
+  const q = (p: number) => lum[Math.min(lum.length - 1, Math.floor(p * lum.length))];
+  // Pire cas pour l'encre sombre : les pixels les plus sombres ; pour la claire, les plus clairs.
+  const darkWorst = contrast(L_DARK, q(0.02));
+  const lightWorst = contrast(L_LIGHT, q(0.98));
+  const ink = darkWorst >= lightWorst ? "dark" : "light";
+  return { ink, veil: Math.max(darkWorst, lightWorst) < 4.5 };
 }

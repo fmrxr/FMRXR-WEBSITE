@@ -88,6 +88,9 @@ export const wallConfigSchema = z.object({
   papers: z.array(z.object({
     url: z.string().max(500),
     ink: z.enum(["dark", "light"]),
+    // Papier charge (motif, photo) ou ton moyen : un voile pose sous le
+    // texte, sinon aucune des deux encres ne se lit partout.
+    veil: z.boolean().optional(),
   }).nullable()).max(8),
 });
 export type WallConfig = z.infer<typeof wallConfigSchema>;

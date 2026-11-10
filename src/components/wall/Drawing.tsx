@@ -48,6 +48,8 @@ export function RemoteDrawing({ url, aspect, replay }: { url: string; aspect: nu
     void fetchStrokes(url).then((s) => live && setStrokes(s));
     return () => { live = false; };
   }, [url]);
-  if (!strokes) return <div className="h-full w-full" />;
+  // data-drawing-loading : les exports attendent que les traits soient la
+  // avant de photographier la carte (Kit.tsx).
+  if (!strokes) return <div className="h-full w-full" data-drawing-loading="" />;
   return <StrokesSvg strokes={strokes} aspect={aspect} replay={replay} />;
 }

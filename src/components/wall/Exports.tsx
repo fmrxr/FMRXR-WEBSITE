@@ -1,11 +1,9 @@
 "use client";
-import { Clock, Download, Film } from "lucide-react";
+import { Download, Film } from "lucide-react";
 
-// Ce que la soiree laisse derriere elle. L'archive se telecharge tout de
-// suite, puisqu'elle n'est que la mise en forme de ce que le mur a deja.
-// Les trois autres livrables s'assemblent a partir des memes donnees et ne
-// sont pas encore fabriques par la plateforme : on le dit, plutot que de
-// poser un bouton qui ne rendrait rien.
+// Ce que la soiree laisse derriere elle : le reel (monteur), l'archive
+// (CSV, JSON), puis la planche imprimable, les cartes en images et le kit
+// emailing, fabriques par la page /experience/wall/<slug>/kit.
 
 export function Exports({ slug, m, eventName, eventDate }: {
   slug: string; m: string; eventName: string; eventDate: string;
@@ -57,20 +55,22 @@ export function Exports({ slug, m, eventName, eventDate }: {
       <div className="rounded-xl border border-fmborder bg-fmcard p-4">
         <h2 className="fm-display text-lg text-fmfg">Après l’événement</h2>
         <p className="mb-4 mt-1 text-[13px] leading-relaxed text-fmmuted">
-          Le mur relit sa soirée et assemble ces pièces tout seul, à partir des mêmes
-          messages. Elles arrivent ici une fois l’événement clos.
+          Fabriqués par votre navigateur à partir des cartes publiées, à votre charte. Disponibles
+          pendant la soirée et après, autant de fois que vous voulez.
         </p>
-        <ul className="grid gap-px overflow-hidden rounded-lg border border-fmborder bg-fmborder sm:grid-cols-2">
-          {[
-            ["Fresque imprimable", "Toutes les cartes validées, à votre charte, en grand format et en A3."],
-            ["Kit emailing", "Image d’en-tête, cartes détourées et bloc HTML à coller dans votre outil."],
-          ].map(([k, v]) => (
-            <li key={k} className="bg-fmbg p-4">
+        <ul className="grid gap-px overflow-hidden rounded-lg border border-fmborder bg-fmborder sm:grid-cols-3">
+          {([
+            ["print", "Planche imprimable", "Toutes les cartes sur une feuille A3, A2, A1 ou A0, en PDF vectoriel pour l’imprimeur."],
+            ["images", "Cartes en images", "Une image PNG par carte, sur fond transparent, avec le tableau et les données, en ZIP."],
+            ["mail", "Kit emailing", "Image d’en-tête, cartes les plus aimées détourées et bloc HTML à coller, en ZIP."],
+          ] as const).map(([tab, k, v]) => (
+            <li key={k} className="flex flex-col bg-fmbg p-4">
               <p className="fm-display text-[15px] text-fmfg">{k}</p>
-              <p className="mt-1 text-[12px] leading-relaxed text-fmmuted">{v}</p>
-              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-fmborder px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-fmmuted">
-                <Clock className="h-3 w-3" /> à venir
-              </p>
+              <p className="mt-1 flex-1 text-[12px] leading-relaxed text-fmmuted">{v}</p>
+              <a href={`/experience/wall/${slug}/kit?m=${m}&tab=${tab}`} target="_blank" rel="noreferrer"
+                className="mt-3 flex min-h-11 w-fit items-center gap-2 rounded-full border border-fmborder px-4 text-sm text-fmfg hover:border-fmaccent/60">
+                <Download className="h-4 w-4" /> Ouvrir
+              </a>
             </li>
           ))}
         </ul>

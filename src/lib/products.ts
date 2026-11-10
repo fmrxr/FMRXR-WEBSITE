@@ -70,7 +70,7 @@ export const PRODUCTS: Product[] = [
       ["Hand-tracking option", "FMRXR technologies in front of the giant screen: close your fist to grab a card, open your hand to drop it. Two hands at once."],
       ["FR · EN · AR", "Every guest picks their language; the wall reads right to left in Arabic."],
       ["Sized for crowds", "The wall only sends what changed, and caps sends per guest and per minute."],
-      ["Exports after the night", "A vertical reel, a print sheet, a mailing kit and the full archive, assembled by the wall itself and downloaded from the platform."],
+      ["Export for social media", "When the show ends, the wall edits its own vertical recap reel. Your team also downloads a print sheet of every card (A3 to A0, vector PDF), a mailing kit, and every card as an image with the full archive. No editing room, no wait."],
     ],
     specs: [["Giant screen", "Any screen or LED wall, a browser in full screen"], ["Guests", "Their own phone, by QR code"], ["Touch", "Optional touch screen"], ["Sensing", "Optional FMRXR technologies hand tracking"]],
     faq: [
@@ -78,12 +78,12 @@ export const PRODUCTS: Product[] = [
       ["Can we stop inappropriate messages?", "Yes. Flagged messages wait for your team, photos are validated by hand by default, and any card or comment can be hidden in one tap, from a phone or from the screen."],
       ["Can we use our own stickers and colours?", "Yes. Your logo, your sticker set, your colours and your card format are set per event."],
       ["How is it priced?", "Per event. Tell us your date, audience and screen for a quote."],
-      ["What do we get after the event?", "A vertical reel for social, a print sheet of every card, a mailing kit and the full archive. The wall assembles them on its own; your team downloads them from the platform."],
+      ["What do we get after the event?", "A vertical recap reel for social media, edited by the wall itself; a print sheet of every card from A3 to A0; a mailing kit with a header image, cut-out cards and an HTML block; and every card as a transparent PNG with the spreadsheet of messages. Your team downloads all of it from its control page, without us."],
     ],
     film: {
-      kicker: "After the night",
-      title: "The wall writes its own recap",
-      body: "When the night closes, nothing is sent to an editing room. The wall reads back its own evening: it keeps the cards people liked, replays the drawings stroke by stroke, saves the most-liked message for the end, and sets the pace on how much was written. Your team downloads the result, in your colours, with the print sheet, the mailing kit and the archive.",
+      kicker: "After the show",
+      title: "Export for social media",
+      body: "When the night closes, nothing is sent to an editing room. The wall reads back its own evening: it keeps the cards people liked, replays the drawings stroke by stroke, saves the most-liked message for the end, and sets the pace on how much was written. Your team renders it in the browser, in your colours, with the print sheet, the mailing kit and the archive.",
       label: "Live Wall recap reel",
       aspect: "aspect-[9/16]",
       // Trois écritures du même contenu. Le mur en choisit une par
@@ -95,9 +95,9 @@ export const PRODUCTS: Product[] = [
       ],
       items: [
         ["Reel for social", "Vertical 9:16, 35 s, with square and wide cuts from the same edit."],
-        ["Print sheet", "Every validated card, laid out in your colours, ready to print large or in A3."],
-        ["Mailing kit", "Header image, cut-out cards and an HTML block to paste into your own tool."],
-        ["Full archive", "Each card as a high-resolution image, plus a table of messages, likes and comments."],
+        ["Print sheet", "Every published card on one sheet, in your colours: A3, A2, A1 or A0, as a vector PDF for the printer."],
+        ["Mailing kit", "Header image, the most-liked cards cut out, and an HTML block to paste into your mailing tool."],
+        ["Full archive", "Every card as a transparent PNG, plus every message, like and comment as a spreadsheet and JSON."],
       ],
     },
     closing: "Every guest leaves a word on your brand.",

@@ -41,8 +41,10 @@ export async function POST(req: NextRequest) {
   const check = resolveConfig(next);
   if (!check.ok) return json({ ok: false, error: check.error }, 400);
 
+  // updated_at entre dans la version du flux (/api/wall/feed) : sans lui,
+  // ecrans et telephones ne voyaient rien tant qu'aucune carte ne bougeait.
   const { error } = await getSupabaseAdmin()
-    .from("wall_campaigns").update({ config: check.config }).eq("id", loaded.wall.campaign.id);
+    .from("wall_campaigns").update({ config: check.config, updated_at: new Date().toISOString() }).eq("id", loaded.wall.campaign.id);
   if (error) return json({ ok: false, error: "SAVE_FAILED" }, 500);
 
   return json({ ok: true, brand: brandOf(check.config) });

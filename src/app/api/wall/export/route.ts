@@ -1,14 +1,15 @@
 import type { NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { json, loadWall } from "@/lib/wall/server";
+import { json, loadWall, wallFeed } from "@/lib/wall/server";
+import { publicConfig } from "@/lib/wall/config";
 
 // Archive de la soiree, pour l'equipe du client.
-// GET ?slug=&m=&format=csv|json -> le tableau des messages valides
-//
-// C'est la matiere brute : un message par ligne, avec son auteur, son
-// heure, ses mentions j'aime et ses commentaires. Les trois autres
-// livrables (reel, fresque, kit emailing) se fabriquent a partir de ces
-// memes donnees et ne sont pas encore assembles par la plateforme.
+// GET ?slug=&m=&format=csv|json  -> le tableau des messages valides
+// GET ?slug=&m=&format=cards     -> toutes les cartes publiees, dans la forme
+//                                   du mur, avec la charte : la page des
+//                                   exports (/experience/wall/<slug>/kit) en
+//                                   fait la planche imprimable, le kit
+//                                   emailing et les cartes en images.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,21 @@ export async function GET(req: NextRequest) {
 
   const sb = getSupabaseAdmin();
   const id = loaded.wall.campaign.id;
+
+  if (q.get("format") === "cards") {
+    // Toutes les cartes de la soiree, pas seulement celles que le mur
+    // affiche encore (il en garde maxOnWall). Plafond large : une planche
+    // ou un ZIP de plus de 2 000 cartes n'aurait plus de sens.
+    const posts = await wallFeed(id, 2000, null);
+    const { campaign } = loaded.wall;
+    return json({
+      ok: true,
+      campaign: { name: campaign.name, startsAt: campaign.starts_at ?? null },
+      config: publicConfig(loaded.wall.config),
+      posts,
+    });
+  }
+
   const [{ data: posts }, { data: comments }] = await Promise.all([
     sb.from("wall_posts")
       .select("id, kind, author, body, color, likes, pinned, created_at, moderated_by")

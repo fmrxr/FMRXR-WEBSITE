@@ -37,6 +37,7 @@ export function useWall(slug: string, keys: WallKeys, session: string | null) {
   const seen = useRef<Set<string> | null>(null);
   const version = useRef<string | null>(null);
   const local = useRef(new Map<string, { pos: Pos; until: number }>()); // deplacements locaux recents
+  const queue = useRef(new Map<string, Promise<void>>()); // enregistrements en cours, par carte
   const q = keyQuery(keys);
 
   const load = useCallback(async () => {
@@ -50,8 +51,12 @@ export function useWall(slug: string, keys: WallKeys, session: string | null) {
       const posts: WallPost[] = j.posts.map((p: WallPost) => {
         const l = local.current.get(p.id);
         if (!l) return p;
-        // Le serveur a la meme position (ou le delai est passe) : on oublie l'override.
-        if (l.until < now || (Math.abs(p.pos.x - l.pos.x) < 0.002 && Math.abs(p.pos.y - l.pos.y) < 0.002)) {
+        // Le serveur a la meme position ET la meme taille (ou le delai est
+        // passe) : on oublie l'override. Comparer x/y seuls faisait revenir
+        // une carte a son ancienne taille au tour suivant, pendant le geste.
+        const same = Math.abs(p.pos.x - l.pos.x) < 0.002 && Math.abs(p.pos.y - l.pos.y) < 0.002
+          && Math.abs((p.pos.s ?? 1) - (l.pos.s ?? 1)) < 0.005;
+        if (l.until < now || same) {
           local.current.delete(p.id);
           return p;
         }
@@ -81,15 +86,24 @@ export function useWall(slug: string, keys: WallKeys, session: string | null) {
     local.current.set(id, { pos, until: Date.now() + 15_000 });
     setFeed((f) => f && { ...f, posts: f.posts.map((p) => (p.id === id ? { ...p, pos } : p)) });
     if (!commit) return;
-    void fetch("/api/wall/move", {
+    // Les enregistrements d'une meme carte partent l'un apres l'autre :
+    // envoyes en parallele, le plus ancien pouvait arriver en dernier et
+    // le serveur gardait la taille d'avant le geste.
+    const send = () => fetch("/api/wall/move", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, ...keys, session, postId: id, x: pos.x, y: pos.y, r: pos.r, s: pos.s }),
+      // La taille part sous `scale`, jamais sous `s` : `s` est la clé de
+      // l'écran géant, et l'écraser coupait tout déplacement depuis l'écran.
+      body: JSON.stringify({ slug, ...keys, session, postId: id, x: pos.x, y: pos.y, r: pos.r, scale: pos.s }),
     }).then((r) => r.ok, () => false).then((ok) => {
       if (ok) return;
       local.current.delete(id);
       setNotice("move");
       resync();
     });
+    const prev = queue.current.get(id) ?? Promise.resolve();
+    const next = prev.then(send);
+    queue.current.set(id, next);
+    void next.finally(() => { if (queue.current.get(id) === next) queue.current.delete(id); });
   }, [slug, keys, session, resync]);
 
   /**

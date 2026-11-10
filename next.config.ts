@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // DEV_LAN_ORIGIN=<ip du PC> dans .env.local, puis `npm run dev:lan`.
   // Sans la variable, rien n'est ouvert (dev uniquement, sans effet en prod).
   allowedDevOrigins: process.env.DEV_LAN_ORIGIN ? [process.env.DEV_LAN_ORIGIN] : [],
+  // Captures de films de demonstration : NEXT_HIDE_DEV_BADGE=1 retire le
+  // badge de developpement de Next, qui sinon s'imprime dans chaque image.
+  ...(process.env.NEXT_HIDE_DEV_BADGE ? { devIndicators: false as const } : {}),
   async redirects() {
     return [
       // Le projet était enregistré sous « Art Basel Paris ». L'exposition réelle

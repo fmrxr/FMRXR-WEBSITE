@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { social } from "@/lib/seo";
 import { productBySlug } from "@/lib/products";
-import { ProductPage } from "@/components/site/ProductPage";
+import { LiveWallLanding } from "@/components/site/LiveWallLanding";
 
-// Page Decouvrir, generee depuis la fiche produit (src/lib/products.ts).
+// Page de vente du Live Wall, faite a la main (LiveWallLanding) sur la fiche
+// produit (src/lib/products.ts) : film, boucles filmees dans la vraie app, FAQ.
 const product = productBySlug("live-wall");
 
 export const metadata: Metadata = product?.seo ? {
@@ -17,5 +18,5 @@ export const metadata: Metadata = product?.seo ? {
 
 export default function Page() {
   if (!product) notFound();
-  return <ProductPage product={product} />;
+  return <LiveWallLanding product={product} />;
 }

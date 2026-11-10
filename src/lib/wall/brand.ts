@@ -46,6 +46,9 @@ export const brandPatchSchema = z.object({
       "le papier doit venir du site ou de notre stockage",
     ),
     ink: z.enum(["dark", "light"]),
+    // Papier charge (motif, photo) ou ton moyen : un voile pose sous le
+    // texte, sinon aucune des deux encres ne se lit partout.
+    veil: z.boolean().optional(),
   }).nullable()).max(8),
   stickersEnabled: z.boolean(),
   stickers: z.array(sticker).max(40),
