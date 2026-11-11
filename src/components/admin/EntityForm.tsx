@@ -52,6 +52,19 @@ export function EntityForm({ entityKey, initial, id }: {
             <Dropzone value={data[f.name] ?? ""} onChange={(v) => set(f.name, v)} />
           ) : f.type === "gallery" ? (
             <GalleryField value={data[f.name] ?? []} onChange={(v) => set(f.name, v)} />
+          ) : f.type === "select" ? (
+            <div className="flex flex-wrap gap-2">
+              {(f.options ?? []).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => set(f.name, v)}
+                  className={`rounded-md border px-3 py-1.5 text-sm transition ${data[f.name] === v ? "border-primary bg-primary text-primary-foreground" : "hover:border-foreground/40"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           ) : f.type === "cover" ? (
             <CoverPicker
               value={data[f.name]}

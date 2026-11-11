@@ -6,10 +6,12 @@ import {
 
 export type FieldType =
   | "text" | "textarea" | "slug" | "number" | "switch"
-  | "string-list" | "paragraphs" | "image" | "gallery" | "cover";
+  | "string-list" | "paragraphs" | "image" | "gallery" | "cover" | "select";
 
 export interface FieldDef {
   name: string; label: string; type: FieldType;
+  /** Pour type "select" : [valeur, libellé]. */
+  options?: [string, string][];
 }
 
 export interface EntityConfig {
@@ -33,6 +35,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
       { name: "client", label: "Client", type: "text" },
       { name: "year", label: "Year", type: "text" },
       { name: "category", label: "Category", type: "text" },
+      { name: "section", label: "Section de la page Work", type: "select", options: [["brands", "Brands & Institutions"], ["art", "Art, Music & Live"]] },
       { name: "location", label: "Location", type: "text" },
       { name: "summary", label: "Summary", type: "textarea" },
       { name: "description", label: "Description", type: "textarea" },

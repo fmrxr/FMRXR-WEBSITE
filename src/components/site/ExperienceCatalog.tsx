@@ -144,42 +144,43 @@ export function ExperienceCatalog({ visible }: { visible: string[] | null }) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1200px] space-y-12 px-5 pb-24 pt-10 md:px-8">
-        {experiencesByRow(list).map((row) => (
-          <div key={row.id}>
-            <h3 className="mb-4 text-[11px] uppercase tracking-[0.15em] text-fmmuted">— {row.label}</h3>
-            <ProjectRow>
-              {row.items.map((e) => (
-                <button
-                  key={e.slug}
-                  type="button"
-                  onClick={() => select(e)}
-                  aria-current={e.slug === current.slug}
-                  className={`fm-glass-card group block w-[78vw] max-w-[300px] shrink-0 snap-start overflow-hidden rounded-xl text-left sm:w-72 ${
-                    e.slug === current.slug ? "ring-1 ring-fmaccent" : ""
-                  }`}
-                >
-                  <div className="relative aspect-video overflow-hidden">
-                    {e.preview ? (
-                      <CardFilm
-                        src={e.preview}
-                        poster={e.poster}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={e.poster} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover" />
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <p className="fm-display text-lg text-fmfg">{e.title}</p>
-                    <p className="fm-grotesk mt-1 line-clamp-2 text-sm text-fmmuted">{e.pitch}</p>
-                  </div>
-                </button>
-              ))}
-            </ProjectRow>
-          </div>
-        ))}
+      {/* Toutes les expériences côte à côte, sur une seule rangée sous le
+          lecteur (demandé le 11/11/2026) : la catégorie devient une étiquette
+          de la carte au lieu d'une rangée à part. */}
+      <section className="mx-auto max-w-[1200px] px-5 pb-24 pt-4 md:px-8">
+        <ProjectRow>
+          {experiencesByRow(list).flatMap((row) =>
+            row.items.map((e) => (
+              <button
+                key={e.slug}
+                type="button"
+                onClick={() => select(e)}
+                aria-current={e.slug === current.slug}
+                className={`fm-glass-card group block w-[62vw] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-xl text-left sm:w-60 ${
+                  e.slug === current.slug ? "ring-1 ring-fmaccent" : ""
+                }`}
+              >
+                <div className="relative aspect-video overflow-hidden">
+                  {e.preview ? (
+                    <CardFilm
+                      src={e.preview}
+                      poster={e.poster}
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={e.poster} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover" />
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="text-[9px] uppercase tracking-[0.15em] text-fmmuted">{row.label}</p>
+                  <p className="fm-display mt-1 text-base text-fmfg">{e.title}</p>
+                  <p className="fm-grotesk mt-1 line-clamp-2 text-[13px] text-fmmuted">{e.pitch}</p>
+                </div>
+              </button>
+            )),
+          )}
+        </ProjectRow>
       </section>
     </>
   );

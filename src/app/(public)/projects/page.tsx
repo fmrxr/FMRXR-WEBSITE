@@ -3,9 +3,9 @@ import { social } from "@/lib/seo";
 import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
-import { ProjectRow } from "@/components/site/ProjectRow";
-import { IndustryNav } from "@/components/site/IndustryNav";
 import { ProjectCard } from "@/components/site/ProjectCard";
+import { ProjectRow } from "@/components/site/ProjectRow";
+import { SECTIONS, sectionOf } from "@/lib/work-sections";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -27,84 +27,51 @@ export const metadata: Metadata = {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-// Combien de projets dans la rangée d'ouverture. Assez pour remplir deux
-// largeurs d'écran, pas au point de doubler les rangées qui suivent.
-const LATEST = 8;
-
-// La carte commune (ProjectCard) : hauteur fixe, couverture au format d'origine.
-function Card({ p }: { p: any; i: number }) {
-  return <ProjectCard p={p} summary className="max-w-[78vw]" />;
-}
-
-function Row({ id, title, href, cta, projects }: { id: string; title: string; href?: string; cta?: string; projects: any[] }) {
-  return (
-    // scroll-mt : le header fixe et le bandeau collé ne doivent pas masquer le
-    // titre de la rangée quand on y saute depuis le bandeau.
-    <section id={id} className="mt-14 scroll-mt-32 first-of-type:mt-0">
-      <div className="mb-4 flex items-baseline justify-between gap-4">
-        <h2 className="fm-display text-xl text-fmfg md:text-2xl">
-          {title} <span className="ml-1 align-middle text-[11px] tracking-[0.12em] text-fmmuted">{pad(projects.length)}</span>
-        </h2>
-        {href && (
-          <Link href={href} className="fm-link shrink-0 text-[11px] uppercase tracking-[0.12em] text-fmmuted">
-            {cta} →
-          </Link>
-        )}
-      </div>
-      <ProjectRow>
-        {projects.map((p, i) => (
-          <Card key={p.id} p={p} i={i} />
-        ))}
-      </ProjectRow>
-    </section>
+// Deux sections seulement (11/11/2026), par acheteur : Brands & Institutions,
+// puis Art, Music & Live. Chaque projet porte sa section dans l'admin. Dans
+// une section, un carrousel façon streaming (ProjectRow) : même hauteur,
+// chaque couverture dans son format d'origine, du plus récent au plus ancien.
+export default async function Projects() {
+  const projects = (await getPublished("projects")) as any[];
+  const groups = SECTIONS.map((sec) => ({ ...sec, items: projects.filter((p) => sectionOf(p) === sec.id) })).filter(
+    (g) => g.items.length > 0,
   );
-}
-
-// Deux classements du même catalogue, au choix du visiteur : par industrie
-// (pour qui vient d'un secteur) ou par service (pour qui vient avec un besoin).
-// Une rangée par entrée, dans l'ordre éditorial de sa table. Un projet qui
-// relève de plusieurs entrées apparaît dans chacune, comme un titre classé
-// dans plusieurs genres. Ceux qui n'ont rien de renseigné ne disparaissent
-// pas : ils tombent dans une dernière rangée.
-//
-// Le choix passe par l'URL (?view=services) : il se partage, se garde au
-// retour arrière, et la page reste rendue côté serveur.
-const VIEWS = {
-  industries: { table: "industries", field: "industries", name: "name", base: "/industries", cta: "The sector" },
-  services: { table: "services", field: "services", name: "title", base: "/services", cta: "The service" },
-} as const;
-
-export default async function Projects({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
-  const { view: requested } = await searchParams;
-  const view = requested === "services" ? "services" : "industries";
-  const V = VIEWS[view];
-  const [projects, groups] = await Promise.all([getPublished("projects"), getPublished(V.table)]);
-
-  const tagged = (p: any) => (Array.isArray(p[V.field]) ? (p[V.field] as string[]) : []);
-  const rows = groups
-    .map((g: any) => ({ g, items: projects.filter((p: any) => tagged(p).includes(g.slug)) }))
-    .filter((r: any) => r.items.length > 0);
-
-  const known = new Set(groups.map((g: any) => g.slug));
-  const unsorted = projects.filter((p: any) => !tagged(p).some((s) => known.has(s)));
-
-  const more = rows.length ? "More work" : "All projects";
-  const nav = [
-    { id: "latest", label: "Latest", count: Math.min(LATEST, projects.length) },
-    ...rows.map(({ g, items }: any) => ({ id: g.slug, label: g[V.name], count: items.length })),
-    ...(unsorted.length ? [{ id: "more", label: more, count: unsorted.length }] : []),
-  ];
 
   return (
     <>
       <PageHero index="Work" title="Selected work" intro="Real systems, shipped under live conditions: new media art installations, projection mapping, generative environments and live A/V." />
-      <div className="mx-auto max-w-[1200px] overflow-x-clip px-5 pb-24 md:px-8">
-        <IndustryNav key={view} items={nav} view={view} />
-        <Row id="latest" title="Latest" projects={projects.slice(0, LATEST)} />
-        {rows.map(({ g, items }: any) => (
-          <Row key={g.id} id={g.slug} title={g[V.name]} href={`${V.base}/${g.slug}`} cta={V.cta} projects={items} />
+      <div className="mx-auto max-w-[1200px] px-5 pb-24 md:px-8">
+        <nav aria-label="Sections" className="flex flex-wrap gap-2">
+          {groups.map((g) => (
+            <Link
+              key={g.id}
+              href={`#${g.id}`}
+              className="fm-glass-card rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.12em] text-fmfg/85 transition hover:text-fmaccent"
+            >
+              {g.title} <span className="ml-1 text-fmmuted">{pad(g.items.length)}</span>
+            </Link>
+          ))}
+        </nav>
+        {groups.map((g) => (
+          <section key={g.id} id={g.id} className="mt-12 scroll-mt-28 border-t border-fmborder pt-8">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-3">
+              <h2 className="fm-display text-2xl text-fmfg md:text-4xl">
+                <span className="mr-3 align-middle text-[11px] tracking-[0.1em] text-fmmuted">— {g.index}</span>
+                {g.title}
+              </h2>
+              <p className="fm-grotesk max-w-md text-[14px] leading-relaxed text-fmmuted">{g.intro}</p>
+            </div>
+            {/* Le carrousel façon streaming de la page Work : défilement natif,
+                aimantation sur les cartes, flèches à la souris. */}
+            <div className="mt-6">
+              <ProjectRow>
+                {g.items.map((p) => (
+                  <ProjectCard key={p.id} p={p} summary className="max-w-[78vw]" />
+                ))}
+              </ProjectRow>
+            </div>
+          </section>
         ))}
-        {unsorted.length > 0 && <Row id="more" title={more} projects={unsorted} />}
       </div>
     </>
   );

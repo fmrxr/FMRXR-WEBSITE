@@ -71,6 +71,9 @@ export const projectSchema = z.object({
   // pour que l'enregistrement d'un projet marche avant la migration ; null =
   // retour à la couverture automatique.
   cover_media: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().nullable().optional()),
+  // Section de la page Work (migration 0024). Même règle que cover_media :
+  // vide = jamais envoyé.
+  section: z.preprocess((v) => (v === "" ? undefined : v), z.enum(["brands", "art"]).nullable().optional()),
   gallery: arr(galleryItem),
   metrics: arr(metricItem),
   sort_order: z.number().int().default(0),
