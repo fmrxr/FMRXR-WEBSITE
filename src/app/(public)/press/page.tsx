@@ -6,7 +6,7 @@ import { PageHero } from "@/components/site/PageHero";
 export const metadata: Metadata = {
   title: "Press & media",
   description:
-    "Press coverage, media kit and fact sheet for FMRXR Studio and Effet Mère. Work covered by La Presse, Leaders, Business News, L'Instant M, Kapitalis and Le Temps.",
+    "Press coverage, media kit and fact sheet for FMRXR Studio and Effet Mère. Work covered by Magnetic Magazine, La Presse, Leaders, Business News, L'Instant M, Kapitalis and Le Temps.",
   keywords: ["FMRXR press", "Effet Mère press", "media kit", "press kit", "new media art Tunisia press"],
   alternates: { canonical: "/press" },
   ...social({
@@ -19,6 +19,12 @@ export const metadata: Metadata = {
 // Les retombées presse réelles, vérifiées une par une. Elles servent autant de
 // preuve pour un commissaire que de maillage sortant pour le référencement.
 const COVERAGE: { outlet: string; title: string; project: string; url: string }[] = [
+  {
+    outlet: "Magnetic Magazine",
+    title: "How It Was Made: Spicy Sofi's SOFI AIRLINES Live Setup (Progressive House + Electro)",
+    project: "SOFI AIRLINES",
+    url: "https://magneticmag.com/2026/11/how-it-was-made-spicy-sofis-sofi-airlines-live-setup-progressive-house-electro/",
+  },
   {
     outlet: "Leaders",
     title: "Quand la technologie Epson donne vie à l'imaginaire : une immersion artistique inédite à Tunis",
@@ -60,6 +66,12 @@ const COVERAGE: { outlet: string; title: string; project: string; url: string }[
     title: "Effet Mère, INTERFERENCE SERIES Tunis 2022",
     project: "Interference",
     url: "https://2022.intunis.net/effet-mere/",
+  },
+  {
+    outlet: "Tunisie.co",
+    title: "RUPTURE de l'artiste ZDEFF le 23 décembre 2022",
+    project: "ZDEFF · RUPTURE",
+    url: "https://calendrier.tunisie.co/evenement/5082/artiste-zdeff-le-23-decembre-2022-072810/",
   },
   {
     outlet: "La Presse",
