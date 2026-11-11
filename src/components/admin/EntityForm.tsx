@@ -11,6 +11,7 @@ import { Dropzone } from "./Dropzone";
 import { StringListField } from "./StringListField";
 import { ParagraphsField } from "./ParagraphsField";
 import { GalleryField } from "./GalleryField";
+import { CoverPicker } from "./CoverPicker";
 import { ENTITIES } from "@/lib/entities";
 import { createEntity, updateEntity } from "@/app/actions/crud";
 
@@ -51,6 +52,14 @@ export function EntityForm({ entityKey, initial, id }: {
             <Dropzone value={data[f.name] ?? ""} onChange={(v) => set(f.name, v)} />
           ) : f.type === "gallery" ? (
             <GalleryField value={data[f.name] ?? []} onChange={(v) => set(f.name, v)} />
+          ) : f.type === "cover" ? (
+            <CoverPicker
+              value={data[f.name]}
+              onChange={(v) => set(f.name, v)}
+              gallery={data.gallery ?? []}
+              slug={data.slug}
+              coverUrl={data.cover_url}
+            />
           ) : null}
         </div>
       ))}

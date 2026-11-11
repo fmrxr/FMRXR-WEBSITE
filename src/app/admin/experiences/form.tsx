@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { saveExperienceVisibility } from "@/app/actions/experiences";
+import { saveHomeExperience } from "@/app/actions/home";
 
 export type Item = { slug: string; title: string; group: string; poster: string; pitch: string };
 
@@ -10,9 +11,27 @@ export type Item = { slug: string; title: string; group: string; poster: string;
 // au rechargement suivant. L'ordre de la liste fait foi : la première est le
 // hero de /experiences (Photobooth en tête de page, ou expérience ouverte
 // dans le lecteur du haut).
-export function VisibilityForm({ items, initial }: { items: Item[]; initial: string[] }) {
+export function VisibilityForm({ items, initial, home: homeInitial, homeError }: { items: Item[]; initial: string[]; home: string | null; homeError: string | null }) {
   const [visible, setVisible] = useState<string[]>(initial);
+  const [home, setHome] = useState<string | null>(homeInitial);
   const [pending, start] = useTransition();
+
+  // Une seule expérience à la une de l'accueil.
+  function putHome(slug: string) {
+    if (homeError) return toast.error("Migration 0023_home_highlights.sql à appliquer d’abord");
+    const prev = { home, visible };
+    setHome(slug);
+    if (!visible.includes(slug)) setVisible([...visible, slug]);
+    start(async () => {
+      const r = await saveHomeExperience(slug, visible);
+      if (r.ok) toast.success("Accueil mis à jour");
+      else {
+        setHome(prev.home);
+        setVisible(prev.visible);
+        toast.error(`Échec : ${r.error}`);
+      }
+    });
+  }
 
   function save(next: string[]) {
     const prev = visible;
@@ -44,6 +63,7 @@ export function VisibilityForm({ items, initial }: { items: Item[]; initial: str
         <span>
           <strong>{shown}</strong> / {items.length} affichées{shown === 0 && " · la page n’affichera que son titre"}
           {heroTitle && <> · hero : <strong data-testid="exp-hero">{heroTitle}</strong></>}
+          {home && <> · accueil : <strong data-testid="exp-home">{items.find((i) => i.slug === home)?.title ?? home}</strong></>}
         </span>
         <span className="flex gap-2">
           <button type="button" disabled={pending} onClick={() => save(items.map((i) => i.slug))} className="rounded-md border px-3 py-1.5 hover:border-foreground/40 disabled:opacity-50">
@@ -85,6 +105,19 @@ export function VisibilityForm({ items, initial }: { items: Item[]; initial: str
                       className="rounded-full border px-2.5 py-1 text-[11px] text-muted-foreground hover:border-foreground/40 hover:text-foreground disabled:opacity-50"
                     >
                       Mettre en hero
+                    </button>
+                  )}
+                  {i.slug === home ? (
+                    <span className="rounded-full bg-foreground px-2.5 py-1 text-[11px] font-semibold text-background">Accueil</span>
+                  ) : (
+                    <button
+                      type="button"
+                      data-testid={`home-${i.slug}`}
+                      disabled={pending}
+                      onClick={(e) => { e.preventDefault(); putHome(i.slug); }}
+                      className="rounded-full border px-2.5 py-1 text-[11px] text-muted-foreground hover:border-foreground/40 hover:text-foreground disabled:opacity-50"
+                    >
+                      Sur l’accueil
                     </button>
                   )}
                   <span className="w-12 text-right text-xs text-muted-foreground">{on ? "Visible" : "Caché"}</span>

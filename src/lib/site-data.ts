@@ -2,7 +2,7 @@ export interface Project {
   id: string; slug: string; title: string; client?: string; year?: string;
   category?: string; location?: string; summary?: string; description?: string;
   role: string[]; stack: string[]; tags: string[]; gradient?: string;
-  cover_url?: string; gallery: { url: string; alt: string; caption: string }[];
+  cover_url?: string; cover_media?: string | null; gallery: { url: string; alt: string; caption: string }[];
   sort_order: number; published: boolean;
 }
 export interface Service { id: string; slug: string; title: string; short?: string; description?: string; outcomes: string[]; sort_order: number; published: boolean; }
@@ -17,6 +17,10 @@ export interface SiteSettings {
   hero_media?: { url: string; poster?: string; title?: string; description?: string }[];
   /** Slugs affichés sur /experiences (CMS), null = toutes. */
   experiences_visible?: string[] | null;
+  /** Projets du hero de l'accueil (CMS), dans l'ordre. Vide : les 3 premiers publiés. */
+  hero_projects?: string[] | null;
+  /** Expérience ou bloc produit à la une de l'accueil (CMS). */
+  home_experience?: string | null;
 }
 
 export const SITE: SiteSettings = {

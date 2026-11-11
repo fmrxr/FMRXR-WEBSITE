@@ -6,7 +6,7 @@ import {
 
 export type FieldType =
   | "text" | "textarea" | "slug" | "number" | "switch"
-  | "string-list" | "paragraphs" | "image" | "gallery";
+  | "string-list" | "paragraphs" | "image" | "gallery" | "cover";
 
 export interface FieldDef {
   name: string; label: string; type: FieldType;
@@ -44,6 +44,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
       { name: "gradient", label: "Gradient", type: "text" },
       { name: "cover_url", label: "Cover image", type: "image" },
       { name: "gallery", label: "Gallery", type: "gallery" },
+      { name: "cover_media", label: "Couverture des cartes et du hero", type: "cover" },
     ],
   },
   services: {

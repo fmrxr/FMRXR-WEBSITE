@@ -52,8 +52,8 @@ export function SettingsForm({ initial }: { initial: Record<string, any> }) {
       ))}
       <h2 className="mt-4 font-semibold">Hero videos</h2>
       <p className="-mt-2 text-xs text-muted-foreground">
-        Background clips for the homepage hero. Paste a direct video URL (mp4 / webm) and an optional
-        poster image. Multiple clips crossfade as a slider. Leave empty for the plain dark hero.
+        Ne s’affichent plus sur l’accueil depuis le 11/11/2026 : le hero montre les 3 projets choisis plus haut.
+        Les clips restent enregistrés ici.
       </p>
       {clips.map((c, i) => (
         <div key={i} className="flex flex-col gap-2 rounded-md border border-border p-3">

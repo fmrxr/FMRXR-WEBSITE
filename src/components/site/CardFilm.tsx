@@ -9,10 +9,14 @@ export function CardFilm({
   src,
   poster,
   className = "aspect-video w-full rounded-lg border border-fmborder bg-fmbg object-cover",
+  preload = "none",
 }: {
   src: string;
   poster: string;
   className?: string;
+  // "metadata" quand il n'y a pas d'affiche : la taille de la vidéo doit
+  // être connue pour une carte au format d'origine.
+  preload?: "none" | "metadata";
 }) {
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -31,12 +35,12 @@ export function CardFilm({
     <video
       ref={ref}
       src={src}
-      poster={poster}
+      poster={poster || undefined}
       aria-hidden
       muted
       loop
       playsInline
-      preload="none"
+      preload={preload}
       draggable={false}
       className={className}
     />

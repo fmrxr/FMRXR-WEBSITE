@@ -2,51 +2,39 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { STYLE_IDS } from "@/lib/photobooth/styles";
+// Les highlights du hero : 3 projets choisis dans le CMS (/admin/settings),
+// chacun sur sa couverture animée (aperçu de la page Work), sinon sa
+// couverture fixe de fiche projet.
+export type HeroProject = { slug: string; title: string; cover_url: string; film?: string | null; client?: string; year?: string; category?: string };
 
-type Clip = { url: string; poster?: string; title?: string; description?: string };
-
-// Diapositives du hero : les clips video (reglages du site), puis les
-// lancements produit, rendus par un composant anime plutot qu'une video.
-type Slide =
-  | ({ kind: "video" } & Clip)
-  | { kind: "product"; title: string; description: string; href: string; image: string };
-
-const PRODUCTS: Extract<Slide, { kind: "product" }>[] = [
-  {
-    kind: "product",
-    title: "AI Photobooth",
-    description: `New release · branded AI portraits for events, driven by gestures, ${STYLE_IDS.length} styles.`,
-    href: "/photobooth",
-    image: "/photobooth/hero-photobooth.webp",
-  },
-];
+// Temps d'affichage d'un projet avant le suivant.
+const SLIDE_MS = 7000;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-export function Hero({ clips }: { clips: Clip[] }) {
-  const videos = (clips ?? []).filter((c) => c?.url);
-  const valid: Slide[] = [...videos.map((c) => ({ kind: "video" as const, ...c })), ...PRODUCTS];
+export function Hero({ projects }: { projects: HeroProject[] }) {
+  const valid = (projects ?? []).filter((p) => p?.cover_url || p?.film);
   const hasVideo = valid.length > 0;
   const [i, setI] = useState(0);
   const refs = useRef<(HTMLVideoElement | null)[]>([]);
 
+  // Seule la boucle affichée tourne ; les autres restent en pause.
   useEffect(() => {
     refs.current.forEach((v, idx) => {
       if (!v) return;
       v.muted = true;
-      v.defaultMuted = true;
-      v.playsInline = true;
-      if (valid[i]?.kind === "video" && idx === i) v.play().catch(() => {});
+      if (idx === i) v.play().catch(() => {});
       else v.pause();
     });
   }, [i, valid.length]);
 
+  // Relancer le minuteur a chaque changement : un clic sur un point laisse au
+  // projet choisi son temps d'affichage complet.
   useEffect(() => {
     if (valid.length <= 1) return;
-    const t = setInterval(() => setI((p) => (p + 1) % valid.length), 15000);
-    return () => clearInterval(t);
-  }, [valid.length]);
+    const t = setTimeout(() => setI((p) => (p + 1) % valid.length), SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [i, valid.length]);
 
   const active = valid[i];
 
@@ -54,44 +42,30 @@ export function Hero({ clips }: { clips: Clip[] }) {
     <section className={`relative overflow-hidden ${hasVideo ? "flex min-h-dvh flex-col justify-end" : ""}`}>
       {hasVideo && (
         <div className="absolute inset-0 z-0 overflow-hidden bg-fmbg" aria-hidden>
-          {valid.map((c, idx) => c.kind === "product" ? (
-            <div
-              key={c.title}
-              className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${idx === i ? "opacity-100" : "opacity-0"}`}
-            >
-              {/* visuel produit genere sur Higgsfield (Flare), logo FMRXR//
-                  officiel incruste ensuite sur la borne, pas redessine */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={c.image}
-                alt=""
-                loading={idx === 0 ? "eager" : "lazy"}
-                className="absolute inset-0 h-full w-full object-cover object-[77%_center] md:object-center"
+          {valid.map((p, idx) => {
+            const cls = `absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-in-out ${
+              idx === i ? "opacity-100" : "opacity-0"
+            }`;
+            return p.film ? (
+              <video
+                key={p.slug}
+                ref={(el) => {
+                  refs.current[idx] = el;
+                }}
+                src={p.film}
+                poster={p.cover_url || undefined}
+                muted
+                loop
+                playsInline
+                autoPlay={idx === 0}
+                preload={idx === 0 ? "auto" : "metadata"}
+                className={cls}
               />
-            </div>
-          ) : (
-            // eslint-disable-next-line jsx-a11y/media-has-caption
-            <video
-              key={c.url}
-              ref={(el) => {
-                refs.current[idx] = el;
-                if (el) {
-                  el.muted = true;
-                  el.defaultMuted = true;
-                }
-              }}
-              src={c.url}
-              poster={c.poster || undefined}
-              muted
-              loop
-              autoPlay
-              playsInline
-              preload={idx === 0 ? "auto" : "metadata"}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
-                idx === i ? "opacity-100" : "opacity-0"
-              }`}
-            />
-          ))}
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={p.slug} src={p.cover_url} alt="" loading={idx === 0 ? "eager" : "lazy"} className={cls} />
+            );
+          })}
           <div className="absolute inset-0 bg-gradient-to-b from-[#0d0c14]/60 via-[#0d0c14]/30 to-[#0d0c14]" />
         </div>
       )}
@@ -137,23 +111,25 @@ export function Hero({ clips }: { clips: Clip[] }) {
               <div className="fm-glass-card w-full max-w-sm rounded-xl p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">
-                    <span className="text-fmaccent">●</span> {active?.kind === "product" ? "New release" : "Now showing"}
+                    <span className="text-fmaccent">●</span> Highlight
                   </span>
                   <span className="text-[10px] tabular-nums text-fmmuted">
                     {pad(i + 1)} / {pad(valid.length)}
                   </span>
                 </div>
-                <h2 className="fm-display mt-3 text-xl text-fmfg">{active?.title || "Untitled"}</h2>
-                {active?.description && (
-                  <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{active.description}</p>
+                <h2 className="fm-display mt-3 text-xl text-fmfg">{active?.title}</h2>
+                {active && (
+                  <p className="mt-2 text-[10px] uppercase tracking-[0.1em] text-fmmuted">
+                    {[active.client, active.year, active.category].filter(Boolean).join(" · ")}
+                  </p>
                 )}
-                {active?.kind === "product" && (
+                {active && (
                   <Link
-                    href={active.href}
-                    data-cta="hero_photobooth"
+                    href={`/projects/${active.slug}`}
+                    data-cta="hero_highlight"
                     className="group mt-3 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-fmfg"
                   >
-                    Discover <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
+                    View project <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-1">→</span>
                   </Link>
                 )}
                 {valid.length > 1 && (
@@ -163,7 +139,7 @@ export function Hero({ clips }: { clips: Clip[] }) {
                         key={idx}
                         type="button"
                         onClick={() => setI(idx)}
-                        aria-label={`Show clip ${idx + 1}`}
+                        aria-label={`Show project ${idx + 1}`}
                         className={`h-1.5 rounded-full transition-all duration-300 ${
                           idx === i ? "w-7 bg-fmfg" : "w-1.5 bg-fmfg/40 hover:bg-fmfg/70"
                         }`}

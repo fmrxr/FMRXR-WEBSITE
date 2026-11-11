@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { clip, social } from "@/lib/seo";
 import Link from "next/link";
+import { projectCover } from "@/lib/project-cover";
+import { CardFilm } from "@/components/site/CardFilm";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
 import { GameEmbed } from "@/components/site/GameEmbed";
@@ -67,6 +69,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const p = await getBySlug("projects", slug);
   if (!p) notFound();
+  const cover = projectCover(p);
+
   return (
     <article className="mx-auto max-w-4xl px-5 pb-24 md:px-8">
       <Link href="/projects" className="fm-link text-[11px] uppercase tracking-[0.12em] text-fmmuted">← Work</Link>
@@ -76,10 +80,20 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       </p>
       <h1 className="fm-display mt-3 text-[clamp(2.25rem,6vw,4.5rem)] text-fmfg">{p.title}</h1>
 
-      {p.cover_url && (
+      {/* La même couverture que les cartes et le hero (projectCover). */}
+      {cover?.video ? (
+        // CardFilm : muet et lancé côté client (React n'écrit pas `muted` au
+        // rendu serveur, l'autoplay seul resterait bloqué).
+        <CardFilm
+          src={cover.src}
+          poster={cover.poster ?? ""}
+          preload="metadata"
+          className="mt-8 w-full rounded-xl border border-fmborder bg-black object-cover"
+        />
+      ) : cover ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={p.cover_url} alt={p.title} className="mt-8 w-full rounded-xl border border-fmborder object-cover" />
-      )}
+        <img src={cover.src} alt={p.title} className="mt-8 w-full rounded-xl border border-fmborder object-cover" />
+      ) : null}
 
       {p.summary && <p className="fm-grotesk mt-8 max-w-2xl text-lg leading-relaxed text-fmfg/85">{p.summary}</p>}
 

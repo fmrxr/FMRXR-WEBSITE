@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { getPublished, getAll, getSiteSettings } from "@/lib/public-data";
+import type { Project } from "@/lib/site-data";
+import { projectCover } from "@/lib/project-cover";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Hero } from "@/components/site/Hero";
 import { StartRequest } from "@/components/site/StartRequest";
 import { Rail } from "@/components/site/Rail";
 import { ScrollFilm } from "@/components/site/ScrollFilm";
-import { PhotoboothCTA } from "@/components/site/PhotoboothCTA";
+import { HomeExperience } from "@/components/site/HomeExperience";
+import { ProjectCard } from "@/components/site/ProjectCard";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -39,7 +42,20 @@ export default async function Home() {
     getPublished("articles"),
   ]);
 
-  const heroClips = (settings.hero_media ?? []).filter((c) => c?.url);
+  // Hero : les projets choisis dans le CMS, dans leur ordre ; sans choix, les
+  // 3 premiers projets publiés. Chacun sur sa couverture (projectCover :
+  // choisie dans l'admin, sinon animée, sinon fixe).
+  const covered = (projects as Project[])
+    .map((p) => ({ p, c: projectCover(p) }))
+    .filter((x): x is { p: Project; c: NonNullable<ReturnType<typeof projectCover>> } => !!x.c);
+  const picked = (settings.hero_projects ?? [])
+    .map((slug) => covered.find((x) => x.p.slug === slug))
+    .filter((x): x is (typeof covered)[number] => !!x);
+  const heroProjects = (picked.length ? picked : covered.slice(0, 3)).map(({ p, c }) => ({
+    slug: p.slug, title: p.title, client: p.client, year: p.year, category: p.category,
+    film: c.video ? c.src : null,
+    cover_url: c.video ? (c.poster ?? "") : c.src,
+  }));
 
   return (
     <div className="fm fm-canvas min-h-dvh">
@@ -47,61 +63,18 @@ export default async function Home() {
 
       <main className="relative z-10">
         {/* ===== HERO ===== */}
-        <Hero clips={heroClips} />
+        {/* Les 3 projets choisis dans le CMS (/admin/settings), sur leur couverture. */}
+        <Hero projects={heroProjects} />
 
-        {/* ===== SELECTED WORK ===== */}
+        {/* ===== CLIENTS ===== */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-          <SectionHeader index="S/01" title="Real systems, shipped under live conditions." href="/projects" cta="All projects" />
-          <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
-            <Rail>
-              {projects.map((p: any, i: number) => (
-                <Link
-                  key={p.id}
-                  href={`/projects/${p.slug}`}
-                  className="fm-glass-card group block w-72 shrink-0 overflow-hidden rounded-xl"
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    {p.cover_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.cover_url}
-                        alt={p.title}
-                        draggable={false}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-fmmutedbg">
-                        <span className="fm-display text-6xl text-white/5">{pad(i + 1)}</span>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="fm-display text-base text-fmfg">{p.title}</h3>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.1em] text-fmmuted">
-                      {[p.client, p.year, p.category].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </Rail>
-          </div>
-        </section>
-
-        {/* ===== CAPABILITIES ===== */}
-        <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-          <SectionHeader index="S/02" title="One studio, Fullstack Brand Activation." href="/services" cta="All services" />
+          <SectionHeader index="S/01" title="Trusted by leaders" />
           <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
-            <Rail reverse gapClass="gap-3">
-              {services.map((s: any, i: number) => (
-                <Link
-                  key={s.id}
-                  href={`/services/${s.slug}`}
-                  className="fm-glass-card group flex shrink-0 items-baseline gap-2 whitespace-nowrap rounded-full px-5 py-2.5"
-                >
-                  <span className="text-[10px] tracking-[0.1em] text-fmmuted">S/{pad(i + 1)}</span>
-                  <span className="fm-display text-sm text-fmfg/80">{s.title}</span>
-                </Link>
+            <Rail gapClass="gap-3">
+              {clients.map((c: any) => (
+                <span key={c.id} className="fm-glass-card block shrink-0 whitespace-nowrap rounded-full px-5 py-2.5">
+                  <span className="fm-display text-sm text-fmfg/80">{c.name}</span>
+                </span>
               ))}
             </Rail>
           </div>
@@ -112,7 +85,7 @@ export default async function Home() {
             compte achète une façon de livrer autant qu'une image. Les étapes
             reprennent l'article, rien n'est ajouté ici qu'il ne dise pas. */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-          <SectionHeader index="S/03" title="From brief to opening night." href="/journal/brief-to-opening-night" cta="The full method" />
+          <SectionHeader index="S/02" title="From brief to opening night." href="/journal/brief-to-opening-night" cta="The full method" />
           {/* Le film de la méthode, premier motion design du studio : il démarre
               quand on arrive sur la section (ScrollFilm). */}
           <ScrollFilm
@@ -135,18 +108,36 @@ export default async function Home() {
           </p>
         </section>
 
-        {/* ===== AI PHOTOBOOTH ===== */}
-        <PhotoboothCTA index="New" source="home" />
+        {/* ===== NEW EXPERIENCE ===== */}
+        {/* L'expérience mise à la une dans le CMS (/admin/experiences, « Sur l'accueil »). */}
+        <HomeExperience slug={settings.home_experience} visible={settings.experiences_visible} index="New" />
 
-        {/* ===== CLIENTS ===== */}
+        {/* ===== CAPABILITIES ===== */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
-          <SectionHeader index="S/04" title="Trusted by leaders" />
+          <SectionHeader index="S/03" title="One studio, Fullstack Brand Activation." href="/services" cta="All services" />
           <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
-            <Rail gapClass="gap-3">
-              {clients.map((c: any) => (
-                <span key={c.id} className="fm-glass-card block shrink-0 whitespace-nowrap rounded-full px-5 py-2.5">
-                  <span className="fm-display text-sm text-fmfg/80">{c.name}</span>
-                </span>
+            <Rail reverse gapClass="gap-3">
+              {services.map((s: any, i: number) => (
+                <Link
+                  key={s.id}
+                  href={`/services/${s.slug}`}
+                  className="fm-glass-card group flex shrink-0 items-baseline gap-2 whitespace-nowrap rounded-full px-5 py-2.5"
+                >
+                  <span className="text-[10px] tracking-[0.1em] text-fmmuted">S/{pad(i + 1)}</span>
+                  <span className="fm-display text-sm text-fmfg/80">{s.title}</span>
+                </Link>
+              ))}
+            </Rail>
+          </div>
+        </section>
+
+        {/* ===== SELECTED WORK ===== */}
+        <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">
+          <SectionHeader index="S/04" title="Real systems, shipped under live conditions." href="/projects" cta="All projects" />
+          <div className="mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+            <Rail>
+              {(projects as Project[]).map((p) => (
+                <ProjectCard key={p.id} p={p} />
               ))}
             </Rail>
           </div>
