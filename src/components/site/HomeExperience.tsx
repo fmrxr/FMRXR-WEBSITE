@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { projectHref } from "@/lib/project-aliases";
 import { PhotoboothCTA } from "./PhotoboothCTA";
 import { ProductCTA } from "./ProductCTA";
 import { PRODUCTS } from "@/lib/products";
@@ -45,7 +46,7 @@ export function HomeExperience({
               Play it live
             </Link>
             <Link
-              href={`/projects/${e.project}`}
+              href={projectHref(e.project)}
               data-cta={`experience-project-home-${e.slug}`}
               className="rounded-full border border-fmborder px-6 py-3 text-sm text-fmfg/85 transition hover:border-fmfg/50"
             >

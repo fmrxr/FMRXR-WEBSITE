@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { projectHref } from "@/lib/project-aliases";
 import { CardFilm } from "./CardFilm";
 import { projectCover } from "@/lib/project-cover";
 
@@ -15,7 +16,7 @@ export function ProjectCard({ p, summary = false, className = "" }: { p: P; summ
   const c = projectCover(p);
   return (
     <Link
-      href={`/projects/${p.slug}`}
+      href={projectHref(p.slug)}
       className={`fm-glass-card group flex shrink-0 snap-start flex-col overflow-hidden rounded-xl ${className}`}
     >
       <div className="relative h-[260px] overflow-hidden bg-black md:h-[300px]">

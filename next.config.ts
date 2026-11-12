@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PROJECT_PAGES } from "./src/lib/project-aliases";
 
 const nextConfig: NextConfig = {
   // Tester depuis un telephone sur le Wi-Fi (borne photobooth, camera) :
@@ -33,6 +34,12 @@ const nextConfig: NextConfig = {
         destination: "/experiences/assembleur/index.html",
         permanent: false,
       },
+      // Une œuvre = une page : les fiches projet qui ont leur page ailleurs y redirigent.
+      ...Object.entries(PROJECT_PAGES).map(([slug, destination]) => ({
+        source: `/projects/${slug}`,
+        destination,
+        permanent: true,
+      })),
       // Industries a fusionné dans Services (12/11/2026) : un secteur devient le
       // filtre ?for=<slug> de la page Services.
       { source: "/industries", destination: "/services", permanent: true },

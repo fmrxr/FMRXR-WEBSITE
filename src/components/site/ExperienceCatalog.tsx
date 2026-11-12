@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { projectHref } from "@/lib/project-aliases";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ProjectRow } from "@/components/site/ProjectRow";
 import { CardFilm } from "@/components/site/CardFilm";
@@ -134,7 +135,7 @@ export function ExperienceCatalog({ visible }: { visible: string[] | null }) {
                 </button>
               </>
             )}
-            <Link href={`/projects/${current.project}`} className="hover:text-fmaccent">
+            <Link href={projectHref(current.project)} className="hover:text-fmaccent">
               View the project →
             </Link>
             <a href={current.entry} target="_blank" rel="noopener" className="hover:text-fmaccent">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { projectHref } from "@/lib/project-aliases";
 import { useMemo, useState } from "react";
 import type { LogEntry } from "@/lib/service-log";
 
@@ -163,7 +164,7 @@ export function SignalSurvey({
                   {hotRow.mine.map((p) => (
                     <li key={p.slug}>
                       <span style={{ color: dim("80") }}>{p.year} </span>
-                      <Link href={`/projects/${p.slug}`} className="underline-offset-2 hover:underline">{p.title}</Link>
+                      <Link href={projectHref(p.slug)} className="underline-offset-2 hover:underline">{p.title}</Link>
                     </li>
                   ))}
                   {hotRow.mine.length === 0 && <li style={{ color: dim("80") }}>Nothing shipped for this sector yet.</li>}

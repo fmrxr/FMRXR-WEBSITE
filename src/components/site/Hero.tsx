@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { projectHref } from "@/lib/project-aliases";
 import { useEffect, useRef, useState } from "react";
 // Les highlights du hero : 3 projets choisis dans le CMS (/admin/settings),
 // chacun sur sa couverture animée (aperçu de la page Work), sinon sa
@@ -125,7 +126,7 @@ export function Hero({ projects }: { projects: HeroProject[] }) {
                 )}
                 {active && (
                   <Link
-                    href={`/projects/${active.slug}`}
+                    href={projectHref(active.slug)}
                     data-cta="hero_highlight"
                     className="group mt-3 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-fmfg"
                   >

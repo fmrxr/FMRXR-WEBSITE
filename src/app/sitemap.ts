@@ -1,3 +1,4 @@
+import { PROJECT_PAGES } from "@/lib/project-aliases";
 import type { MetadataRoute } from "next";
 import { getPublished } from "@/lib/public-data";
 
@@ -61,7 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...index,
-    ...collection(projects, "/projects", 0.9),
+    ...collection(projects.filter((r: any) => !PROJECT_PAGES[r.slug]), "/projects", 0.9),
     ...collection(articles, "/journal", 0.7),
     ...collection(services, "/services", 0.7),
   ];
