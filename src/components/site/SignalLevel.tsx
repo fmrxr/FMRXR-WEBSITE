@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import type { Offer } from "@/lib/offers";
@@ -26,14 +26,15 @@ const W = 1000;
 const ROW = 46;
 const LIFT = 13; // pixels par projet
 const SAMPLES = 240;
+const noop = () => () => {};
 
 export function SignalLevel({ services, projects, offers }: { services: SService[]; projects: SProject[]; offers: Offer[] }) {
   const router = useRouter();
   const [hot, setHot] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+  // Vrai seulement côté navigateur : le portail a besoin de document.body.
+  const mounted = useSyncExternalStore(noop, () => true, () => false);
 
   useEffect(() => {
-    setMounted(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
