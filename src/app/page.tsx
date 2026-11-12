@@ -110,7 +110,7 @@ export default async function Home() {
 
         {/* ===== NEW EXPERIENCE ===== */}
         {/* L'expérience mise à la une dans le CMS (/admin/experiences, « Sur l'accueil »). */}
-        <HomeExperience slug={settings.home_experience} visible={settings.experiences_visible} index="New" />
+        <HomeExperience slug={settings.home_experience} visible={settings.experiences_visible} index="New" published={(projects as { slug: string }[]).map((p) => p.slug)} />
 
         {/* ===== CAPABILITIES ===== */}
         <section className="mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:px-8 md:py-28">

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { projectHref } from "@/lib/project-aliases";
+import { projectHref, projectLive } from "@/lib/project-aliases";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ProjectRow } from "@/components/site/ProjectRow";
 import { CardFilm } from "@/components/site/CardFilm";
@@ -35,8 +35,9 @@ function useSmallScreen() {
   return small;
 }
 
-/** visible : slugs affichés (réglage CMS), null = toutes. Au moins une. */
-export function ExperienceCatalog({ visible }: { visible: string[] | null }) {
+/** visible : slugs affichés (réglage CMS), null = toutes. Au moins une.
+ *  published : fiches projet publiées ; le lien « View the project » n'apparaît que pour elles. */
+export function ExperienceCatalog({ visible, published }: { visible: string[] | null; published: string[] }) {
   const list = visibleExperiences(visible);
   const params = useSearchParams();
   const router = useRouter();
@@ -135,9 +136,11 @@ export function ExperienceCatalog({ visible }: { visible: string[] | null }) {
                 </button>
               </>
             )}
-            <Link href={projectHref(current.project)} className="hover:text-fmaccent">
-              View the project →
-            </Link>
+            {projectLive(current.project, published) && (
+              <Link href={projectHref(current.project)} className="hover:text-fmaccent">
+                View the project →
+              </Link>
+            )}
             <a href={current.entry} target="_blank" rel="noopener" className="hover:text-fmaccent">
               Open alone ↗
             </a>

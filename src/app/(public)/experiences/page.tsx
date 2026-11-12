@@ -6,7 +6,7 @@ import { ExperienceCatalog } from "@/components/site/ExperienceCatalog";
 import { PhotoboothCTA } from "@/components/site/PhotoboothCTA";
 import { ProductCTA } from "@/components/site/ProductCTA";
 import { PRODUCTS } from "@/lib/products";
-import { getSiteSettings } from "@/lib/public-data";
+import { getPublished, getSiteSettings } from "@/lib/public-data";
 import { PHOTOBOOTH_SLUG, heroSlug, isVisible, visibleExperiences } from "@/lib/experiences";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,8 @@ export const metadata: Metadata = {
 
 export default async function Experiences() {
   // Ce qui s'affiche se règle dans le CMS (/admin/experiences).
-  const { experiences_visible: visible = null } = await getSiteSettings();
+  const [{ experiences_visible: visible = null }, projects] = await Promise.all([getSiteSettings(), getPublished("projects")]);
+  const published = (projects as { slug: string }[]).map((p) => p.slug);
   const playable = visibleExperiences(visible).length > 0;
   // Blocs produits (Photobooth, Live Wall, ROOFTOP, STOMP), chacun active dans
   // le CMS. Celui qui est en hero passe avant le catalogue ; une experience du
@@ -64,7 +65,7 @@ export default async function Experiences() {
       {playable && (
         // useSearchParams exige une frontière Suspense pour le prérendu.
         <Suspense>
-          <ExperienceCatalog visible={visible} />
+          <ExperienceCatalog visible={visible} published={published} />
         </Suspense>
       )}
     </>

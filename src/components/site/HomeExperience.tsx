@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { projectHref } from "@/lib/project-aliases";
+import { projectHref, projectLive } from "@/lib/project-aliases";
 import { PhotoboothCTA } from "./PhotoboothCTA";
 import { ProductCTA } from "./ProductCTA";
 import { PRODUCTS } from "@/lib/products";
@@ -14,10 +14,13 @@ export function HomeExperience({
   slug,
   visible,
   index,
+  published,
 }: {
   slug: string | null | undefined;
   visible: readonly string[] | null | undefined;
   index: string;
+  // Fiches projet publiées : « See the project » n'apparaît que pour elles.
+  published: readonly string[];
 }) {
   const pick = [slug, heroSlug(visible), PHOTOBOOTH_SLUG].find((s) => s && isVisible(s, visible)) ?? PHOTOBOOTH_SLUG;
 
@@ -45,13 +48,13 @@ export function HomeExperience({
             >
               Play it live
             </Link>
-            <Link
+            {projectLive(e.project, published) && <Link
               href={projectHref(e.project)}
               data-cta={`experience-project-home-${e.slug}`}
               className="rounded-full border border-fmborder px-6 py-3 text-sm text-fmfg/85 transition hover:border-fmfg/50"
             >
               See the project
-            </Link>
+            </Link>}
           </div>
           {e.desktopOnly && <p className="mt-4 text-[11px] text-fmmuted">Best on a computer.</p>}
         </div>

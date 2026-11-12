@@ -7,4 +7,8 @@ export const PROJECT_PAGES: Record<string, string> = {
   "jardin-des-lucioles": "/firefly-garden",
 };
 
+// Une fiche est consultable si elle est publiée, ou si elle vit ailleurs (PROJECT_PAGES).
+// Sert à masquer « voir le projet » quand la fiche est repassée en brouillon.
+export const projectLive = (slug: string, published: readonly string[]) => !!PROJECT_PAGES[slug] || published.includes(slug);
+
 export const projectHref = (slug: string) => PROJECT_PAGES[slug] ?? `/projects/${slug}`;
