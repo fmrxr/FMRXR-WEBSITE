@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { social } from "@/lib/seo";
-import Link from "next/link";
 import { getPublished } from "@/lib/public-data";
 import { PageHero } from "@/components/site/PageHero";
-import { CardFilm } from "@/components/site/CardFilm";
+import { ServicesExplorer, type XProject } from "@/components/site/ServicesExplorer";
 import { serviceFilm } from "@/lib/service-films";
+import { OFFERS } from "@/lib/offers";
+import { lastYear } from "@/lib/years";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -13,40 +14,57 @@ import { serviceFilm } from "@/lib/service-films";
 // ici sur la mise en cache.
 export const dynamic = "force-dynamic";
 
-// Titre, description et canonical propres : sans eux la page héritait de ceux
-// de l"accueil, canonical "/" compris, et Google la lisait comme un doublon.
+// Services et Industries ne font plus qu'une page (12/11/2026) : les industries
+// filtrent les offres et les services, /industries redirige ici.
+const DESCRIPTION =
+  "Book an interactive wall, an LED installation, projection mapping, a live A/V set or a motion loop, with starting prices and what each side brings. Filter by industry, from telecom to festivals.";
+
 export const metadata: Metadata = {
-  title: "Services · Immersive systems, mapping, live A/V",
-  description:
-    "Creative direction, projection mapping, generative art, interactive installations, real-time systems, XR, live A/V and motion. From brief to opening night.",
-  keywords: ["creative technology services", "projection mapping", "interactive installation", "generative art", "real-time systems", "live A/V", "XR", "motion design", "brand activation"],
+  title: "Services & industries · Prices, demos, what we bring",
+  description: DESCRIPTION,
+  keywords: ["creative technology services", "interactive wall price", "projection mapping price Tunisia", "interactive installation", "live A/V", "VJ", "motion design", "brand activation", "immersive experiences for brands"],
   alternates: { canonical: "/services" },
-  ...social({ url: "/services", title: "Services · Immersive systems, mapping, live A/V · FMRXR//", description: "Creative direction, projection mapping, generative art, interactive installations, real-time systems, XR, live A/V and motion. From brief to opening night." }),
+  ...social({ url: "/services", title: "Services & industries · FMRXR//", description: DESCRIPTION }),
 };
 
-const pad = (n: number) => String(n).padStart(2, "0");
+export default async function Services({ searchParams }: { searchParams: Promise<{ for?: string }> }) {
+  const [{ for: initialFor }, services, industries, projects] = await Promise.all([
+    searchParams,
+    getPublished("services"),
+    getPublished("industries"),
+    getPublished("projects"),
+  ]);
 
-export default async function Services() {
-  const services = await getPublished("services");
+  const xprojects: XProject[] = (projects as any[]).map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    client: p.client ?? undefined,
+    year: p.year ?? undefined,
+    services: p.services ?? [],
+    industries: p.industries ?? [],
+    last: lastYear(p.year),
+  }));
+
   return (
     <>
-      <PageHero index="Services" title="One studio, fullstack brand activation." intro="From creative direction to opening night: XR, projection mapping, generative art, live A/V and AI workflows, delivered as one system." />
-      <section className="mx-auto max-w-[1200px] px-5 pb-24 md:px-8">
-        <div className="grid gap-px overflow-hidden rounded-xl border border-fmborder bg-fmborder md:grid-cols-2">
-          {services.map((s: any, i: number) => {
-            const film = serviceFilm(s.slug);
-            return (
-            <Link key={s.id} href={`/services/${s.slug}`} className="group bg-fmbg p-6 transition-colors hover:bg-fmmutedbg md:p-8">
-              {film && <div className="mb-5"><CardFilm src={film.src} poster={film.poster} /></div>}
-              <span className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">S/{pad(i + 1)}</span>
-              <h2 className="fm-display mt-3 text-xl text-fmfg md:text-2xl">{s.title}</h2>
-              <p className="fm-grotesk mt-2 text-[13px] leading-relaxed text-fmmuted">{s.short}</p>
-              <span className="fm-arrow mt-4 inline-block text-fmmuted transition-transform group-hover:translate-x-1 group-hover:text-fmaccent">→</span>
-            </Link>
-            );
-          })}
-        </div>
-      </section>
+      <PageHero
+        index="Services"
+        title="Try it, then book it."
+        intro="Five offers you can book as they are, with a starting price and what each side brings. Everything else, from CGI to large installations, is built on a quote. Pick your industry to see the work done for it."
+      />
+      <ServicesExplorer
+        offers={OFFERS}
+        services={(services as any[]).map((s) => ({
+          slug: s.slug,
+          title: s.title,
+          short: s.short ?? undefined,
+          outcomes: s.outcomes ?? [],
+          film: serviceFilm(s.slug),
+        }))}
+        industries={(industries as any[]).map((i) => ({ slug: i.slug, name: i.name, note: i.note ?? undefined }))}
+        projects={xprojects}
+        initialFor={initialFor ?? null}
+      />
     </>
   );
 }

@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const NAV: [string, string][] = [
   ["Work", "/projects"],
   ["Experiences", "/experiences"],
   ["Services", "/services"],
-  ["Industries", "/industries"],
   ["Journal", "/journal"],
   ["About", "/about"],
 ];
@@ -15,6 +15,9 @@ const NAV: [string, string][] = [
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pressed = useRef(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -30,7 +33,23 @@ export function Header() {
       }`}
     >
       <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-4 md:px-8">
-        <Link href="/" className="group flex items-baseline gap-2.5" aria-label="FMRXR Creative Technology">
+        <Link
+          href="/"
+          className="group flex select-none items-baseline gap-2.5 [-webkit-touch-callout:none]"
+          aria-label="FMRXR Creative Technology"
+          // Appui long sur le logo (téléphone) : le niveau caché, comme « fmr » au clavier.
+          onPointerDown={() => {
+            pressed.current = false;
+            timer.current = setTimeout(() => {
+              pressed.current = true;
+              router.push("/fmr");
+            }, 650);
+          }}
+          onPointerUp={() => clearTimeout(timer.current)}
+          onPointerLeave={() => clearTimeout(timer.current)}
+          onContextMenu={(e) => e.preventDefault()}
+          onClick={(e) => pressed.current && e.preventDefault()}
+        >
           <span className="fm-display text-base tracking-[0.04em] text-fmfg">
             FMRXR<span className="text-fmaccent">//</span>
           </span>

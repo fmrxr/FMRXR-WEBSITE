@@ -4,7 +4,6 @@ import type { SiteSettings } from "@/lib/site-data";
 const NAV: [string, string][] = [
   ["Work", "/projects"],
   ["Services", "/services"],
-  ["Industries", "/industries"],
   ["Journal", "/journal"],
   ["About", "/about"],
   ["Contact", "/contact"],

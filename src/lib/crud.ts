@@ -11,7 +11,7 @@ const WRITE_ROLES: Role[] = ["admin", "editor"];
 const PUBLIC_ROUTES: Record<string, string[]> = {
   projects: ["/projects", "/projects/[slug]"],
   services: ["/services", "/services/[slug]"],
-  industries: ["/industries", "/industries/[slug]"],
+  industries: ["/services"],
   articles: ["/journal", "/journal/[slug]"],
   stack: [],
   clients: [],

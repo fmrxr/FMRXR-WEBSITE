@@ -33,6 +33,10 @@ const nextConfig: NextConfig = {
         destination: "/experiences/assembleur/index.html",
         permanent: false,
       },
+      // Industries a fusionné dans Services (12/11/2026) : un secteur devient le
+      // filtre ?for=<slug> de la page Services.
+      { source: "/industries", destination: "/services", permanent: true },
+      { source: "/industries/:slug", destination: "/services?for=:slug", permanent: true },
       {
         source: "/services/touchdesigner",
         destination: "/services/real-time-systems",
