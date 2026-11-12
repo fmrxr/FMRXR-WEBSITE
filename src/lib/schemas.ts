@@ -37,6 +37,9 @@ export const galleryItem = z.object({
   embed: z.preprocess((v) => (v == null ? false : v), z.boolean()),
   // Libellé du bouton d'un embed (« Browse the charter »). Vide : « Play the game ».
   label: otext(60),
+  // `wide` : le média prend les deux colonnes de la galerie (film 16:9 en tête,
+  // lecteur d'écoute). Les verticaux restent par deux, côte à côte.
+  wide: z.preprocess((v) => (v == null ? false : v), z.boolean()),
 });
 
 // Un chiffre mis en avant sous le résumé d'une fiche. `value` est la valeur telle

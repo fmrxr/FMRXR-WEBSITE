@@ -171,7 +171,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
           {p.gallery.map((g: any, i: number) => (
             // Un embed jouable prend les deux colonnes : à demi-largeur on ne
             // joue pas, on regarde une vignette.
-            <figure key={i} className={g.embed ? "md:col-span-2" : undefined}>
+            <figure key={i} className={g.embed || g.wide ? "md:col-span-2" : undefined}>
               {g.embed ? (
                 // `label` nomme l'action quand l'embed n'est pas un jeu : une
                 // charte se parcourt, des animations se regardent.
