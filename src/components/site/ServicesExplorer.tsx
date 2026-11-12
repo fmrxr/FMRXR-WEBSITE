@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CardFilm } from "@/components/site/CardFilm";
 import type { Offer } from "@/lib/offers";
+import type { LogEntry } from "@/lib/service-log";
 
 // La page Services fusionnée avec Industries : les industries ne sont plus des
 // pages, elles filtrent. Le filtre vit dans l'URL (?for=<industrie>) pour qu'un
 // lien partagé, et les anciennes adresses /industries/<slug>, tombent sur la
 // bonne vue. Le journal de chaque service vient des vrais projets publiés.
 
-export type XService = { slug: string; title: string; short?: string; outcomes: string[]; film: { src: string; poster: string } | null };
+export type XService = { slug: string; title: string; short?: string; outcomes: string[]; film: { src: string; poster: string } | null; log: LogEntry[] };
 export type XIndustry = { slug: string; name: string; note?: string };
 export type XProject = { slug: string; title: string; client?: string; year?: string; services: string[]; industries: string[]; last: number };
 
@@ -191,6 +192,7 @@ export function ServicesExplorer({
                   <span className="fm-display text-base text-fmfg md:text-lg">{s.title}</span>
                   <span className="fm-grotesk col-start-2 text-[13px] leading-relaxed text-fmmuted md:col-start-auto">{s.short}</span>
                   <span className="col-start-3 row-start-1 text-right text-[11px] text-fmmuted md:col-start-4">
+                    {s.log[0] && <span className="mr-3 hidden font-mono text-[10px] md:inline">{s.log[0].label}</span>}
                     {log.length} <span className={`ml-2 inline-block text-fmaccent transition-transform ${isOpen ? "rotate-45" : ""}`}>+</span>
                   </span>
                 </button>
@@ -208,22 +210,36 @@ export function ServicesExplorer({
                       </ul>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">
-                        Log{industry ? ` · ${industry.name}` : ""}
-                      </p>
-                      {log.length === 0 ? (
-                        <p className="fm-grotesk mt-3 text-[13px] text-fmmuted">Nothing shipped for this sector yet. It can be the first.</p>
+                      {/* Journal de bord : ce qui a changé dans le service, daté. */}
+                      <p className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">Logbook</p>
+                      {s.log.length === 0 ? (
+                        <p className="fm-grotesk mt-3 text-[13px] text-fmmuted">No entry yet.</p>
                       ) : (
                         <ol className="mt-3 flex flex-col border-l border-fmborder">
-                          {log.slice(0, 4).map((p) => (
-                            <li key={p.slug} className="relative pb-4 pl-5 last:pb-0">
-                              <span className="absolute -left-[3px] top-1.5 h-[5px] w-[5px] rounded-full bg-fmaccent" />
-                              <span className="font-mono text-[10px] text-fmmuted">{p.year}</span>
-                              <Link href={`/projects/${p.slug}`} className="fm-link block text-[13px] text-fmfg">{p.title}</Link>
-                              {p.client && <span className="text-[11px] text-fmmuted">{p.client}</span>}
+                          {s.log.slice(0, 4).map((e, k) => (
+                            <li key={`${e.date}-${k}`} className="relative pb-4 pl-5 last:pb-0">
+                              <span className={`absolute -left-[3px] top-1.5 h-[5px] w-[5px] rounded-full ${k === 0 ? "bg-fmaccent" : "bg-fmmuted"}`} />
+                              <span className="font-mono text-[10px] text-fmmuted">{e.label}</span>
+                              <p className="fm-grotesk text-[13px] leading-relaxed text-fmfg/90">{e.text}</p>
                             </li>
                           ))}
                         </ol>
+                      )}
+
+                      <p className="mt-7 text-[10px] uppercase tracking-[0.15em] text-fmmuted">
+                        Latest work{industry ? ` · ${industry.name}` : ""}
+                      </p>
+                      {log.length === 0 ? (
+                        <p className="fm-grotesk mt-2 text-[13px] text-fmmuted">Nothing shipped for this sector yet. It can be the first.</p>
+                      ) : (
+                        <ul className="mt-2 flex flex-col gap-1">
+                          {log.slice(0, 3).map((p) => (
+                            <li key={p.slug} className="text-[13px]">
+                              <span className="mr-2 font-mono text-[10px] text-fmmuted">{p.year}</span>
+                              <Link href={`/projects/${p.slug}`} className="fm-link text-fmfg">{p.title}</Link>
+                            </li>
+                          ))}
+                        </ul>
                       )}
                       <div className="mt-6 flex flex-wrap gap-5">
                         <Link href={`/services/${s.slug}`} className="fm-link text-[11px] uppercase tracking-[0.12em] text-fmmuted">Full page →</Link>

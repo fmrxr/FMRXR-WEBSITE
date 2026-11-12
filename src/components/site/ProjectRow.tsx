@@ -88,7 +88,7 @@ export function ProjectRow({ children }: { children: React.ReactNode }) {
             drag.current.moved = false;
           }
         }}
-        className={`no-scrollbar -mx-5 flex select-none ${dragging ? "cursor-grabbing snap-none" : "cursor-grab snap-x snap-mandatory"} scroll-px-5 gap-4 overflow-x-auto px-5 pb-2 md:-mx-8 md:scroll-px-8 md:px-8`}
+        className={`no-scrollbar -mx-5 flex items-start select-none ${dragging ? "cursor-grabbing snap-none" : "cursor-grab snap-x snap-mandatory"} scroll-px-5 gap-4 overflow-x-auto px-5 pb-2 md:-mx-8 md:scroll-px-8 md:px-8`}
       >
         {children}
       </div>

@@ -85,6 +85,9 @@ export const serviceSchema = z.object({
   short: otext(200),
   description: otext(4000),
   outcomes: arr(otext(160)),
+  // Journal de bord (migration 0025), « AAAA-MM-JJ · texte » par ligne. Absent
+  // = jamais envoyé, pour que l'enregistrement marche avant la migration.
+  log: z.array(otext(240)).optional(),
   sort_order: z.number().int().default(0),
   published: z.boolean().default(false),
 });

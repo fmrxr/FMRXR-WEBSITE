@@ -59,6 +59,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
       { name: "short", label: "Short", type: "textarea" },
       { name: "description", label: "Description", type: "textarea" },
       { name: "outcomes", label: "Outcomes", type: "string-list" },
+      { name: "log", label: "Journal de bord · une entrée par ligne : 2026-11-12 · Texte (les 4 plus récentes s'affichent sur /services)", type: "string-list" },
     ],
   },
   industries: {

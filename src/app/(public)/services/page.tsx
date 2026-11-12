@@ -6,6 +6,7 @@ import { ServicesExplorer, type XProject } from "@/components/site/ServicesExplo
 import { serviceFilm } from "@/lib/service-films";
 import { OFFERS } from "@/lib/offers";
 import { lastYear } from "@/lib/years";
+import { parseLog } from "@/lib/service-log";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -60,6 +61,7 @@ export default async function Services({ searchParams }: { searchParams: Promise
           short: s.short ?? undefined,
           outcomes: s.outcomes ?? [],
           film: serviceFilm(s.slug),
+          log: parseLog(s.log),
         }))}
         industries={(industries as any[]).map((i) => ({ slug: i.slug, name: i.name, note: i.note ?? undefined }))}
         projects={xprojects}

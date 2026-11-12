@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
 import { ScrollFilm } from "@/components/site/ScrollFilm";
 import { serviceFilm } from "@/lib/service-films";
+import { parseLog } from "@/lib/service-log";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -45,7 +46,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   if (!s) notFound();
   return (
     <article className="mx-auto max-w-3xl px-5 pb-24 md:px-8">
-      <Link href="/services" className="fm-link text-[11px] uppercase tracking-[0.12em] text-fmmuted">← Services</Link>
+      <Link href="/services" className="fm-link text-[11px] uppercase tracking-[0.12em] text-fmmuted">← All services</Link>
       <h1 className="fm-display mt-8 text-[clamp(2.25rem,6vw,4.5rem)] text-fmfg">{s.title}</h1>
       {s.short && <p className="fm-grotesk mt-5 text-lg leading-relaxed text-fmfg/85">{s.short}</p>}
       {serviceFilm(s.slug) && (
@@ -67,6 +68,21 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             </li>
           ))}
         </ul>
+      )}
+
+      {parseLog(s.log).length > 0 && (
+        <section className="mt-14">
+          <h2 className="text-[10px] uppercase tracking-[0.15em] text-fmmuted">Logbook</h2>
+          <ol className="mt-4 flex flex-col border-l border-fmborder">
+            {parseLog(s.log).map((e, k) => (
+              <li key={`${e.date}-${k}`} className="relative pb-5 pl-6 last:pb-0">
+                <span className={`absolute -left-[3px] top-1.5 h-[5px] w-[5px] rounded-full ${k === 0 ? "bg-fmaccent" : "bg-fmmuted"}`} />
+                <span className="font-mono text-[10px] text-fmmuted">{e.label}</span>
+                <p className="fm-grotesk text-sm leading-relaxed text-fmfg/90">{e.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
       )}
 
       <div className="mt-16 border-t border-fmborder pt-8">
