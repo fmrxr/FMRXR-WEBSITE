@@ -6,6 +6,7 @@ import { CardFilm } from "@/components/site/CardFilm";
 import { notFound } from "next/navigation";
 import { getBySlug, getPublished } from "@/lib/public-data";
 import { GameEmbed } from "@/components/site/GameEmbed";
+import { SpicyAirportLanding } from "@/components/site/SpicyAirportLanding";
 
 // Rendu a la demande plutot qu'ISR. L'hebergement fait tourner plusieurs
 // processus Node, chacun avec son propre cache : avec revalidate, une meme URL
@@ -78,6 +79,22 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const p = await getBySlug("projects", slug);
   if (!p) notFound();
   const cover = projectCover(p);
+
+  // SPICY AIRPORT a sa page faite a la main (SpicyAirportLanding), comme le
+  // Jardin des Lucioles et THE WALL. La fiche Supabase garde le titre, le
+  // resume pour les metadonnees, et l'embed jouable.
+  if (p.slug === "spicy-airport") {
+    const g = Array.isArray(p.gallery) ? (p.gallery as { embed?: boolean; url?: string; poster?: string }[]).find((x) => x.embed) : null;
+    const local = (u?: string) => (u ? u.replace(/^https:\/\/fmrxr\.com/, "") : "");
+    return (
+      <SpicyAirportLanding
+        embed={{
+          url: local(g?.url) || "/experiences/spicy-airport/index.html",
+          poster: local(g?.poster) || "/spicy-airport/stand-a07.webp",
+        }}
+      />
+    );
+  }
 
   return (
     <article className="mx-auto max-w-4xl px-5 pb-24 md:px-8">
