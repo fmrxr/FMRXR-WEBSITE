@@ -9,7 +9,7 @@
 
 import { MEDIA } from "./service-films";
 
-export type ProductSlug = "photobooth" | "live-wall" | "stomp" | "rooftop";
+export type ProductSlug = "photobooth" | "live-wall" | "stomp" | "rooftop" | "firefly-garden";
 
 export type Product = {
   slug: ProductSlug;
@@ -17,7 +17,7 @@ export type Product = {
   tagline: string;
   intro: string;
   poster: string; // vignette du CMS et visuel du bloc
-  demo: { kind: "wall" } | { kind: "game"; src: string } | { kind: "photobooth" };
+  demo: { kind: "wall" } | { kind: "game"; src: string } | { kind: "photobooth" } | { kind: "embed"; src: string };
   facts: [string, string][];
   steps?: [string, string][];
   features?: [string, string][];
@@ -160,6 +160,41 @@ export const PRODUCTS: Product[] = [
       title: "STOMP: interactive LED floor game for brand events",
       description: "Branded targets rise from a neon city under a glass floor and players stomp them. 1 to 4 players or 2v2, on an interactive LED floor.",
       keywords: ["interactive LED floor game", "stomp game", "brand activation game", "interactive floor", "FMRXR"],
+    },
+  },
+  {
+    // Le Jardin des Lucioles : installation de lancement produit sur mur LED.
+    // Page faite a la main (FireflyGardenLanding), comme le Live Wall. Le slug
+    // n'est pas celui de l'experience jouable (jardin-des-lucioles) : le CMS
+    // exige des slugs uniques entre blocs produit et catalogue.
+    slug: "firefly-garden",
+    name: ["Le Jardin ", "des Lucioles"],
+    tagline: "Your product, revealed by light in a garden that wakes up.",
+    intro: "A night garden on your LED wall and a single firefly. The guest leads it with a hand to START: your product appears out of the light, opens part by part, closes again and dissolves into a swarm that wakes the garden. Then the garden is theirs to explore.",
+    poster: "/garden/reveil.webp",
+    demo: { kind: "embed", src: "/experiences/jardin-des-lucioles/index.html" },
+    facts: [["A 53.6 s reveal", "From START to the garden awake"], ["34 s exploded view", "Your product, part by part"], ["Hand-driven", "FMRXR technologies hand tracking"], ["Runs in real time", "A browser on your LED wall"]],
+    specs: [
+      ["Screen", "Panoramic LED wall, tested at 1600 × 600 (2.67:1)"],
+      ["Rendering", "Real time, WebGL, in a browser"],
+      ["Sensing", "FMRXR technologies hand tracking, three cameras, local, no network"],
+      ["Loading", "15 to 20 s, all of it behind the opening screen, before START"],
+      ["During the piece", "No file loaded, no shader compiled, no frame above 60 ms over a full sequence"],
+      ["Light", "Average luminance under 0.2 in every state, pure white under 0.1 %"],
+    ],
+    faq: [
+      ["Can it reveal our product?", "Yes, that is what it is built for. Your product is modelled in 3D, then the exploded view is written for it: the parts, their order, the labels and the close-ups. The garden around it stays the same."],
+      ["What screen does it need?", "A panoramic LED wall driven by a computer with a browser. It was tested at 1600 × 600 pixels (2.67:1); other formats are set up before the event."],
+      ["What does the guest have to do?", "Nothing to learn. A guide of three animated pictograms at the bottom of the screen shows the gestures: move the hand, open or close it, close the fist and hold it to click."],
+      ["What if nobody is in front of it?", "Nine seconds without a visitor and the garden goes back to sleep on its START screen, ready for the next one."],
+      ["Can we try it before booking?", "Yes. The same garden plays in your browser, with the mouse instead of the hand."],
+      ["How is it priced?", "Per event. Tell us your date, your wall and your product for a quote."],
+    ],
+    closing: "Your product, the light that wakes the garden.",
+    seo: {
+      title: "Le Jardin des Lucioles: an interactive LED wall for product launches",
+      description: "An interactive LED wall installation for product launches: guests lead a firefly with their hand, your product appears, opens in an exploded view and dissolves into light that wakes a living night garden. Real time, hand tracking.",
+      keywords: ["interactive LED wall", "product launch installation", "product reveal", "exploded view", "interactive installation", "hand tracking installation", "brand activation", "immersive garden", "FMRXR"],
     },
   },
 ];

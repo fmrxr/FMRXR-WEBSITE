@@ -32,13 +32,17 @@ export default async function Experiences() {
   // le CMS. Celui qui est en hero passe avant le catalogue ; une experience du
   // catalogue en hero s'ouvre, elle, dans le lecteur du haut.
   const hero = heroSlug(visible);
-  const blocks = PRODUCTS.filter((p) => isVisible(p.slug, visible)).map((p) => ({
+  // Dans l'ordre du CMS (/admin/experiences) : déplacer un bloc dans la liste le déplace ici.
+  const rank = (slug: string) => { const i = visible?.indexOf(slug) ?? -1; return i < 0 ? 999 : i; };
+  const blocks = PRODUCTS.filter((p) => isVisible(p.slug, visible)).sort((a, b) => rank(a.slug) - rank(b.slug)).map((p) => ({
     slug: p.slug,
     node: p.slug === PHOTOBOOTH_SLUG
       ? <PhotoboothCTA key={p.slug} index="For your event" source="experiences" />
       : <ProductCTA key={p.slug} product={p} index="For your event" source="experiences" />,
   }));
   const first = blocks.find((b) => b.slug === hero);
+  // Les blocs produit (Photobooth, Jardin des Lucioles...) passent tous avant
+  // le catalogue, dans l'ordre du CMS (demandé par Haïfa le 12/11/2026).
 
   return (
     <>
@@ -56,13 +60,13 @@ export default async function Experiences() {
         />
       )}
       {first?.node}
+      {blocks.filter((b) => b !== first).map((b) => b.node)}
       {playable && (
         // useSearchParams exige une frontière Suspense pour le prérendu.
         <Suspense>
           <ExperienceCatalog visible={visible} />
         </Suspense>
       )}
-      {blocks.filter((b) => b !== first).map((b) => b.node)}
     </>
   );
 }

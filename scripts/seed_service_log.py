@@ -30,7 +30,7 @@ LOG = {
         "2026-05-22 · SPECTRUM: an XR room at Studio B3, Tunis.",
     ],
     "projection-mapping": [
-        "2026-11-12 · Projection mapping now bookable from 2,000 TND.",
+        "2026-11-12 · Projection mapping becomes an offer you can book as it is.",
         "2026-04 · Mapping Oudhna: eight chronological chapters on the Roman site, from prehistory to the architectural climax.",
     ],
     "generative-art": [

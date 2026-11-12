@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { GameDemo } from "./GameDemo";
 import { LiveWallDemo } from "./LiveWallDemo";
+import { EmbedDemo } from "./EmbedDemo";
 
 // Bloc produit de /experiences (et d'autres pages), active depuis le CMS.
 // Deux sorties : la page Decouvrir du produit, et le brief prerempli.
@@ -9,6 +10,7 @@ import { LiveWallDemo } from "./LiveWallDemo";
 export function ProductCTA({ product: p, index, source }: { product: Product; index: string; source: string }) {
   const visual = p.demo.kind === "wall" ? <LiveWallDemo />
     : p.demo.kind === "game" ? <GameDemo src={p.demo.src} poster={p.poster} label={`${p.name[0]}${p.name[1]}`} />
+    : p.demo.kind === "embed" ? <EmbedDemo src={p.demo.src} poster={p.poster} label={`${p.name[0]}${p.name[1]}`} />
     : (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={p.poster} alt="" className="w-full rounded-xl border border-fmborder object-cover" />

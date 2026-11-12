@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { social } from "@/lib/seo";
 import { getPublished } from "@/lib/public-data";
-import { PageHero } from "@/components/site/PageHero";
-import { ServicesExplorer, type XProject } from "@/components/site/ServicesExplorer";
-import { serviceFilm } from "@/lib/service-films";
-import { OFFERS } from "@/lib/offers";
+import { SignalSurvey } from "@/components/site/SignalSurvey";
 import { lastYear } from "@/lib/years";
 import { parseLog } from "@/lib/service-log";
 
@@ -15,15 +12,16 @@ import { parseLog } from "@/lib/service-log";
 // ici sur la mise en cache.
 export const dynamic = "force-dynamic";
 
-// Services et Industries ne font plus qu'une page (12/11/2026) : les industries
-// filtrent les offres et les services, /industries redirige ici.
+// Services et Industries ne font qu'une page : le relevé des services dans le
+// registre Signal de Cadastre 2027, filtré par industrie (?for=<slug>).
+// Aucun prix ici, ils ne vivent que sur la page cachée /fmr.
 const DESCRIPTION =
-  "Book an interactive wall, an LED installation, projection mapping, a live A/V set or a motion loop, with starting prices and what each side brings. Filter by industry, from telecom to festivals.";
+  "Every service of FMRXR Studio drawn from its real projects: projection mapping, interactive installations, real-time systems, live A/V, XR, motion and web. Filter by industry, from telecom to festivals.";
 
 export const metadata: Metadata = {
-  title: "Services & industries · Prices, demos, what we bring",
+  title: "Services & industries · What the studio actually shipped",
   description: DESCRIPTION,
-  keywords: ["creative technology services", "interactive wall price", "projection mapping price Tunisia", "interactive installation", "live A/V", "VJ", "motion design", "brand activation", "immersive experiences for brands"],
+  keywords: ["creative technology services", "projection mapping", "interactive installation", "real-time systems", "live A/V", "VJ", "XR", "motion design", "brand activation", "immersive experiences for brands"],
   alternates: { canonical: "/services" },
   ...social({ url: "/services", title: "Services & industries · FMRXR//", description: DESCRIPTION }),
 };
@@ -36,37 +34,19 @@ export default async function Services({ searchParams }: { searchParams: Promise
     getPublished("projects"),
   ]);
 
-  const xprojects: XProject[] = (projects as any[]).map((p) => ({
-    slug: p.slug,
-    title: p.title,
-    client: p.client ?? undefined,
-    year: p.year ?? undefined,
-    services: p.services ?? [],
-    industries: p.industries ?? [],
-    last: lastYear(p.year),
-  }));
-
   return (
-    <>
-      <PageHero
-        index="Services"
-        title="Try it, then book it."
-        intro="Five offers you can book as they are, with a starting price and what each side brings. Everything else, from CGI to large installations, is built on a quote. Pick your industry to see the work done for it."
-      />
-      <ServicesExplorer
-        offers={OFFERS}
-        services={(services as any[]).map((s) => ({
-          slug: s.slug,
-          title: s.title,
-          short: s.short ?? undefined,
-          outcomes: s.outcomes ?? [],
-          film: serviceFilm(s.slug),
-          log: parseLog(s.log),
-        }))}
-        industries={(industries as any[]).map((i) => ({ slug: i.slug, name: i.name, note: i.note ?? undefined }))}
-        projects={xprojects}
-        initialFor={initialFor ?? null}
-      />
-    </>
+    <SignalSurvey
+      services={(services as any[]).map((s) => ({ slug: s.slug, title: s.title, short: s.short ?? undefined, log: parseLog(s.log) }))}
+      projects={(projects as any[]).map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        year: p.year ?? undefined,
+        last: lastYear(p.year),
+        services: p.services ?? [],
+        industries: p.industries ?? [],
+      }))}
+      industries={(industries as any[]).map((i) => ({ slug: i.slug, name: i.name, note: i.note ?? undefined }))}
+      initialFor={initialFor ?? null}
+    />
   );
 }

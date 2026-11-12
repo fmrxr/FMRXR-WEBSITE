@@ -1,7 +1,7 @@
 import { getSiteSettings } from "@/lib/public-data";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { SecretLevelListener } from "@/components/site/SignalLevel";
+import { SecretLevelListener } from "@/components/site/SecretLevelListener";
 
 export const revalidate = 60;
 

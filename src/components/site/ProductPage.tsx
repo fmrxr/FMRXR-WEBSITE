@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { GameDemo } from "./GameDemo";
 import { LiveWallDemo } from "./LiveWallDemo";
+import { EmbedDemo } from "./EmbedDemo";
 import { ReelSwitcher } from "./ReelSwitcher";
 
 // Page « Decouvrir » d'un produit, generee depuis sa fiche (src/lib/products.ts) :
@@ -15,7 +16,8 @@ const SECTION = "mx-auto max-w-[1200px] border-t border-fmborder px-5 py-20 md:p
 export function ProductPage({ product: p }: { product: Product }) {
   const title = `${p.name[0]}${p.name[1]}`;
   const demo = p.demo.kind === "wall" ? <LiveWallDemo />
-    : p.demo.kind === "game" ? <GameDemo src={p.demo.src} poster={p.poster} label={title} /> : null;
+    : p.demo.kind === "game" ? <GameDemo src={p.demo.src} poster={p.poster} label={title} />
+    : p.demo.kind === "embed" ? <EmbedDemo src={p.demo.src} poster={p.poster} label={title} /> : null;
   return (
     <>
       <section className="mx-auto grid max-w-[1200px] items-center gap-10 px-5 pb-16 pt-28 md:grid-cols-[1fr_1.1fr] md:px-8 md:pt-36">
