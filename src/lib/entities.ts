@@ -44,6 +44,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
       { name: "tags", label: "Tags", type: "string-list" },
       { name: "industries", label: "Industries (slugs)", type: "string-list" },
       { name: "services", label: "Services (slugs)", type: "string-list" },
+      { name: "links", label: "Liens · une ligne par lien : Libellé · https://… (écoute, réseaux, presse)", type: "string-list" },
       { name: "gradient", label: "Gradient", type: "text" },
       { name: "cover_url", label: "Cover image", type: "image" },
       { name: "gallery", label: "Gallery", type: "gallery" },

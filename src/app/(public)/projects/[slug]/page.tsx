@@ -57,6 +57,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+function projectLinks(lines: unknown): { label: string; url: string }[] {
+  if (!Array.isArray(lines)) return [];
+  return lines.flatMap((raw) => {
+    const m = /^(.*?)\s*[·|]\s*(https?:\/\/\S+)\s*$/.exec(String(raw));
+    return m ? [{ label: m[1].trim(), url: m[2] }] : [];
+  });
+}
+
 function startHref(p: { slug: string; industries?: string[] | null; services?: string[] | null }) {
   const q = new URLSearchParams();
   if (Array.isArray(p.industries) && p.industries[0]) q.set("industry", p.industries[0]);
@@ -137,6 +145,24 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
           )}
         </div>
       ) : null}
+
+      {/* Liens externes : écoute, réseaux de l'artiste (« Libellé · https://… »). */}
+      {projectLinks(p.links).length > 0 && (
+        <div className="mt-6 flex flex-wrap gap-3">
+          {projectLinks(p.links).map((l) => (
+            <a
+              key={l.url}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cta="project_link"
+              className="group rounded-full border border-fmborder px-4 py-2 text-[11px] uppercase tracking-[0.12em] text-fmfg transition-colors hover:border-fmaccent/60"
+            >
+              {l.label} <span className="inline-block text-fmaccent transition-transform group-hover:translate-x-0.5">↗</span>
+            </a>
+          ))}
+        </div>
+      )}
 
       {Array.isArray(p.gallery) && p.gallery.length > 0 && (
         // Deux colonnes dès qu'il y a de quoi les remplir. Un média seul reste

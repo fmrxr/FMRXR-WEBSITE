@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HAY · Creative development · FMRXR</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#04070d;--ink:#e8eef3;--mute:#8a98a6;--line:#16202c;--blue:#002147;--zig:#b8d0e0;--red:#ff172e}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1180px;margin:0 auto;padding:48px 20px 80px}
+.k{font:11px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+h1{font-weight:900;font-size:clamp(2.4rem,7vw,5rem);line-height:.92;letter-spacing:-.01em;margin:14px 0 0;text-transform:uppercase}
+h1 .ar{font-weight:400;color:var(--red);display:inline-block;line-height:1;vertical-align:.08em;font-size:.82em}
+h2{font:11px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);margin:64px 0 18px}
+.lead{max-width:720px;font-size:18px;color:#cfd8df;margin-top:22px}
+.three{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.three div{background:var(--bg);padding:20px}.three b{display:block;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}.three p{margin:0;color:var(--mute);font-size:14px}
+.pal{display:flex;flex-wrap:wrap;gap:10px}.pal div{flex:1 1 150px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pal i{display:block;height:64px}.pal span{display:block;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;color:var(--mute)}.pal b{color:var(--ink);font:600 13px system-ui}
+ol.rules{list-style:none;padding:0;margin:0;display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+ol.rules li{background:var(--bg);padding:14px 18px;display:grid;grid-template-columns:minmax(0,260px) 1fr;gap:16px}ol.rules span{color:var(--mute);font-size:14px}
+@media(max-width:640px){ol.rules li{grid-template-columns:1fr;gap:4px}}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+figure{margin:0}figure button{all:unset;cursor:zoom-in;display:block;border:1px solid var(--line);border-radius:8px;overflow:hidden;aspect-ratio:16/9;background:#000}
+figure img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}figure button:hover img{transform:scale(1.04)}
+figcaption{font:11px/1.3 ui-monospace,Menlo,Consolas,monospace;color:var(--mute);margin-top:7px;letter-spacing:.04em}figcaption span{color:var(--red);margin-right:8px}
+.box{position:fixed;inset:0;background:rgba(2,4,8,.94);display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;z-index:9}
+.box.on{display:flex}.box img{max-width:min(1400px,96vw);max-height:80vh;border:1px solid var(--line);border-radius:6px}
+.box p{font:12px ui-monospace,Menlo,Consolas,monospace;color:var(--zig);letter-spacing:.08em;margin-top:14px}
+.box button{all:unset;cursor:pointer;position:absolute;top:50%;font:28px system-ui;color:var(--ink);padding:16px}.box .p{left:8px}.box .n{right:8px}.box .x{top:12px;right:16px}
+footer{margin-top:64px;border-top:1px solid var(--line);padding-top:18px}
+</style></head><body><main>
+<p class="k">FMRXR Studio · Effet Mère · Benjemy · Creative development</p>
+<h1>HAY <span class="ar">حيّ</span><br>the map is alive</h1>
+<p class="lead">The word means alive, and it means neighbourhood. After the HAY Live Experience at AINA, the visuals for Benjemy's HAY set grew from that double meaning: a map that breathes. 86 concepts, each one written as a GLSL shader and rendered from code: the material of the live set.</p>
+
+<h2>Three materials</h2>
+<div class="three">
+<div><b>The survey</b><p>A real neighbourhood, measured. Its blocks and voids, a strict grid, tiny reading labels. The cold half of the image.</p></div>
+<div><b>The living</b><p>The snake of Benjemy's identity inhabits the survey. It sheds, breathes and moves through the streets. The warm half, and the only place the music enters.</p></div>
+<div><b>The writing</b><p>Arabic letters are not a title laid on top. They are a material, like chrome and like the map: the city is seen through them.</p></div>
+</div>
+
+<h2>Colour</h2>
+<div class="pal">
+<div><i style="background:#002147"></i><span><b>Prussian Blue</b><br>#002147 · the ground, taken down towards black</span></div>
+<div><i style="background:#b8d0e0"></i><span><b>Ziggurat</b><br>#b8d0e0 · the material and the line</span></div>
+<div><i style="background:#8F0D1A"></i><span><b>Tamarillo</b><br>#8F0D1A · the only event</span></div>
+<div><i style="background:#ff172e"></i><span><b>Tamarillo, emitting</b><br>#ff172e · same hue, gain 1.78, when red becomes light</span></div>
+</div>
+
+<h2>Seven rules</h2>
+<ol class="rules">
+<li><b>The material is real</b><span>Snake, olive and tile come from the official files, every rebuild measured against them. The map comes from a real neighbourhood, never an invented maze.</span></li>
+<li><b>One material per image</b><span>Line, chrome, halftone or map. Never two at once.</span></li>
+<li><b>A single red event</b><span>One line, one cell, one front. Two would no longer be an event.</span></li>
+<li><b>The grid holds everything</b><span>Fixed margins, a wireframe border, tiny reading marks. The more the image moves, the stiller the grid.</span></li>
+<li><b>Sound measures, it does not shake</b><span>The kick moves a structure: a front, a density, a thickness. No full-frame flash, no camera shake.</span></li>
+<li><b>The image keeps the trace of its calculation</b><span>Grain, delay, visible survey lines. It is generated, and it shows.</span></li>
+<li><b>The black breathes</b><span>At least half the frame stays empty. In the room, the void is what makes the sign readable.</span></li>
+</ol>
+
+<h2>The concepts · 86</h2>
+<div class="grid">
+<figure><button data-i="0"><img src="concepts/01_souffle.jpg" alt="Concept 01: Souffle" loading="lazy"></button><figcaption><span>01</span>Souffle</figcaption></figure>
+<figure><button data-i="1"><img src="concepts/02_mue.jpg" alt="Concept 02: Mue" loading="lazy"></button><figcaption><span>02</span>Mue</figcaption></figure>
+<figure><button data-i="2"><img src="concepts/03_releve.jpg" alt="Concept 03: Releve" loading="lazy"></button><figcaption><span>03</span>Releve</figcaption></figure>
+<figure><button data-i="3"><img src="concepts/04_chrome.jpg" alt="Concept 04: Chrome" loading="lazy"></button><figcaption><span>04</span>Chrome</figcaption></figure>
+<figure><button data-i="4"><img src="concepts/05_fil.jpg" alt="Concept 05: Fil" loading="lazy"></button><figcaption><span>05</span>Fil</figcaption></figure>
+<figure><button data-i="5"><img src="concepts/06_trame.jpg" alt="Concept 06: Trame" loading="lazy"></button><figcaption><span>06</span>Trame</figcaption></figure>
+<figure><button data-i="6"><img src="concepts/07_rosace.jpg" alt="Concept 07: Rosace" loading="lazy"></button><figcaption><span>07</span>Rosace</figcaption></figure>
+<figure><button data-i="7"><img src="concepts/08_photocopie.jpg" alt="Concept 08: Photocopie" loading="lazy"></button><figcaption><span>08</span>Photocopie</figcaption></figure>
+<figure><button data-i="8"><img src="concepts/09_medina.jpg" alt="Concept 09: Medina" loading="lazy"></button><figcaption><span>09</span>Medina</figcaption></figure>
+<figure><button data-i="9"><img src="concepts/10_lettres.jpg" alt="Concept 10: Lettres" loading="lazy"></button><figcaption><span>10</span>Lettres</figcaption></figure>
+<figure><button data-i="10"><img src="concepts/11_ecriture.jpg" alt="Concept 11: Ecriture" loading="lazy"></button><figcaption><span>11</span>Ecriture</figcaption></figure>
+<figure><button data-i="11"><img src="concepts/12_barres.jpg" alt="Concept 12: Barres" loading="lazy"></button><figcaption><span>12</span>Barres</figcaption></figure>
+<figure><button data-i="12"><img src="concepts/13_regard.jpg" alt="Concept 13: Regard" loading="lazy"></button><figcaption><span>13</span>Regard</figcaption></figure>
+<figure><button data-i="13"><img src="concepts/14_cadre.jpg" alt="Concept 14: Cadre" loading="lazy"></button><figcaption><span>14</span>Cadre</figcaption></figure>
+<figure><button data-i="14"><img src="concepts/15_tapis.jpg" alt="Concept 15: Tapis" loading="lazy"></button><figcaption><span>15</span>Tapis</figcaption></figure>
+<figure><button data-i="15"><img src="concepts/16_fil_blanc.jpg" alt="Concept 16: Fil blanc" loading="lazy"></button><figcaption><span>16</span>Fil blanc</figcaption></figure>
+<figure><button data-i="16"><img src="concepts/17_chrome_lettre.jpg" alt="Concept 17: Chrome lettre" loading="lazy"></button><figcaption><span>17</span>Chrome lettre</figcaption></figure>
+<figure><button data-i="17"><img src="concepts/18_rature.jpg" alt="Concept 18: Rature" loading="lazy"></button><figcaption><span>18</span>Rature</figcaption></figure>
+<figure><button data-i="18"><img src="concepts/19_murmure.jpg" alt="Concept 19: Murmure" loading="lazy"></button><figcaption><span>19</span>Murmure</figcaption></figure>
+<figure><button data-i="19"><img src="concepts/20_ecaille.jpg" alt="Concept 20: Ecaille" loading="lazy"></button><figcaption><span>20</span>Ecaille</figcaption></figure>
+<figure><button data-i="20"><img src="concepts/21_graphemes.jpg" alt="Concept 21: Graphemes" loading="lazy"></button><figcaption><span>21</span>Graphemes</figcaption></figure>
+<figure><button data-i="21"><img src="concepts/22_glissement.jpg" alt="Concept 22: Glissement" loading="lazy"></button><figcaption><span>22</span>Glissement</figcaption></figure>
+<figure><button data-i="22"><img src="concepts/23_gravure.jpg" alt="Concept 23: Gravure" loading="lazy"></button><figcaption><span>23</span>Gravure</figcaption></figure>
+<figure><button data-i="23"><img src="concepts/24_onde.jpg" alt="Concept 24: Onde" loading="lazy"></button><figcaption><span>24</span>Onde</figcaption></figure>
+<figure><button data-i="24"><img src="concepts/25_seuil.jpg" alt="Concept 25: Seuil" loading="lazy"></button><figcaption><span>25</span>Seuil</figcaption></figure>
+<figure><button data-i="25"><img src="concepts/26_sama.jpg" alt="Concept 26: Sama" loading="lazy"></button><figcaption><span>26</span>Sama</figcaption></figure>
+<figure><button data-i="26"><img src="concepts/27_girih.jpg" alt="Concept 27: Girih" loading="lazy"></button><figcaption><span>27</span>Girih</figcaption></figure>
+<figure><button data-i="27"><img src="concepts/28_phosphore.jpg" alt="Concept 28: Phosphore" loading="lazy"></button><figcaption><span>28</span>Phosphore</figcaption></figure>
+<figure><button data-i="28"><img src="concepts/29_mine.jpg" alt="Concept 29: Mine" loading="lazy"></button><figcaption><span>29</span>Mine</figcaption></figure>
+<figure><button data-i="29"><img src="concepts/30_parallele.jpg" alt="Concept 30: Parallele" loading="lazy"></button><figcaption><span>30</span>Parallele</figcaption></figure>
+<figure><button data-i="30"><img src="concepts/31_echo.jpg" alt="Concept 31: Echo" loading="lazy"></button><figcaption><span>31</span>Echo</figcaption></figure>
+<figure><button data-i="31"><img src="concepts/32_sceau.jpg" alt="Concept 32: Sceau" loading="lazy"></button><figcaption><span>32</span>Sceau</figcaption></figure>
+<figure><button data-i="32"><img src="concepts/33_vies.jpg" alt="Concept 33: Vies" loading="lazy"></button><figcaption><span>33</span>Vies</figcaption></figure>
+<figure><button data-i="33"><img src="concepts/34_parcelles.jpg" alt="Concept 34: Parcelles" loading="lazy"></button><figcaption><span>34</span>Parcelles</figcaption></figure>
+<figure><button data-i="34"><img src="concepts/35_bit.jpg" alt="Concept 35: Bit" loading="lazy"></button><figcaption><span>35</span>Bit</figcaption></figure>
+<figure><button data-i="35"><img src="concepts/36_miroir.jpg" alt="Concept 36: Miroir" loading="lazy"></button><figcaption><span>36</span>Miroir</figcaption></figure>
+<figure><button data-i="36"><img src="concepts/37_isochrone.jpg" alt="Concept 37: Isochrone" loading="lazy"></button><figcaption><span>37</span>Isochrone</figcaption></figure>
+<figure><button data-i="37"><img src="concepts/38_fracture.jpg" alt="Concept 38: Fracture" loading="lazy"></button><figcaption><span>38</span>Fracture</figcaption></figure>
+<figure><button data-i="38"><img src="concepts/39_mosaique.jpg" alt="Concept 39: Mosaique" loading="lazy"></button><figcaption><span>39</span>Mosaique</figcaption></figure>
+<figure><button data-i="39"><img src="concepts/40_pharmacie.jpg" alt="Concept 40: Pharmacie" loading="lazy"></button><figcaption><span>40</span>Pharmacie</figcaption></figure>
+<figure><button data-i="40"><img src="concepts/41_mandala.jpg" alt="Concept 41: Mandala" loading="lazy"></button><figcaption><span>41</span>Mandala</figcaption></figure>
+<figure><button data-i="41"><img src="concepts/42_moucharabieh.jpg" alt="Concept 42: Moucharabieh" loading="lazy"></button><figcaption><span>42</span>Moucharabieh</figcaption></figure>
+<figure><button data-i="42"><img src="concepts/43_coordonnee.jpg" alt="Concept 43: Coordonnee" loading="lazy"></button><figcaption><span>43</span>Coordonnee</figcaption></figure>
+<figure><button data-i="43"><img src="concepts/44_etreinte.jpg" alt="Concept 44: Etreinte" loading="lazy"></button><figcaption><span>44</span>Etreinte</figcaption></figure>
+<figure><button data-i="44"><img src="concepts/45_noeud.jpg" alt="Concept 45: Noeud" loading="lazy"></button><figcaption><span>45</span>Noeud</figcaption></figure>
+<figure><button data-i="45"><img src="concepts/46_cristal.jpg" alt="Concept 46: Cristal" loading="lazy"></button><figcaption><span>46</span>Cristal</figcaption></figure>
+<figure><button data-i="46"><img src="concepts/47_talismans.jpg" alt="Concept 47: Talismans" loading="lazy"></button><figcaption><span>47</span>Talismans</figcaption></figure>
+<figure><button data-i="47"><img src="concepts/48_partition.jpg" alt="Concept 48: Partition" loading="lazy"></button><figcaption><span>48</span>Partition</figcaption></figure>
+<figure><button data-i="48"><img src="concepts/49_camouflage.jpg" alt="Concept 49: Camouflage" loading="lazy"></button><figcaption><span>49</span>Camouflage</figcaption></figure>
+<figure><button data-i="49"><img src="concepts/50_peau_plan.jpg" alt="Concept 50: Peau plan" loading="lazy"></button><figcaption><span>50</span>Peau plan</figcaption></figure>
+<figure><button data-i="50"><img src="concepts/51_plaque.jpg" alt="Concept 51: Plaque" loading="lazy"></button><figcaption><span>51</span>Plaque</figcaption></figure>
+<figure><button data-i="51"><img src="concepts/52_sarab.jpg" alt="Concept 52: Sarab" loading="lazy"></button><figcaption><span>52</span>Sarab</figcaption></figure>
+<figure><button data-i="52"><img src="concepts/53_ticket.jpg" alt="Concept 53: Ticket" loading="lazy"></button><figcaption><span>53</span>Ticket</figcaption></figure>
+<figure><button data-i="53"><img src="concepts/54_qahwa.jpg" alt="Concept 54: Qahwa" loading="lazy"></button><figcaption><span>54</span>Qahwa</figcaption></figure>
+<figure><button data-i="54"><img src="concepts/55_passage.jpg" alt="Concept 55: Passage" loading="lazy"></button><figcaption><span>55</span>Passage</figcaption></figure>
+<figure><button data-i="55"><img src="concepts/56_livre.jpg" alt="Concept 56: Livre" loading="lazy"></button><figcaption><span>56</span>Livre</figcaption></figure>
+<figure><button data-i="56"><img src="concepts/57_passeport.jpg" alt="Concept 57: Passeport" loading="lazy"></button><figcaption><span>57</span>Passeport</figcaption></figure>
+<figure><button data-i="57"><img src="concepts/58_wechem.jpg" alt="Concept 58: Wechem" loading="lazy"></button><figcaption><span>58</span>Wechem</figcaption></figure>
+<figure><button data-i="58"><img src="concepts/59_brasier.jpg" alt="Concept 59: Brasier" loading="lazy"></button><figcaption><span>59</span>Brasier</figcaption></figure>
+<figure><button data-i="59"><img src="concepts/60_mur.jpg" alt="Concept 60: Mur" loading="lazy"></button><figcaption><span>60</span>Mur</figcaption></figure>
+<figure><button data-i="60"><img src="concepts/61_cotes.jpg" alt="Concept 61: Cotes" loading="lazy"></button><figcaption><span>61</span>Cotes</figcaption></figure>
+<figure><button data-i="61"><img src="concepts/62_couronnes.jpg" alt="Concept 62: Couronnes" loading="lazy"></button><figcaption><span>62</span>Couronnes</figcaption></figure>
+<figure><button data-i="62"><img src="concepts/63_spire.jpg" alt="Concept 63: Spire" loading="lazy"></button><figcaption><span>63</span>Spire</figcaption></figure>
+<figure><button data-i="63"><img src="concepts/64_couverture.jpg" alt="Concept 64: Couverture" loading="lazy"></button><figcaption><span>64</span>Couverture</figcaption></figure>
+<figure><button data-i="64"><img src="concepts/65_orbites.jpg" alt="Concept 65: Orbites" loading="lazy"></button><figcaption><span>65</span>Orbites</figcaption></figure>
+<figure><button data-i="65"><img src="concepts/66_courants.jpg" alt="Concept 66: Courants" loading="lazy"></button><figcaption><span>66</span>Courants</figcaption></figure>
+<figure><button data-i="66"><img src="concepts/67_maille.jpg" alt="Concept 67: Maille" loading="lazy"></button><figcaption><span>67</span>Maille</figcaption></figure>
+<figure><button data-i="67"><img src="concepts/68_limaille.jpg" alt="Concept 68: Limaille" loading="lazy"></button><figcaption><span>68</span>Limaille</figcaption></figure>
+<figure><button data-i="68"><img src="concepts/69_coupe.jpg" alt="Concept 69: Coupe" loading="lazy"></button><figcaption><span>69</span>Coupe</figcaption></figure>
+<figure><button data-i="69"><img src="concepts/70_faisceau.jpg" alt="Concept 70: Faisceau" loading="lazy"></button><figcaption><span>70</span>Faisceau</figcaption></figure>
+<figure><button data-i="70"><img src="concepts/71_metamorphose.jpg" alt="Concept 71: Metamorphose" loading="lazy"></button><figcaption><span>71</span>Metamorphose</figcaption></figure>
+<figure><button data-i="71"><img src="concepts/72_cases.jpg" alt="Concept 72: Cases" loading="lazy"></button><figcaption><span>72</span>Cases</figcaption></figure>
+<figure><button data-i="72"><img src="concepts/73_serigraphie.jpg" alt="Concept 73: Serigraphie" loading="lazy"></button><figcaption><span>73</span>Serigraphie</figcaption></figure>
+<figure><button data-i="73"><img src="concepts/74_thermique.jpg" alt="Concept 74: Thermique" loading="lazy"></button><figcaption><span>74</span>Thermique</figcaption></figure>
+<figure><button data-i="74"><img src="concepts/75_desagregation.jpg" alt="Concept 75: Desagregation" loading="lazy"></button><figcaption><span>75</span>Desagregation</figcaption></figure>
+<figure><button data-i="75"><img src="concepts/76_une.jpg" alt="Concept 76: Une" loading="lazy"></button><figcaption><span>76</span>Une</figcaption></figure>
+<figure><button data-i="76"><img src="concepts/77_hadra.jpg" alt="Concept 77: Hadra" loading="lazy"></button><figcaption><span>77</span>Hadra</figcaption></figure>
+<figure><button data-i="77"><img src="concepts/78_nachid.jpg" alt="Concept 78: Nachid" loading="lazy"></button><figcaption><span>78</span>Nachid</figcaption></figure>
+<figure><button data-i="78"><img src="concepts/79_frontiere.jpg" alt="Concept 79: Frontiere" loading="lazy"></button><figcaption><span>79</span>Frontiere</figcaption></figure>
+<figure><button data-i="79"><img src="concepts/80_hayhet.jpg" alt="Concept 80: Hayhet" loading="lazy"></button><figcaption><span>80</span>Hayhet</figcaption></figure>
+<figure><button data-i="80"><img src="concepts/81_veillee.jpg" alt="Concept 81: Veillee" loading="lazy"></button><figcaption><span>81</span>Veillee</figcaption></figure>
+<figure><button data-i="81"><img src="concepts/82_cendre.jpg" alt="Concept 82: Cendre" loading="lazy"></button><figcaption><span>82</span>Cendre</figcaption></figure>
+<figure><button data-i="82"><img src="concepts/83_quartier_chaud.jpg" alt="Concept 83: Quartier chaud" loading="lazy"></button><figcaption><span>83</span>Quartier chaud</figcaption></figure>
+<figure><button data-i="83"><img src="concepts/84_noeud_chrome.jpg" alt="Concept 84: Noeud chrome" loading="lazy"></button><figcaption><span>84</span>Noeud chrome</figcaption></figure>
+<figure><button data-i="84"><img src="concepts/85_inversion.jpg" alt="Concept 85: Inversion" loading="lazy"></button><figcaption><span>85</span>Inversion</figcaption></figure>
+<figure><button data-i="85"><img src="concepts/86_champ.jpg" alt="Concept 86: Champ" loading="lazy"></button><figcaption><span>86</span>Champ</figcaption></figure>
+</div>
+
+<footer class="k">Visual direction and shaders: FMRXR Studio · Effet Mère. Identity elements from the official Benjemy brand files.</footer>
+</main>
+<div class="box" role="dialog" aria-modal="true"><button class="x" aria-label="Close">✕</button><button class="p" aria-label="Previous">‹</button><img alt=""><p></p><button class="n" aria-label="Next">›</button></div>
+<script>
+const figs=[...document.querySelectorAll('figure')],box=document.querySelector('.box'),im=box.querySelector('img'),cap=box.querySelector('p');let i=0;
+const show=k=>{i=(k+figs.length)%figs.length;const f=figs[i];im.src=f.querySelector('img').src;cap.textContent=f.querySelector('figcaption span').textContent+' · '+f.querySelector('figcaption').lastChild.textContent;box.classList.add('on')};
+figs.forEach((f,k)=>f.querySelector('button').onclick=()=>show(k));
+box.querySelector('.x').onclick=()=>box.classList.remove('on');box.querySelector('.p').onclick=()=>show(i-1);box.querySelector('.n').onclick=()=>show(i+1);
+box.onclick=e=>{if(e.target===box)box.classList.remove('on')};
+addEventListener('keydown',e=>{if(!box.classList.contains('on'))return;if(e.key==='Escape')box.classList.remove('on');if(e.key==='ArrowLeft')show(i-1);if(e.key==='ArrowRight')show(i+1)});
+</script></body></html>

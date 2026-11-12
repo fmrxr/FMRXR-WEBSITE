@@ -76,6 +76,9 @@ export const projectSchema = z.object({
   section: z.preprocess((v) => (v === "" ? undefined : v), z.enum(["brands", "art"]).nullable().optional()),
   gallery: arr(galleryItem),
   metrics: arr(metricItem),
+  // Liens externes (migration 0026), « Libellé · https://… » par ligne. Absent =
+  // jamais envoyé, pour que l'enregistrement marche avant la migration.
+  links: z.array(otext(300)).optional(),
   sort_order: z.number().int().default(0),
   published: z.boolean().default(false),
 });
