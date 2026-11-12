@@ -13,7 +13,7 @@ export const metadata: Metadata = product?.seo ? {
   description: product.seo.description,
   keywords: product.seo.keywords,
   alternates: { canonical: "/live-wall" },
-  ...social({ url: "/live-wall", title: `${product.name.join("")} · FMRXR//`, description: product.seo.description, images: [{ url: product.poster, width: 1024, height: 1024, alt: product.tagline }] }),
+  ...social({ url: "/live-wall", title: `${product.name.join("")} · FMRXR//`, description: product.seo.description, images: [{ url: "/wall/the-wall-og.jpg", width: 1200, height: 630, alt: product.tagline }] }),
 } : {};
 
 export default function Page() {
