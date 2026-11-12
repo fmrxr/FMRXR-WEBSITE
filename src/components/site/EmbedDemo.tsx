@@ -12,7 +12,7 @@ export function EmbedDemo({ src, poster, label, aspect = "aspect-video", hint = 
   return (
     <div className={`relative ${aspect} w-full overflow-hidden rounded-xl border border-fmborder bg-black`}>
       {on ? (
-        <iframe src={src} title={label} className="absolute inset-0 h-full w-full" allow="autoplay; fullscreen" />
+        <iframe src={src} title={label} className="absolute inset-0 h-full w-full" allow="autoplay; fullscreen; camera" />
       ) : (
         <button type="button" onClick={() => setOn(true)} className="group absolute inset-0" aria-label={`Play ${label} in this page`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

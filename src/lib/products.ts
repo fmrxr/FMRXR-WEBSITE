@@ -187,7 +187,7 @@ export const PRODUCTS: Product[] = [
       ["What screen does it need?", "A panoramic LED wall driven by a computer with a browser. It was tested at 1600 × 600 pixels (2.67:1); other formats are set up before the event."],
       ["What does the guest have to do?", "Nothing to learn. A guide of three animated pictograms at the bottom of the screen shows the gestures: move the hand, open or close it, close the fist and hold it to click."],
       ["What if nobody is in front of it?", "Nine seconds without a visitor and the garden goes back to sleep on its START screen, ready for the next one."],
-      ["Can we try it before booking?", "Yes. The same garden plays in your browser, with the mouse instead of the hand."],
+      ["Can we try it before booking?", "Yes. The same garden plays in your browser, with the mouse, or with your hand in front of your webcam: the hand tracking runs on your device and no image leaves it."],
       ["How is it priced?", "Per event. Tell us your date, your wall and your product for a quote."],
     ],
     closing: "Your product, the light that wakes the garden.",

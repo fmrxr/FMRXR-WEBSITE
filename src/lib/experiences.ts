@@ -23,6 +23,10 @@ export type Experience = {
   poster: string;
   preview?: string;
   requires: Requirement[];
+  // Permissions offertes sans être exigées (la caméra du Jardin des Lucioles :
+  // un bonus, l'œuvre reste jouable à la souris). Déléguées à l'iframe, jamais
+  // annoncées comme un besoin.
+  optional?: Requirement[];
   desktopOnly?: boolean;
   featured?: boolean;
   project: string;
@@ -56,7 +60,7 @@ export const EXPERIENCES: Experience[] = [
     // La caméra est un BONUS : sans autorisation, l'œuvre retombe sur le
     // pointeur et reste entièrement jouable. On ne la déclare donc pas dans
     // `requires`, qui sert à prévenir d'un besoin bloquant.
-    requires: [], desktopOnly: true, project: "jardin-des-lucioles",
+    requires: [], optional: ["camera"], desktopOnly: true, project: "jardin-des-lucioles",
   },
   {
     slug: "radiance", title: "RADIANCE", row: "body", year: 2026, featured: true,
@@ -177,7 +181,7 @@ export function experiencesByRow(list: Experience[] = EXPERIENCES): { id: RowId;
 // Permissions déléguées à l'iframe. Le son n'en demande aucune ; la VR demande
 // xr-spatial-tracking (WebXR est bloqué dans une iframe qui ne la délègue pas).
 const PERMISSION: Partial<Record<Requirement, string>> = { camera: "camera", microphone: "microphone", vr: "xr-spatial-tracking" };
-export function allowFor(e: Pick<Experience, "requires">): string {
-  const extra = e.requires.map((r) => PERMISSION[r]).filter((p): p is string => !!p);
+export function allowFor(e: Pick<Experience, "requires" | "optional">): string {
+  const extra = [...new Set([...e.requires, ...(e.optional ?? [])])].map((r) => PERMISSION[r]).filter((p): p is string => !!p);
   return ["fullscreen", "autoplay", ...extra].join("; ");
 }

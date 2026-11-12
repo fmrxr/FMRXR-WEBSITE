@@ -56,6 +56,8 @@ describe("allowFor", () => {
   });
   it("delegates xr-spatial-tracking for VR, or the VR button is hidden in the iframe", () => {
     expect(allowFor({ requires: ["sound", "vr"] })).toBe("fullscreen; autoplay; xr-spatial-tracking");
+    // caméra en bonus : déléguée sans être exigée
+    expect(allowFor({ requires: [], optional: ["camera"] })).toBe("fullscreen; autoplay; camera");
   });
   it("serves L'ASSEMBLEUR as a copy of its prototype source", () => {
     expect(fs.readFileSync("public/experiences/assembleur/index.html", "utf8"))

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { EmbedDemo } from "./EmbedDemo";
 import { ScrollFilm } from "./ScrollFilm";
+import { MEDIA } from "@/lib/service-films";
 
 // Page de vente du Jardin des Lucioles, faite a la main sur le modele du Live
 // Wall (LiveWallLanding). Toutes les images sont des captures de la vraie
@@ -379,8 +380,35 @@ export function FireflyGardenLanding({ product: p }: { product: Product }) {
       <section id="try" className={SECTION}>
         <p className={KICK}>Try it</p>
         <h2 className={H2}>Wake the garden</h2>
-        <p className={`${BODY} mt-5 max-w-2xl`}>The same installation, running in this page, with the mouse instead of the hand. Best on a computer; press F for full screen.</p>
+        <p className={`${BODY} mt-5 max-w-2xl`}>The same installation, running in this page. Guide the light with the mouse, or press “Use your hand” and play with your webcam: the hand tracking runs on your device, no image leaves it. Best on a computer; press F for full screen.</p>
         <div className="mt-10"><EmbedDemo src={demo} poster={img("garden")} label="Le Jardin des Lucioles" /></div>
+      </section>
+
+      {/* 8 bis. Pour les agences : film et presentation en marque blanche
+          (bucket media de Supabase, comme The Wall). Ni marque FMRXR ni
+          marque du premier client : a transmettre tel quel. */}
+      <section className={SECTION}>
+        <div className="grid items-center gap-8 rounded-2xl border border-fmborder bg-fmcard p-6 md:grid-cols-[1fr_auto] md:p-10">
+          <div>
+            <p className={KICK}>For agencies and brand teams</p>
+            <p className="fm-display mt-3 text-[clamp(1.5rem,3vw,2.2rem)] text-fmfg">Pitching the launch to your own client?</p>
+            <p className={`${BODY} mt-3 max-w-2xl`}>
+              Download the vertical demo film and a 14-page presentation (in French) with the visitor’s journey, the
+              flora, the fauna, the controls and the technical sheet. No brand on either, ours included: send them to
+              your client as they are.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <a href={`${MEDIA}/firefly-garden-film-marque-blanche-9x16.mp4?download=le-jardin-des-lucioles-film.mp4`} download data-cta={`${p.slug}-whitelabel-download`}
+              className="rounded-full bg-fmfg px-6 py-3 text-center text-sm font-semibold text-fmbg transition hover:bg-fmaccent">
+              Demo film, 9:16 (MP4, 16 MB)
+            </a>
+            <a href={`${MEDIA}/firefly-garden-presentation-marque-blanche.pdf?download=le-jardin-des-lucioles-presentation.pdf`} download data-cta={`${p.slug}-whitelabel-deck`}
+              className="rounded-full border border-fmborder px-6 py-3 text-center text-sm text-fmfg transition hover:border-fmfg/50">
+              Presentation (PDF, FR, 2.9 MB)
+            </a>
+          </div>
+        </div>
       </section>
 
       {/* 9. Sur place, questions, devis */}

@@ -1,0 +1,12 @@
+{
+  "preparedAt": "2026-10-28T20:35:29.186Z",
+  "tasksVision": "1.2.0",
+  "models": [
+    {
+      "file": "hand_landmarker.task",
+      "url": "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+      "required": true,
+      "present": true
+    }
+  ]
+}
