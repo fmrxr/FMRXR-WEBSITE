@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Living Ocean · FMRXR//</title>
+    <meta name="description" content="An alien coral garden that wakes under your hand. A real-time interactive LED wall by FMRXR Studio." />
+    <meta name="theme-color" content="#03141c" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@200;400;900&family=Geist+Mono:wght@400&display=swap" rel="stylesheet" />
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #03141c; }
+      canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+      #op {
+        position: fixed; top: 12px; left: 12px; padding: 10px 12px; display: none; z-index: 20;
+        background: rgba(6, 27, 38, .72); color: #d6d8ce; border-radius: 6px;
+        font: 12px/1.6 ui-monospace, monospace; white-space: pre; pointer-events: none;
+      }
+      #op.on { display: block; }
+
+      /* ── Écran d'ouverture : « le récif naît du noir ».
+         Tout est animé en transform et opacity seulement : ces animations tournent sur le fil de composition du
+         navigateur et restent fluides pendant que le jardin se construit (le fil principal est alors occupé). ── */
+      #loading {
+        position: fixed; inset: 0; z-index: 10; overflow: hidden; color: #dff8f3;
+        background:
+          radial-gradient(120% 70% at 50% -10%, #0e4a55 0%, #072a35 38%, #03141c 72%, #010a10 100%);
+        font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+        transition: opacity 1.6s cubic-bezier(.6,0,.2,1) .35s;
+      }
+      #loading .layer { position: absolute; inset: 0; pointer-events: none; }
+      /* la surface, très loin au-dessus, qui respire */
+      #loading .surface {
+        background: radial-gradient(60% 34% at 50% -6%, rgba(160, 255, 235, .32), rgba(160, 255, 235, 0) 70%);
+        animation: lo-breathe 7s ease-in-out infinite alternate; will-change: opacity;
+      }
+      /* rais de lumière qui traversent l'eau, chacun à son rythme */
+      #loading .ray {
+        position: absolute; top: -25vh; left: var(--x); width: var(--w); height: 150vh;
+        background: linear-gradient(to bottom, rgba(190, 255, 240, .22), rgba(190, 255, 240, .06) 45%, rgba(190, 255, 240, 0) 80%);
+        transform-origin: 50% 0; transform: rotate(var(--r));
+        opacity: 0; animation: lo-ray var(--d) ease-in-out var(--dl) infinite alternate; will-change: transform, opacity;
+        mix-blend-mode: screen; filter: blur(10px);
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 35%, #000 65%, transparent); mask-image: linear-gradient(to right, transparent, #000 35%, #000 65%, transparent);
+      }
+      /* caustiques : deux voiles de lumière qui glissent l'un sur l'autre */
+      /* caustiques : un réseau de lumière organique (bruit de turbulence SVG, calculé une fois), deux voiles qui glissent */
+      #loading .caustic {
+        inset: -30%; opacity: .11; mix-blend-mode: screen;
+        -webkit-mask-image: linear-gradient(to bottom, #000, rgba(0,0,0,.35) 70%, transparent); mask-image: linear-gradient(to bottom, #000, rgba(0,0,0,.35) 70%, transparent);
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='c' x='0' y='0'><feTurbulence type='turbulence' baseFrequency='0.018' numOctaves='2' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.66  0 0 0 0 1  0 0 0 0 0.94  0 0 0 -7 1.35'/><feGaussianBlur stdDeviation='0.7'/></filter><rect width='600' height='600' filter='url(%23c)'/></svg>");
+        background-size: 60vmax 60vmax;
+        animation: lo-drift 26s linear infinite alternate; will-change: transform;
+      }
+      #loading .caustic.b { animation-duration: 33s; animation-direction: alternate-reverse; opacity: .07; background-size: 85vmax 85vmax; }
+      /* spores et plancton lumineux qui montent vers la surface */
+      #loading .mote { position: absolute; left: var(--x); bottom: -4vh; width: var(--s); height: var(--s); animation: lo-rise var(--d) linear var(--dl) infinite; will-change: transform; }
+      #loading .mote i {
+        display: block; width: 100%; height: 100%; border-radius: 50%;
+        background: radial-gradient(circle, #f2fffc 0 18%, var(--c) 42%, rgba(0,0,0,0) 72%);
+        animation: lo-sway var(--sw) ease-in-out infinite alternate, lo-twinkle var(--tw) ease-in-out infinite alternate; will-change: transform, opacity;
+      }
+      /* le germe : un cœur qui bat, des ondes qui partent, des filaments qui poussent */
+      #loading .seed { position: absolute; left: 50%; top: 40%; width: 0; height: 0; }
+      #loading .core {
+        position: absolute; left: -2.2vmin; top: -2.2vmin; width: 4.4vmin; height: 4.4vmin; border-radius: 50%;
+        background: radial-gradient(circle, #ffffff 0 12%, #8ffff0 30%, rgba(79,240,255,.35) 52%, rgba(79,240,255,0) 72%);
+        animation: lo-beat 2.4s cubic-bezier(.4,0,.2,1) infinite; will-change: transform, opacity;
+      }
+      #loading .wave {
+        position: absolute; left: -9vmin; top: -9vmin; width: 18vmin; height: 18vmin; border-radius: 50%;
+        border: .28vmin solid rgba(143, 255, 240, .55); box-shadow: 0 0 2vmin rgba(79,240,255,.25), inset 0 0 1.4vmin rgba(79,240,255,.2);
+        opacity: 0; animation: lo-wave 4.8s cubic-bezier(.2,.6,.3,1) var(--dl) infinite; will-change: transform, opacity;
+      }
+      #loading .fil {
+        position: absolute; left: -.2vmin; bottom: 0; width: .4vmin; height: 16vmin; transform-origin: 50% 100%; filter: drop-shadow(0 0 .6vmin rgba(79,240,255,.7));
+        background: linear-gradient(to top, rgba(143,255,240,.0), rgba(143,255,240,.75) 40%, rgba(255,255,255,.95));
+        border-radius: .2vmin; transform: rotate(var(--a)) scaleY(0);
+        animation: lo-grow 3.2s cubic-bezier(.2,.8,.2,1) var(--dl) forwards, lo-tremble var(--tw) ease-in-out calc(var(--dl) + 3.2s) infinite alternate;
+        will-change: transform;
+      }
+      #loading .fil::after {
+        content: ""; position: absolute; left: 50%; top: -.7vmin; width: 1.4vmin; height: 1.4vmin; margin-left: -.7vmin; border-radius: 50%;
+        background: radial-gradient(circle, #fff 0 20%, #8ffff0 45%, rgba(79,240,255,0) 72%);
+      }
+      /* le titre, lettre par lettre, puis un reflet qui le traverse */
+      #loading .title {
+        position: absolute; left: 0; right: 0; top: 60%; text-align: center;
+        font-weight: 900; font-size: clamp(28px, 6.4vmin, 120px); letter-spacing: .32em; text-indent: .32em; text-transform: uppercase;
+        color: #e9fffb; text-shadow: 0 0 2.2vmin rgba(79,240,255,.45), 0 0 .5vmin rgba(255,255,255,.4);
+      }
+      #loading .title span { display: inline-block; opacity: 0; transform: translateY(2.4vmin) scale(1.1); animation: lo-letter 1.6s cubic-bezier(.2,.8,.2,1) var(--dl) forwards; will-change: transform, opacity; }
+      #loading .title .gap { width: .6em; }
+      #loading .sheen { position: absolute; left: 0; right: 0; top: 60%; height: 9vmin; overflow: hidden; pointer-events: none; mix-blend-mode: screen; }
+      #loading .sheen::before {
+        content: ""; position: absolute; top: 0; bottom: 0; left: -30%; width: 22%;
+        background: linear-gradient(100deg, rgba(255,255,255,0), rgba(220,255,250,.35), rgba(255,255,255,0));
+        transform: translateX(-60vw); opacity: 0; animation: lo-sheen 6s ease-in-out 3.4s infinite; will-change: transform, opacity;
+      }
+      #loading .sub {
+        position: absolute; left: 0; right: 0; top: calc(60% + 10vmin); text-align: center; opacity: 0;
+        font: 400 clamp(11px, 1.6vmin, 26px)/1.4 "Geist Mono", ui-monospace, monospace; letter-spacing: .38em; text-indent: .38em; text-transform: uppercase;
+        color: #9fd8cf; animation: lo-fade 2.4s ease 2.6s forwards;
+      }
+      #loading .stage {
+        position: absolute; left: 0; right: 0; bottom: 7vh; text-align: center;
+        font: 400 clamp(13px, 2.1vmin, 34px)/1.4 Geist, ui-sans-serif, system-ui, sans-serif; letter-spacing: .24em; text-indent: .24em;
+        color: #d2fff7; opacity: .9; transition: opacity .9s ease; text-shadow: 0 0 1.4vmin rgba(79,240,255,.5);
+      }
+      #loading .stage.swap { opacity: 0; }
+      #loading .mark {
+        position: absolute; right: 3.2vmin; bottom: 3vmin; opacity: 0; animation: lo-fade 2s ease 3.2s forwards;
+        font: 900 clamp(12px, 1.9vmin, 30px)/1 Geist, ui-sans-serif, system-ui, sans-serif; letter-spacing: .08em; color: #dff8f3;
+      }
+      #loading .vignette { background: radial-gradient(120% 90% at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,6,10,.75) 100%); }
+      /* fin : la plongée, le cœur s'ouvre en lumière, tout s'efface vers le jardin */
+      #loading.done { opacity: 0; pointer-events: none; }
+      #loading.done .seed { animation: lo-dive 1.8s cubic-bezier(.6,0,.2,1) forwards; }
+      #loading.done .title, #loading.done .sub, #loading.done .sheen { animation: lo-away 1.4s cubic-bezier(.6,0,.2,1) forwards; }
+      #loading.done .surface { animation: lo-flare 1.8s ease forwards; }
+
+      @keyframes lo-breathe { from { opacity: .55 } to { opacity: 1 } }
+      @keyframes lo-ray { 0% { opacity: 0; transform: rotate(var(--r)) translateX(-3vw) } 30% { opacity: var(--o) } 100% { opacity: calc(var(--o) * .4); transform: rotate(calc(var(--r) + 3deg)) translateX(3vw) } }
+      @keyframes lo-drift { from { transform: translate3d(-4%, -2%, 0) rotate(0deg) scale(1) } to { transform: translate3d(4%, 3%, 0) rotate(8deg) scale(1.08) } }
+      @keyframes lo-rise { from { transform: translate3d(0, 0, 0) } to { transform: translate3d(0, -112vh, 0) } }
+      @keyframes lo-sway { from { transform: translateX(calc(var(--a) * -1)) } to { transform: translateX(var(--a)) } }
+      @keyframes lo-twinkle { 0% { opacity: .15 } 60% { opacity: .9 } 100% { opacity: .45 } }
+      @keyframes lo-beat { 0% { transform: scale(.82); opacity: .75 } 14% { transform: scale(1.18); opacity: 1 } 40% { transform: scale(.94); opacity: .85 } 100% { transform: scale(.82); opacity: .75 } }
+      @keyframes lo-wave { 0% { transform: scale(.15); opacity: 0 } 12% { opacity: .9 } 100% { transform: scale(3.4); opacity: 0 } }
+      @keyframes lo-grow { to { transform: rotate(var(--a)) scaleY(1) } }
+      @keyframes lo-tremble { from { transform: rotate(calc(var(--a) - 4deg)) scaleY(.96) } to { transform: rotate(calc(var(--a) + 4deg)) scaleY(1.04) } }
+      @keyframes lo-letter { to { opacity: 1; transform: translateY(0) scale(1) } }
+      @keyframes lo-sheen { 0% { transform: translateX(-60vw); opacity: 1 } 55% { transform: translateX(160vw); opacity: 1 } 56%, 100% { transform: translateX(160vw); opacity: 0 } }
+      @keyframes lo-fade { to { opacity: 1 } }
+      @keyframes lo-dive { to { transform: scale(9); opacity: 0 } }
+      @keyframes lo-away { to { transform: translateY(-3vmin) scale(1.06); opacity: 0 } }
+      @keyframes lo-flare { 0% { opacity: 1 } 35% { opacity: 1; transform: scale(1.6) } 100% { opacity: 0; transform: scale(2.2) } }
+      @media (prefers-reduced-motion: reduce) { #loading * { animation-duration: .01s !important; animation-iteration-count: 1 !important; } }
+    </style>
+    <script type="module" crossorigin src="/experiences/living-ocean/assets/index-B5L1UbyL.js"></script>
+  </head>
+  <body>
+    <div id="loading" aria-live="polite">
+      <div class="layer surface"></div>
+      <div class="layer rays"></div>
+      <div class="layer caustic"></div>
+      <div class="layer caustic b"></div>
+      <div class="layer motes"></div>
+      <div class="layer vignette"></div>
+      <div class="seed"><div class="wave" style="--dl:0s"></div><div class="wave" style="--dl:1.6s"></div><div class="wave" style="--dl:3.2s"></div><div class="core"></div></div>
+      <div class="title" aria-label="The Living Ocean"></div>
+      <div class="sheen"></div>
+      <div class="sub">FMRXR Studio · an alien coral garden</div>
+      <div class="stage">Une étincelle dans les profondeurs</div>
+      <div class="mark">FMRXR//</div>
+    </div>
+    <div id="op"></div>
+    <script>
+      // Construction de l'écran d'ouverture avant le module principal : il s'anime dès la première image.
+      ;(function () {
+        var L = document.getElementById('loading')
+        var rnd = (function (s) { return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646 } })(17)
+        var rays = L.querySelector('.rays')
+        for (var i = 0; i < 7; i++) {
+          var r = document.createElement('div'); r.className = 'ray'
+          r.style.cssText = '--x:' + (8 + i * 13 + rnd() * 6) + 'vw;--w:' + (6 + rnd() * 10) + 'vw;--r:' + (8 + rnd() * 10) + 'deg;--d:' + (7 + rnd() * 7) + 's;--dl:' + (rnd() * 3) + 's;--o:' + (0.35 + rnd() * 0.5)
+          rays.appendChild(r)
+        }
+        var motes = L.querySelector('.motes'), cols = ['#4ff0ff', '#8ffff0', '#b98cff', '#ffb27a', '#4fffc8']
+        for (var j = 0; j < 120; j++) {
+          var m = document.createElement('div'); m.className = 'mote'
+          var s = (0.3 + Math.pow(rnd(), 3) * 1.2).toFixed(2)
+          m.style.cssText = '--x:' + (rnd() * 100) + 'vw;--s:' + s + 'vmin;--d:' + (14 + rnd() * 22) + 's;--dl:-' + (rnd() * 30) + 's;--sw:' + (3 + rnd() * 5) + 's;--tw:' + (1.5 + rnd() * 3) + 's;--a:' + (1 + rnd() * 3) + 'vmin;--c:' + cols[Math.floor(rnd() * cols.length)]
+          m.appendChild(document.createElement('i'))
+          motes.appendChild(m)
+        }
+        var seed = L.querySelector('.seed')
+        for (var k = 0; k < 14; k++) {
+          var f = document.createElement('div'); f.className = 'fil'
+          f.style.cssText = '--a:' + (k * (360 / 14) + rnd() * 10) + 'deg;--dl:' + (0.6 + k * 0.12) + 's;--tw:' + (2 + rnd() * 2.5) + 's;height:' + (10 + rnd() * 9) + 'vmin'
+          seed.insertBefore(f, seed.firstChild)
+        }
+        var title = L.querySelector('.title'), text = 'THE LIVING OCEAN'
+        for (var n = 0; n < text.length; n++) {
+          var sp = document.createElement('span')
+          if (text[n] === ' ') { sp.className = 'gap'; sp.innerHTML = '&nbsp;' } else sp.textContent = text[n]
+          sp.style.setProperty('--dl', (1.2 + n * 0.09) + 's'); sp.setAttribute('aria-hidden', 'true')
+          title.appendChild(sp)
+        }
+      })()
+    </script>
+  </body>
+</html>

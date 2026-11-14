@@ -9,7 +9,10 @@
 
 import { MEDIA } from "./service-films";
 
-export type ProductSlug = "photobooth" | "live-wall" | "stomp" | "rooftop" | "firefly-garden";
+// Images de THE LIVING OCEAN (captures de la fiche projet).
+const R = (name: string) => `/living-ocean/reef/${name}.webp`;
+
+export type ProductSlug = "photobooth" | "live-wall" | "stomp" | "rooftop" | "firefly-garden" | "living-ocean";
 
 export type Product = {
   slug: ProductSlug;
@@ -17,7 +20,7 @@ export type Product = {
   tagline: string;
   intro: string;
   poster: string; // vignette du CMS et visuel du bloc
-  demo: { kind: "wall" } | { kind: "game"; src: string } | { kind: "photobooth" } | { kind: "embed"; src: string };
+  demo: { kind: "wall" } | { kind: "game"; src: string } | { kind: "photobooth" } | { kind: "embed"; src: string; hint?: string };
   facts: [string, string][];
   steps?: [string, string][];
   features?: [string, string][];
@@ -35,6 +38,12 @@ export type Product = {
     items: [string, string][];
     cuts: { id: string; label: string; line: string; src: string; poster: string }[];
   };
+  // Grilles d'images commentees (catalogue d'especes, moments...) : [image, titre, ligne, etiquette].
+  showcases?: { kicker: string; title: string; body?: string; dense?: boolean; items: [string, string, string, string?][] }[];
+  // Toutes les commandes, en colonnes : [touche ou geste, effet].
+  controls?: { kicker: string; title: string; body?: string; groups: { title: string; rows: [string, string][] }[] };
+  // Fiche projet a telecharger.
+  download?: { href: string; label: string; line: string };
   closing?: string;
   seo?: { title: string; description: string; keywords: string[] };
 };
@@ -195,6 +204,144 @@ export const PRODUCTS: Product[] = [
       title: "Le Jardin des Lucioles: an interactive LED wall for product launches",
       description: "An interactive LED wall installation for product launches: guests lead a firefly with their hand, your product appears, opens in an exploded view and dissolves into light that wakes a living night garden. Real time, hand tracking.",
       keywords: ["interactive LED wall", "product launch installation", "product reveal", "exploded view", "interactive installation", "hand tracking installation", "brand activation", "immersive garden", "FMRXR"],
+    },
+  },
+  {
+    slug: "living-ocean",
+    name: ["The Living ", "Ocean"],
+    tagline: "An alien coral garden that wakes under your guests' hands.",
+    intro: "A living reef in real time on your LED wall. More than thirty imagined species grow on a reef floor, sway in the same water and answer every gesture: anemones curl, flowers open, fish scatter and come back. Touch the reef in three places and a bloom runs across the whole garden. Rest a hand and light travels from creature to creature. Draw a circle and a vortex carries fish, jellyfish and spores with it.",
+    poster: "/living-ocean/poster.jpg",
+    demo: { kind: "embed", src: "/experiences/living-ocean/index.html", hint: "Hover to make the reef lean, click to touch it, Alt+1 to Alt+4 for the collective moments" },
+    facts: [["30+ species", "Each modelled, animated and reacting on its own"], ["4 collective moments", "Bloom, nervous system, vortex, ocean awakening"], ["Made for panoramic walls", "Very wide lens without stretched edges"], ["Runs in real time", "A browser on your LED wall"]],
+    steps: [
+      ["The reef is born", "A cinematic opening: a spark in the deep, filaments, plankton rising, the title, then the dive into the garden."],
+      ["A slow dive", "The camera travels the reef on a closed seven-minute loop: kelp cathedral, drop-off, anemone field, open meadow."],
+      ["Every gesture answers", "Hover and the reef leans toward the hand; touch and each creature reacts in its own way."],
+      ["The ocean awakens", "Guests trigger the collective moments together, up to the whole ecosystem lighting up as one."],
+    ],
+    features: [
+      ["A true reef floor", "Encrusting corals that touch and overlap, zoanthid mats, glowing sand grains, contact shadows and light pools, composed from real reef photography."],
+      ["Schools and swimmers", "Twenty-nine fish schools with real species and alien variants, cleaner shrimp colonies, jellyfish, salps, glass nautilus, a passing celestial whale."],
+      ["Collective moments", "Infinite bloom, living nervous system, biological vortex and ocean awakening, each triggered by what guests do, never at random."],
+      ["Cinema camera", "Three lenses including a 120° panoramic view in Panini projection, free look during the loop, every framing saved in the link."],
+    ],
+    specs: [
+      ["Screen", "Panoramic LED wall or projection, any ratio; tested at 1920 × 640 and 3371 × 845"],
+      ["Rendering", "Real time, WebGL (three.js), in a browser"],
+      ["Machine", "A computer with a recent browser and graphics card, nothing to install"],
+      ["Frame rate", "Locked to a steady 30 or 60 fps depending on the machine; measured at a steady 30 fps on the camera loop, 28 during the ocean awakening"],
+      ["Interaction", "Mouse, touch or any pointer today; one or several visitors"],
+      ["Loading", "A cinematic opening covers it entirely, then the garden runs without loading anything"],
+      ["Colourways", "Three palettes, switchable live"],
+    ],
+    faq: [
+      ["What does it run on?", "A computer with a browser and a recent graphics card, connected to your LED wall or projector. Nothing to install."],
+      ["Can it carry our brand or colours?", "Yes. The garden comes in three colourways and new ones are written for your event; a species or a moment can be designed around your product."],
+      ["What do guests have to do?", "Nothing to learn. Moving over the reef makes it lean, touching makes it react, and the collective moments come from simple gestures: three touches, a resting hand, a circle."],
+      ["Can we try it before booking?", "Yes. The same garden plays in your browser, with the mouse."],
+      ["How is it priced?", "Per event. Tell us your date, your screen and your audience for a quote."],
+    ],
+    film: {
+      kicker: "The film",
+      title: "Thirty seconds in the reef",
+      body: "Every shot was filmed inside the experience itself, frame by frame, with no compositing: the reef, its light and its creatures exactly as they run on your wall. A touch makes the anemones curl, three touches send a bloom across the garden, a resting hand lights the nervous system, a circle opens the vortex.",
+      label: "The Living Ocean film",
+      aspect: "aspect-[9/16]",
+      cuts: [
+        { id: "reel", label: "Reel", line: "Vertical cut for social media, 28 s.", src: `${MEDIA}/living-ocean-reel-9x16.mp4`, poster: `${MEDIA}/living-ocean-reel-9x16.jpg` },
+      ],
+      items: [
+        ["Touch the reef", "The anemones curl back and bubbles rise from the touch."],
+        ["Three touches", "A ring of light crosses the whole reef and every flower releases its pollen."],
+        ["Rest a hand", "Light travels from creature to creature along threads of beads."],
+        ["Draw a circle", "A vortex carries fish, jellyfish and spores up into the water."],
+      ],
+    },
+    showcases: [
+      {
+        kicker: "The collective moments",
+        title: "Triggered by guests, never at random",
+        body: "On its own, every creature answers the hand in front of it. When guests act together, a moment runs across the whole reef.",
+        items: [
+          [R("moment-bloom"), "Infinite bloom", "A wave of presence leaves the last touch and crosses the garden: every creature opens, every flower releases its pollen, a ring of light runs over the floor.", "Three touches in three places within 15 s"],
+          [R("moment-nervous"), "Living nervous system", "Pulses of light travel from creature to creature along threads of beads; each one lights up as the pulse reaches it, then the network fades.", "A calm hand resting for 3 s"],
+          [R("moment-vortex"), "Biological vortex", "A whirlpool is born under the hand and follows it for ten seconds: a spiral column of particles, fish, jellyfish, salps and nautili carried round and up, every plant bending into it.", "One full circle drawn with the hand"],
+          [R("moment-awakening"), "Ocean awakening", "Two great waves, the nervous network lit from five points of the garden, pollen from every flower, light rising then settling.", "The three moments within 3 min, or several guests together for 6 s"],
+        ],
+      },
+      {
+        kicker: "The species",
+        title: "Thirty-six living forms",
+        body: "Each one is modelled and animated on its own, from real marine life made alien: one continuous surface per organism, no plinths, varied sizes, three colourways, spring physics in a shared water.",
+        dense: true,
+        items: [
+          [R("anemone"), "Giant anemone", "Hundreds of tentacles part around the hand, recoil on touch and reopen in waves.", "A"],
+          [R("carpet"), "Carpet anemone", "A pleated disc of short tentacles; waves cross it like wind over a field.", "T"],
+          [R("pearl"), "Pearl anemone", "Strings of glass beads; a click sends a cascade of light to the tips.", "Q"],
+          [R("flower"), "Coral flower", "Opens petal by petal as the hand comes near, half-closes on touch, releases pollen.", "F"],
+          [R("bell"), "Bell flower", "Hanging bells breathe like jellyfish; click one and the fairy appears.", "E"],
+          [R("spiral"), "Spiral flower", "Buds twisted in a helix that unscrew as the hand approaches.", "I"],
+          [R("rays"), "Ray flower", "Fine rays and a translucent web that open toward a calm hand and fold like an umbrella.", "^"],
+          [R("lantern"), "Lantern plant", "Ribbed lanterns swing on their stems; touched, the skin dissolves into its veins and grows back.", "*"],
+          [R("plant"), "Ribbon plant", "Long twisted translucent ribbons; light climbs the veins after a touch.", "L"],
+          [R("grass"), "Glowing grass", "Tufts of blades that bend under the hand and ripple on touch.", "H"],
+          [R("fern"), "Fiddlehead fern", "Coiled fronds unroll base first, tip last, and curl back on touch.", ";"],
+          [R("kelp"), "Giant kelp", "Tall blades held up by glowing floats; the forest parts as the hand passes.", "Y"],
+          [R("coral"), "Branching coral", "Every branch is a spring; polyps retract on touch, light runs through the pores.", "C"],
+          [R("fan"), "Sea fan", "A meshed fan that bends like a sail; polyps bloom in sequence.", "V"],
+          [R("organ"), "Organ coral", "Fused tubes with feathery polyps that withdraw at the slightest disturbance.", "U"],
+          [R("brain"), "Brain coral", "Valleys grown by a real reaction-diffusion; a ring of light spreads from the touch.", "$"],
+          [R("table"), "Table coral", "Staggered lobed plates with a fringe that beats in a wave around the edge.", "%"],
+          [R("sponge"), "Sponges", "Barrel and encrusting sponges that tighten and breathe out a cloud of light.", ">"],
+          [R("reef"), "Reef floor", "Encrusting corals, zoanthid mats and forams; polyps open under a calm hand.", ")"],
+          [R("jelly"), "Jellyfish", "Fast contraction, slow release; crosses the garden and flees a touch.", "J"],
+          [R("siph"), "Siphonophore", "A colony that swims as one animal, beads of light along its stem.", "S"],
+          [R("cteno"), "Comb jelly", "Eight rows of beating combs that scatter a rainbow.", "X"],
+          [R("salp"), "Salps", "Chains of glass barrels swimming by jets in a wide loop.", ":"],
+          [R("nautilus"), "Glass nautilus", "Iridescent shell with visible chambers; comes to a calm hand, hides and flees on touch.", "&"],
+          [R("fish"), "Fish schools", "Real species and alien variants; they ring a calm hand and burst away from a sudden one.", "!"],
+          [R("shrimp"), "Cleaner shrimp", "Glass shrimp that dance in the anemones and swim in steady colonies across the reef.", "@"],
+          [R("nudi"), "Nudibranchs", "Slugs with glowing cerata or ruffled mantles gliding on the sand.", "N"],
+          [R("benthos"), "Sand dwellers", "Sea stars, urchins turning their spines to the hand, sea cucumbers.", "."],
+          [R("eels"), "Garden eels", "Colonies that dive into their burrows when the hand comes close.", ","],
+          [R("dwellers"), "Sea pens and tube anemones", "Plunge into their tubes on touch, then rise again.", "<"],
+          [R("ray"), "Ray", "Undulates the edge of its disc and lifts off the sand on touch.", "/"],
+          [R("rubble"), "Rubble and shells", "Bleached branches, computed shells and hermit crabs that hide and peek out.", "?"],
+          [R("seep"), "Cold seep", "Bubbles in puffs and bacterial filaments that retract on touch.", "#"],
+          [R("feather"), "Feather stars", "Curl on touch, swim with their arms, drift back down like parachutes.", "("],
+          [R("micro"), "Micro-organisms", "Swarms that grow curious of a slow hand and scatter from a fast one.", "M"],
+          [R("whale"), "The Celestial", "A whale with translucent wing fins that rarely passes over the garden.", "B"],
+        ],
+      },
+      {
+        kicker: "The dive",
+        title: "A reef composed like a film set",
+        body: "Spurs and grooves, a kelp nave, a drop-off, an anemone field and open meadows. The camera travels them on a closed seven-minute loop that never passes through the foliage, and the composition was checked by measurement against real reef photography.",
+        items: [
+          [R("garden-kelp"), "The kelp nave", "Tall forest, light falling between the blades."],
+          [R("garden-tombant"), "The drop-off", "Silhouettes along the crest and the slope."],
+          [R("garden-anemones"), "The anemone field", "The densest tableau of the reef."],
+          [R("garden-reef-floor"), "The reef floor", "Colonies that touch and overlap, sand only where it would be."],
+        ],
+      },
+    ],
+    controls: {
+      kicker: "The controls",
+      title: "Everything the operator can do",
+      body: "Guests only need their hands. The operator drives the rest from the keyboard, and every camera setting is written into the link so a wall reopens exactly as it was left.",
+      groups: [
+        { title: "Guests", rows: [["Hover", "The reef leans, opens and lights up toward the hand"], ["Click or touch", "Each creature reacts in its own way"], ["Click a bell", "The fairy appears and settles on the stem"], ["3 touches", "Infinite bloom"], ["Hand resting 3 s", "Living nervous system"], ["Circle", "Biological vortex"]] },
+        { title: "Camera", rows: [["7 · 8 · 9", "120° panoramic · 35 mm · 85 mm"], ["Right-drag", "Look around during the loop"], ["Wheel", "Zoom · Shift: distance · Alt: height"], ["0", "Back to the original framing"], ["Z", "Pause or resume the camera"]] },
+        { title: "Show", rows: [["G", "Full garden"], ["Letters and signs", "One species on its own (see the catalogue)"], ["1 · 2 · 3", "Colourways"], ["Alt+1 to Alt+4", "Trigger each collective moment"], ["W · K", "Call the whale · make it breach"], ["O · P", "Operator console · simulated visitors"]] },
+      ],
+    },
+    download: { href: `${MEDIA}/FMRXR_TheLivingOcean_FicheProjet.pdf`, label: "Project sheet (PDF, 16 pages, French)", line: "Every species with its modelling and animation, the collective moments, the camera, every control and the technical requirements." },
+    closing: "A reef that wakes when your guests reach out.",
+    seo: {
+      title: "The Living Ocean: an interactive alien coral reef for LED walls",
+      description: "An interactive LED wall installation: a real-time alien coral garden of thirty species that reacts to every gesture, with collective bloom, nervous-system and vortex moments triggered by guests. WebGL, panoramic walls, events and brand activations.",
+      keywords: ["interactive LED wall", "interactive installation", "immersive coral reef", "real-time WebGL", "panoramic projection", "generative ocean", "brand activation", "immersive experience", "FMRXR"],
     },
   },
 ];

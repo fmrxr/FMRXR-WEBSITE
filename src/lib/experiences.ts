@@ -63,6 +63,13 @@ export const EXPERIENCES: Experience[] = [
     requires: [], optional: ["camera"], desktopOnly: true, project: "jardin-des-lucioles",
   },
   {
+    slug: "living-ocean", title: "THE LIVING OCEAN", row: "spaces", year: 2026,
+    pitch: "An alien coral garden that answers every gesture. Touch it in three places and a bloom runs across the reef; draw a circle and a vortex carries the fish away.",
+    credits: ["FMRXR Studio", "Real-time WebGL reef, thirty species, made for panoramic LED walls"],
+    entry: "/experiences/living-ocean/index.html", ...media("living-ocean"), // boucle de 9 s tournee dans l'application (floraison puis vortex)
+    requires: [], desktopOnly: true, project: "living-ocean",
+  },
+  {
     slug: "radiance", title: "RADIANCE", row: "body", year: 2026, featured: true,
     pitch: "Your hand becomes a light source. Radiance cascades trace how it spills across the room, live.",
     credits: ["FMRXR Studio", "Hand tracking by FMRXR technologies, on your device"],
